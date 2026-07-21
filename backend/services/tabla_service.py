@@ -24,10 +24,10 @@ def calcular_tabla_grupo(grupo_id, partidos_excluidos_ids=None):
     id_por_jugador = {j["jugador_id"]: j["torneo_jugador_id"] for j in jugadores}
 
     for partido in partidos:
-        ganador_tj = id_por_jugador.get(partido["ganador_id"])
+        ganador_tj = id_por_jugador.get(partido.ganador_id)
         perdedor_id = (
-            partido["jugador2_id"] if partido["ganador_id"] == partido["jugador1_id"]
-            else partido["jugador1_id"]
+            partido.jugador2_id if partido.ganador_id == partido.jugador1_id
+            else partido.jugador1_id
         )
         perdedor_tj = id_por_jugador.get(perdedor_id)
 
@@ -62,10 +62,10 @@ def calcular_tabla_todos_contra_todos(torneo_id, partidos_excluidos_ids=None):
     id_por_jugador = {j["jugador_id"]: j["torneo_jugador_id"] for j in jugadores}
 
     for partido in partidos:
-        ganador_tj = id_por_jugador.get(partido["ganador_id"])
+        ganador_tj = id_por_jugador.get(partido.ganador_id)
         perdedor_id = (
-            partido["jugador2_id"] if partido["ganador_id"] == partido["jugador1_id"]
-            else partido["jugador1_id"]
+            partido.jugador2_id if partido.ganador_id == partido.jugador1_id
+            else partido.jugador1_id
         )
         perdedor_tj = id_por_jugador.get(perdedor_id)
 

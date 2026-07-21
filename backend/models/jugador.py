@@ -15,7 +15,6 @@ class Jugador:
 
     @staticmethod
     def from_row(row):
-        """Construye un Jugador a partir de una fila de MySQL (dict cursor)."""
         return Jugador(
             id=row["id"],
             nombre=row["nombre"],

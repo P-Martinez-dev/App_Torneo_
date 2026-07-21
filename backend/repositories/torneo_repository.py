@@ -1,4 +1,5 @@
 from database.db import get_connection
+from models.torneo import Torneo
 
 
 def crear(nombre, modo, fecha, cupos_eliminacion=None):
@@ -23,7 +24,7 @@ def obtener_por_id(torneo_id):
     fila = cursor.fetchone()
     cursor.close()
     conn.close()
-    return fila
+    return Torneo.from_row(fila)
 
 
 def asignar_jugadores(torneo_id, jugadores_ids):
@@ -66,15 +67,18 @@ def asignar_jugadores_a_grupo(grupo_id, jugadores_ids):
 
 
 def inicializar_cola_cinco_vidas(torneo_id, jugadores_ids_ordenados):
-    """Crea torneo_jugador + torneo_jugador_vidas con la cola inicial."""
+    """
+    Crea solo la extensión torneo_jugador_vidas. Las filas base de
+    torneo_jugador ya existen (las crea asignar_jugadores en crear_torneo).
+    """
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     for posicion, jugador_id in enumerate(jugadores_ids_ordenados):
         cursor.execute(
-            "INSERT INTO torneo_jugador (torneo_id, jugador_id) VALUES (%s, %s)",
+            "SELECT id FROM torneo_jugador WHERE torneo_id = %s AND jugador_id = %s",
             (torneo_id, jugador_id),
         )
-        torneo_jugador_id = cursor.lastrowid
+        torneo_jugador_id = cursor.fetchone()["id"]
         # los dos primeros arrancan jugando: no están "en cola" en el sentido
         # estricto, pero posicion_cola igual les sirve de referencia inicial
         cursor.execute(
