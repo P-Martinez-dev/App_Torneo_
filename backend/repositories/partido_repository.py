@@ -1,7 +1,10 @@
 from database.db import get_connection
+from models.partido import Partido
 
 
-# ---------- Creación ----------
+# =========================================================
+# Creación
+# =========================================================
 
 def crear_muchos(partidos):
     if not partidos:
@@ -10,9 +13,9 @@ def crear_muchos(partidos):
     cursor = conn.cursor()
     cursor.executemany(
         """INSERT INTO partido
-           (torneo_id, jugador1_id, jugador2_id, fase, ronda, jornada, orden, estado)
+           (torneo_id, jugador1_id, jugador2_id, fase, ronda, jornada, orden, grupo_id, estado)
            VALUES (%(torneo_id)s, %(jugador1_id)s, %(jugador2_id)s, %(fase)s,
-                   %(ronda)s, %(jornada)s, %(orden)s, 'pendiente')""",
+                   %(ronda)s, %(jornada)s, %(orden)s, %(grupo_id)s, 'pendiente')""",
         partidos,
     )
     conn.commit()
@@ -24,7 +27,9 @@ def crear_uno(partido):
     crear_muchos([partido])
 
 
-# ---------- Consultas / navegación ----------
+# =========================================================
+# Consultas / navegación
+# =========================================================
 
 def obtener_por_id(partido_id):
     conn = get_connection()
@@ -33,7 +38,7 @@ def obtener_por_id(partido_id):
     fila = cursor.fetchone()
     cursor.close()
     conn.close()
-    return fila
+    return Partido.from_row(fila)
 
 
 def obtener_en_curso(torneo_id):
@@ -46,7 +51,7 @@ def obtener_en_curso(torneo_id):
     fila = cursor.fetchone()
     cursor.close()
     conn.close()
-    return fila
+    return Partido.from_row(fila)
 
 
 def obtener_proximo_pendiente(torneo_id):
@@ -61,7 +66,7 @@ def obtener_proximo_pendiente(torneo_id):
     fila = cursor.fetchone()
     cursor.close()
     conn.close()
-    return fila
+    return Partido.from_row(fila)
 
 
 def obtener_pendientes_y_pospuestos(torneo_id):
@@ -76,13 +81,15 @@ def obtener_pendientes_y_pospuestos(torneo_id):
     filas = cursor.fetchall()
     cursor.close()
     conn.close()
-    return filas
+    return [Partido.from_row(f) for f in filas]
 
 
 def obtener_max_orden(torneo_id):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT COALESCE(MAX(orden), 0) FROM partido WHERE torneo_id = %s", (torneo_id,))
+    cursor.execute(
+        "SELECT COALESCE(MAX(orden), 0) FROM partido WHERE torneo_id = %s", (torneo_id,)
+    )
     maximo = cursor.fetchone()[0]
     cursor.close()
     conn.close()
@@ -103,7 +110,71 @@ def contar_pendientes_por_fase(torneo_id, fase):
     return total
 
 
-# ---------- Cambios de estado ----------
+def obtener_finalizados_por_grupo(grupo_id, excluidos_ids):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    query = "SELECT * FROM partido WHERE grupo_id = %s AND estado = 'finalizado'"
+    params = [grupo_id]
+    if excluidos_ids:
+        placeholders = ",".join(["%s"] * len(excluidos_ids))
+        query += f" AND id NOT IN ({placeholders})"
+        params += excluidos_ids
+    cursor.execute(query, params)
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [Partido.from_row(f) for f in filas]
+
+
+def obtener_finalizados_por_torneo(torneo_id, fase, excluidos_ids):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    query = "SELECT * FROM partido WHERE torneo_id = %s AND fase = %s AND estado = 'finalizado'"
+    params = [torneo_id, fase]
+    if excluidos_ids:
+        placeholders = ",".join(["%s"] * len(excluidos_ids))
+        query += f" AND id NOT IN ({placeholders})"
+        params += excluidos_ids
+    cursor.execute(query, params)
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [Partido.from_row(f) for f in filas]
+
+
+def obtener_ultima_ronda(torneo_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT COALESCE(MAX(ronda), 0) FROM partido
+           WHERE torneo_id = %s AND fase = 'eliminacion'""",
+        (torneo_id,),
+    )
+    ultima = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+    return ultima
+
+
+def obtener_ganadores_ultima_ronda(torneo_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT ganador_id FROM partido
+           WHERE torneo_id = %s AND fase = 'eliminacion'
+             AND ronda = (SELECT MAX(ronda) FROM partido WHERE torneo_id = %s AND fase = 'eliminacion')
+           ORDER BY orden ASC""",
+        (torneo_id, torneo_id),
+    )
+    ganadores = [fila["ganador_id"] for fila in cursor.fetchall()]
+    cursor.close()
+    conn.close()
+    return ganadores
+
+
+# =========================================================
+# Cambios de estado
+# =========================================================
 
 def marcar_en_curso(partido_id):
     conn = get_connection()
@@ -149,7 +220,9 @@ def marcar_finalizado(partido_id, ganador_id):
     conn.close()
 
 
-# ---------- Modo 5 vidas (trabajan sobre torneo_jugador_vidas) ----------
+# =========================================================
+# Modo 5 vidas (trabajan sobre torneo_jugador_vidas)
+# =========================================================
 
 def descontar_vida(torneo_id, jugador_id):
     conn = get_connection()
@@ -247,63 +320,3 @@ def contar_jugadores_activos(torneo_id):
     cursor.close()
     conn.close()
     return total
-
-def obtener_ultima_ronda(torneo_id):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        """SELECT COALESCE(MAX(ronda), 0) FROM partido
-           WHERE torneo_id = %s AND fase = 'eliminacion'""",
-        (torneo_id,),
-    )
-    ultima = cursor.fetchone()[0]
-    cursor.close()
-    conn.close()
-    return ultima
-
-
-def obtener_ganadores_ultima_ronda(torneo_id):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        """SELECT ganador_id FROM partido
-           WHERE torneo_id = %s AND fase = 'eliminacion'
-             AND ronda = (SELECT MAX(ronda) FROM partido WHERE torneo_id = %s AND fase = 'eliminacion')
-           ORDER BY orden ASC""",
-        (torneo_id, torneo_id),
-    )
-    ganadores = [fila["ganador_id"] for fila in cursor.fetchall()]
-    cursor.close()
-    conn.close()
-    return ganadores
-
-def obtener_finalizados_por_grupo(grupo_id, excluidos_ids):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    placeholders = ",".join(["%s"] * len(excluidos_ids)) if excluidos_ids else None
-    query = "SELECT * FROM partido WHERE grupo_id = %s AND estado = 'finalizado'"
-    params = [grupo_id]
-    if placeholders:
-        query += f" AND id NOT IN ({placeholders})"
-        params += excluidos_ids
-    cursor.execute(query, params)
-    filas = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return filas
-
-
-def obtener_finalizados_por_torneo(torneo_id, fase, excluidos_ids):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    placeholders = ",".join(["%s"] * len(excluidos_ids)) if excluidos_ids else None
-    query = "SELECT * FROM partido WHERE torneo_id = %s AND fase = %s AND estado = 'finalizado'"
-    params = [torneo_id, fase]
-    if placeholders:
-        query += f" AND id NOT IN ({placeholders})"
-        params += excluidos_ids
-    cursor.execute(query, params)
-    filas = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return filas

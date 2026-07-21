@@ -50,7 +50,7 @@ def _generar_todos_contra_todos(torneo_id, jugadores_ids):
             partidos_a_crear.append({
                 "torneo_id": torneo_id, "jugador1_id": j1, "jugador2_id": j2,
                 "fase": "todos_contra_todos", "ronda": None, "jornada": jornada,
-                "orden": orden,
+                "orden": orden, "grupo_id": None,
             })
             orden += 1
     partido_repository.crear_muchos(partidos_a_crear)
@@ -88,6 +88,7 @@ def _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos
         grupo_id: _fixture_round_robin(jugadores_del_grupo)
         for grupo_id, jugadores_del_grupo in zip(grupo_ids, grupos_jugadores)
     }
+    # nota: grupo_ids ya son ints (devueltos por grupo_repository.crear), no objetos Grupo
 
     max_jornadas = max(len(f) for f in fixtures_por_grupo.values())
     partidos_a_crear = []
@@ -99,7 +100,7 @@ def _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos
                     partidos_a_crear.append({
                         "torneo_id": torneo_id, "jugador1_id": j1, "jugador2_id": j2,
                         "fase": "grupos", "ronda": None, "jornada": jornada + 1,
-                        "orden": orden,
+                        "orden": orden, "grupo_id": grupo_id,
                     })
                     orden += 1
 
@@ -116,6 +117,7 @@ def _generar_cinco_vidas(torneo_id, jugadores_ids, orden_aleatorio=True):
     partido_repository.crear_muchos([{
         "torneo_id": torneo_id, "jugador1_id": orden[0], "jugador2_id": orden[1],
         "fase": "cinco_vidas", "ronda": None, "jornada": None, "orden": 1,
+        "grupo_id": None,
     }])
 
 
@@ -128,40 +130,41 @@ def obtener_partido_actual(torneo_id):
     if partido is None:
         partido = partido_repository.obtener_proximo_pendiente(torneo_id)
         if partido is not None:
-            partido_repository.marcar_en_curso(partido["id"])
-    return partido
+            partido_repository.marcar_en_curso(partido.id)
+    return partido.to_dict() if partido else None
 
 
 def listar_partidos_pendientes(torneo_id):
-    return partido_repository.obtener_pendientes_y_pospuestos(torneo_id)
+    partidos = partido_repository.obtener_pendientes_y_pospuestos(torneo_id)
+    return [p.to_dict() for p in partidos]
 
 
 def seleccionar_partido_actual(torneo_id, partido_id):
     """Navegar a otro enfrentamiento. El que estaba en curso queda pospuesto."""
     actual = partido_repository.obtener_en_curso(torneo_id)
-    if actual is not None and actual["id"] != partido_id:
-        partido_repository.marcar_pospuesto(actual["id"])
+    if actual is not None and actual.id != partido_id:
+        partido_repository.marcar_pospuesto(actual.id)
     partido_repository.marcar_en_curso(partido_id)
-    return partido_repository.obtener_por_id(partido_id)
+    return partido_repository.obtener_por_id(partido_id).to_dict()
 
 
 def cargar_resultado(partido_id, ganador_id):
     partido = partido_repository.obtener_por_id(partido_id)
     partido_repository.marcar_finalizado(partido_id, ganador_id)
 
-    fase = partido["fase"]
-    torneo_id = partido["torneo_id"]
+    fase = partido.fase
+    torneo_id = partido.torneo_id
 
     if fase == "cinco_vidas":
         _avanzar_cinco_vidas(torneo_id, partido, ganador_id)
     elif fase == "grupos" and _fase_completa(torneo_id, "grupos"):
         calcular_clasificados(torneo_id)
     elif fase in ("repechaje", "desempate") and _fase_completa(torneo_id, fase):
-        resolver_repechaje(torneo_id, partido["grupo_id"] if "grupo_id" in partido else None)
+        resolver_repechaje(torneo_id, partido.grupo_id)
     elif fase == "eliminacion" and _fase_completa(torneo_id, "eliminacion"):
         _generar_siguiente_ronda_eliminacion(torneo_id)
 
-    return partido_repository.obtener_por_id(partido_id)
+    return partido_repository.obtener_por_id(partido_id).to_dict()
 
 
 def _fase_completa(torneo_id, fase):
@@ -174,8 +177,8 @@ def _fase_completa(torneo_id, fase):
 
 def _avanzar_cinco_vidas(torneo_id, partido, ganador_id):
     perdedor_id = (
-        partido["jugador2_id"] if ganador_id == partido["jugador1_id"]
-        else partido["jugador1_id"]
+        partido.jugador2_id if ganador_id == partido.jugador1_id
+        else partido.jugador1_id
     )
 
     vidas_restantes = partido_repository.descontar_vida(torneo_id, perdedor_id)
@@ -204,6 +207,7 @@ def _avanzar_cinco_vidas(torneo_id, partido, ganador_id):
         "ronda": None,
         "jornada": None,
         "orden": siguiente_orden,
+        "grupo_id": None,
     })
 
 
@@ -218,16 +222,16 @@ def calcular_clasificados(torneo_id):
     Si no hay empate, pasa directo a armar el bracket de eliminación.
     """
     torneo = torneo_repository.obtener_por_id(torneo_id)
-    cupos = torneo["cupos_eliminacion"]
-    grupos = [g for g in grupo_repository.obtener_por_torneo(torneo_id) if g["tipo"] == "grupo"]
+    cupos = torneo.cupos_eliminacion
+    grupos = [g for g in grupo_repository.obtener_por_torneo(torneo_id) if g.tipo == "grupo"]
 
-    tablas = {g["id"]: tabla_service.calcular_tabla_grupo(g["id"]) for g in grupos}
-    tamaños = {g["id"]: len(tablas[g["id"]]) for g in grupos}
+    tablas = {g.id: tabla_service.calcular_tabla_grupo(g.id) for g in grupos}
+    tamaños = {g.id: len(tablas[g.id]) for g in grupos}
     total_jugadores = sum(tamaños.values())
 
     cupo_directo, resto = {}, {}
     for g in grupos:
-        gid = g["id"]
+        gid = g.id
         cupo_directo[gid] = (tamaños[gid] * cupos) // total_jugadores
         resto[gid] = (tamaños[gid] * cupos) % total_jugadores
 
@@ -256,7 +260,7 @@ def calcular_clasificados(torneo_id):
 
     # Marcar clasificados directos / no clasificados / pendientes de repechaje
     for g in grupos:
-        gid = g["id"]
+        gid = g.id
         tabla = tablas[gid]
         n_directos = cupo_directo[gid]
         for posicion, fila in enumerate(tabla):
@@ -284,7 +288,7 @@ def resolver_repechaje(torneo_id, grupo_id):
     """Se dispara al terminar un mini-grupo de repechaje o desempate."""
     grupo = grupo_repository.obtener_por_id(grupo_id)
     tabla = tabla_service.calcular_tabla_grupo(grupo_id)
-    slots = grupo["slots_a_clasificar"]
+    slots = grupo.slots_a_clasificar
 
     sin_empate = len(tabla) <= slots or tabla[slots - 1]["puntos"] > tabla[slots]["puntos"]
 
@@ -331,6 +335,7 @@ def _crear_grupo_repechaje(torneo_id, jugadores_ids, slots, tipo):
             partidos.append({
                 "torneo_id": torneo_id, "jugador1_id": j1, "jugador2_id": j2,
                 "fase": tipo, "ronda": None, "jornada": jornada, "orden": orden,
+                "grupo_id": grupo_id,
             })
             orden += 1
     partido_repository.crear_muchos(partidos)
@@ -353,6 +358,7 @@ def generar_fase_eliminacion(torneo_id):
             "jugador1_id": orden_bracket[i],
             "jugador2_id": orden_bracket[i + 1],
             "fase": "eliminacion", "ronda": 1, "jornada": None, "orden": orden,
+            "grupo_id": None,
         })
         orden += 1
     partido_repository.crear_muchos(partidos)
@@ -393,6 +399,7 @@ def _generar_siguiente_ronda_eliminacion(torneo_id):
             "torneo_id": torneo_id,
             "jugador1_id": ganadores[i], "jugador2_id": ganadores[i + 1],
             "fase": "eliminacion", "ronda": ronda_anterior + 1, "jornada": None, "orden": orden,
+            "grupo_id": None,
         })
         orden += 1
     partido_repository.crear_muchos(partidos)
