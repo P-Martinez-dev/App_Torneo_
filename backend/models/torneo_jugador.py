@@ -53,12 +53,13 @@ class TorneoJugadorVidas:
     """Extensión: solo existe para torneos modo 'cinco_vidas'."""
 
     def __init__(self, torneo_jugador_id=None, vidas=3, eliminado=False,
-                 posicion_cola=None, en_cancha=False):
+                 posicion_cola=None, en_cancha=False, orden_eliminacion=None):
         self.torneo_jugador_id = torneo_jugador_id
         self.vidas = vidas
         self.eliminado = eliminado
         self.posicion_cola = posicion_cola
         self.en_cancha = en_cancha
+        self.orden_eliminacion = orden_eliminacion
 
     def to_dict(self):
         return {
@@ -67,6 +68,7 @@ class TorneoJugadorVidas:
             "eliminado": self.eliminado,
             "posicion_cola": self.posicion_cola,
             "en_cancha": self.en_cancha,
+            "orden_eliminacion": self.orden_eliminacion,
         }
 
     @staticmethod
@@ -79,4 +81,5 @@ class TorneoJugadorVidas:
             eliminado=row["eliminado"],
             posicion_cola=row["posicion_cola"],
             en_cancha=row["en_cancha"],
+            orden_eliminacion=row["orden_eliminacion"],
         )

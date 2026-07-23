@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services import torneo_service, partido_service, tabla_service
+from services import torneo_service, partido_service, tabla_service, tabla_general_service
 
 torneo_bp = Blueprint("torneo", __name__, url_prefix="/torneos")
 
@@ -57,6 +57,14 @@ def tabla_grupo(torneo_id, grupo_id):
 def contexto_repechaje(torneo_id, grupo_id):
     """Resumen justificativo para la pantalla de forzado de clasificados."""
     return jsonify(tabla_service.contexto_repechaje(torneo_id, grupo_id)), 200
+
+
+@torneo_bp.route("/tabla-general", methods=["GET"])
+def tabla_general():
+    """Ranking histórico de campeonatos. Query param opcional: ?excluir=4&excluir=7"""
+    torneos_excluidos = request.args.getlist("excluir", type=int)
+    tabla = tabla_general_service.calcular_tabla_general(torneos_excluidos)
+    return jsonify(tabla), 200
 
 
 # =========================================================

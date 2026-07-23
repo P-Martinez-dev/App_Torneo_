@@ -108,3 +108,20 @@ def obtener_grupo_original(torneo_id, jugador_id):
     cursor.close()
     conn.close()
     return fila
+
+
+def obtener_vidas_de_torneo(torneo_id):
+    """Estado de vidas de todos los jugadores de un torneo modo 'cinco_vidas'."""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT tj.jugador_id, tjv.eliminado, tjv.orden_eliminacion
+           FROM torneo_jugador_vidas tjv
+           JOIN torneo_jugador tj ON tj.id = tjv.torneo_jugador_id
+           WHERE tj.torneo_id = %s""",
+        (torneo_id,),
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return filas
