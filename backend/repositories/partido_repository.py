@@ -156,6 +156,24 @@ def obtener_ultima_ronda(torneo_id):
     return ultima
 
 
+def obtener_finalizados_por_torneos(torneos_ids):
+    """Todos los partidos finalizados de una lista de torneos, sin importar la fase.
+    Se usa para el desempate de la tabla general (puntos de victoria y win rate)."""
+    if not torneos_ids:
+        return []
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    placeholders = ",".join(["%s"] * len(torneos_ids))
+    cursor.execute(
+        f"SELECT * FROM partido WHERE torneo_id IN ({placeholders}) AND estado = 'finalizado'",
+        torneos_ids,
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [Partido.from_row(f) for f in filas]
+
+
 def obtener_ganadores_ultima_ronda(torneo_id):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -170,6 +188,27 @@ def obtener_ganadores_ultima_ronda(torneo_id):
     cursor.close()
     conn.close()
     return ganadores
+
+
+def obtener_perdedores_ultima_ronda(torneo_id):
+    """Los dos que pierden semifinal, para armar el partido por el tercer puesto."""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT jugador1_id, jugador2_id, ganador_id FROM partido
+           WHERE torneo_id = %s AND fase = 'eliminacion'
+             AND ronda = (SELECT MAX(ronda) FROM partido WHERE torneo_id = %s AND fase = 'eliminacion')
+           ORDER BY orden ASC""",
+        (torneo_id, torneo_id),
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    perdedores = []
+    for f in filas:
+        perdedor = f["jugador2_id"] if f["ganador_id"] == f["jugador1_id"] else f["jugador1_id"]
+        perdedores.append(perdedor)
+    return perdedores
 
 
 # =========================================================
@@ -248,7 +287,24 @@ def descontar_vida(torneo_id, jugador_id):
 
 
 def marcar_eliminado(torneo_id, jugador_id):
-    _actualizar_vidas(torneo_id, jugador_id, eliminado=True, en_cancha=False)
+    siguiente_orden = _obtener_siguiente_orden_eliminacion(torneo_id)
+    _actualizar_vidas(torneo_id, jugador_id, eliminado=True, en_cancha=False,
+                       orden_eliminacion=siguiente_orden)
+
+
+def _obtener_siguiente_orden_eliminacion(torneo_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT COALESCE(MAX(tjv.orden_eliminacion), 0) FROM torneo_jugador_vidas tjv
+           JOIN torneo_jugador tj ON tj.id = tjv.torneo_jugador_id
+           WHERE tj.torneo_id = %s""",
+        (torneo_id,),
+    )
+    maximo = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+    return maximo + 1
 
 
 def marcar_en_cancha(torneo_id, jugador_id):

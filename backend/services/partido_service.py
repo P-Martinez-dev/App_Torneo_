@@ -157,12 +157,16 @@ def cargar_resultado(partido_id, ganador_id):
 
     if fase == "cinco_vidas":
         _avanzar_cinco_vidas(torneo_id, partido, ganador_id)
+    elif fase == "todos_contra_todos" and _fase_completa(torneo_id, "todos_contra_todos"):
+        torneo_repository.marcar_finalizado(torneo_id)
     elif fase == "grupos" and _fase_completa(torneo_id, "grupos"):
         calcular_clasificados(torneo_id)
     elif fase in ("repechaje", "desempate") and _fase_completa(torneo_id, fase):
         resolver_repechaje(torneo_id, partido.grupo_id)
     elif fase == "eliminacion" and _fase_completa(torneo_id, "eliminacion"):
         _generar_siguiente_ronda_eliminacion(torneo_id)
+    elif fase == "tercer_puesto" and _fase_completa(torneo_id, "tercer_puesto"):
+        _verificar_fin_torneo(torneo_id)
 
     return partido_repository.obtener_por_id(partido_id).to_dict()
 
@@ -388,7 +392,9 @@ def _generar_siguiente_ronda_eliminacion(torneo_id):
     ganadores = partido_repository.obtener_ganadores_ultima_ronda(torneo_id)
 
     if len(ganadores) == 1:
-        torneo_repository.marcar_finalizado(torneo_id)
+        # La final ya se jugó. El torneo termina solo si no queda pendiente
+        # el partido por el tercer puesto (o si nunca hizo falta generarlo).
+        _verificar_fin_torneo(torneo_id)
         return
 
     ronda_anterior = partido_repository.obtener_ultima_ronda(torneo_id)
@@ -402,4 +408,24 @@ def _generar_siguiente_ronda_eliminacion(torneo_id):
             "grupo_id": None,
         })
         orden += 1
+
+    if len(ganadores) == 2:
+        # La próxima ronda que se genera es la final -> sumar el partido
+        # por el tercer puesto entre los dos perdedores de semifinal.
+        perdedores = partido_repository.obtener_perdedores_ultima_ronda(torneo_id)
+        partidos.append({
+            "torneo_id": torneo_id,
+            "jugador1_id": perdedores[0], "jugador2_id": perdedores[1],
+            "fase": "tercer_puesto", "ronda": ronda_anterior + 1, "jornada": None, "orden": orden,
+            "grupo_id": None,
+        })
+
     partido_repository.crear_muchos(partidos)
+
+
+def _verificar_fin_torneo(torneo_id):
+    """El torneo termina cuando la final está jugada Y (si existía)
+    el partido por el tercer puesto también. Si nunca hizo falta generar
+    tercer puesto (bracket mínimo de 2 jugadores), esto da 0 igual."""
+    if partido_repository.contar_pendientes_por_fase(torneo_id, "tercer_puesto") == 0:
+        torneo_repository.marcar_finalizado(torneo_id)

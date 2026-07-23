@@ -1,6 +1,6 @@
 from flask import Flask
 
-from .config import Config
+from config import Config
 from controllers.jugador_routes import jugador_bp
 from controllers.torneo_routes import torneo_bp
 from controllers.partido_routes import partido_bp

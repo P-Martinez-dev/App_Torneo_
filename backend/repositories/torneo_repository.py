@@ -99,3 +99,19 @@ def marcar_finalizado(torneo_id):
     conn.commit()
     cursor.close()
     conn.close()
+
+
+def obtener_finalizados(excluidos_ids=None):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    query = "SELECT * FROM torneo WHERE estado = 'finalizado'"
+    params = []
+    if excluidos_ids:
+        placeholders = ",".join(["%s"] * len(excluidos_ids))
+        query += f" AND id NOT IN ({placeholders})"
+        params += excluidos_ids
+    cursor.execute(query, params)
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [Torneo.from_row(f) for f in filas]
