@@ -29,5 +29,8 @@ def listar_pendientes(torneo_id):
 @partido_bp.route("/partidos/<int:partido_id>/resultado", methods=["POST"])
 def cargar_resultado(partido_id):
     datos = request.get_json()
-    partido = partido_service.cargar_resultado(partido_id, datos.get("ganador_id"))
-    return jsonify(partido), 200
+    try:
+        partido = partido_service.cargar_resultado(partido_id, datos.get("ganador_id"))
+        return jsonify(partido), 200
+    except partido_service.ResultadoInvalidoError as e:
+        return jsonify({"error": str(e)}), 400

@@ -19,6 +19,12 @@ def obtener_torneo(torneo_id: int) -> dict:
     return torneo.to_dict()
 
 
+def eliminar_torneo(torneo_id: int) -> None:
+    eliminado = torneo_repository.eliminar_completo(torneo_id)
+    if not eliminado:
+        raise TorneoNoEncontradoError(f"No existe el torneo {torneo_id}")
+
+
 def _es_potencia_de_dos(n):
     return n > 0 and (n & (n - 1)) == 0
 

@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Ubicación real del script, sin importar desde dónde se lo invoque
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 echo "==> Creando entorno virtual (venv/)..."
 if [ ! -d "venv" ]; then
     python3 -m venv venv
@@ -47,15 +51,15 @@ else
 fi
 
 echo ""
-read -p "==> ¿Inicializar la base de datos MySQL ahora (crear 'torneos' y correr schema.sql)? [s/N] " respuesta
+read -p "==> ¿(Re)inicializar la base de datos MySQL desde cero? Esto BORRA todo lo que tengas en 'torneos'. [s/N] " respuesta
 if [[ "$respuesta" =~ ^[sS]$ ]]; then
     read -p "    Usuario de MySQL: " db_user
-    mysql -u "$db_user" -p -e "CREATE DATABASE IF NOT EXISTS torneos;"
+    mysql -u "$db_user" -p -e "DROP DATABASE IF EXISTS torneos; CREATE DATABASE torneos;"
     mysql -u "$db_user" -p torneos < schema.sql
-    echo "    Base de datos 'torneos' inicializada con schema.sql."
+    echo "    Base de datos 'torneos' recreada desde cero con schema.sql."
 else
     echo "    Se salteó la inicialización de la base. Podés correrla después con:"
-    echo "      mysql -u tu_usuario -p -e \"CREATE DATABASE torneos;\""
+    echo "      mysql -u tu_usuario -p -e \"DROP DATABASE IF EXISTS torneos; CREATE DATABASE torneos;\""
     echo "      mysql -u tu_usuario -p torneos < schema.sql"
 fi
 
