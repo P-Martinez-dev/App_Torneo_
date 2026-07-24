@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from services import torneo_service, partido_service, tabla_service, tabla_general_service
+from repositories import grupo_repository
 
 torneo_bp = Blueprint("torneo", __name__, url_prefix="/torneos")
 
@@ -33,9 +34,24 @@ def obtener(torneo_id):
         return jsonify({"error": str(e)}), 404
 
 
+@torneo_bp.route("/<int:torneo_id>", methods=["DELETE"])
+def eliminar(torneo_id):
+    try:
+        torneo_service.eliminar_torneo(torneo_id)
+        return "", 204
+    except torneo_service.TorneoNoEncontradoError as e:
+        return jsonify({"error": str(e)}), 404
+
+
 # =========================================================
 # Tablas de posiciones (dinámicas, permiten excluir partidos/fechas)
 # =========================================================
+
+@torneo_bp.route("/<int:torneo_id>/grupos", methods=["GET"])
+def listar_grupos(torneo_id):
+    grupos = grupo_repository.obtener_por_torneo(torneo_id)
+    return jsonify([g.to_dict() for g in grupos]), 200
+
 
 @torneo_bp.route("/<int:torneo_id>/tabla", methods=["GET"])
 def tabla_todos_contra_todos(torneo_id):

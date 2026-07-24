@@ -148,8 +148,19 @@ def seleccionar_partido_actual(torneo_id, partido_id):
     return partido_repository.obtener_por_id(partido_id).to_dict()
 
 
+class ResultadoInvalidoError(Exception):
+    pass
+
+
 def cargar_resultado(partido_id, ganador_id):
     partido = partido_repository.obtener_por_id(partido_id)
+
+    if ganador_id not in (partido.jugador1_id, partido.jugador2_id):
+        raise ResultadoInvalidoError(
+            f"El ganador_id ({ganador_id}) debe ser jugador1_id ({partido.jugador1_id}) "
+            f"o jugador2_id ({partido.jugador2_id}) de este partido"
+        )
+
     partido_repository.marcar_finalizado(partido_id, ganador_id)
 
     fase = partido.fase

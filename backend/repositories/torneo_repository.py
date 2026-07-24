@@ -115,3 +115,40 @@ def obtener_finalizados(excluidos_ids=None):
     cursor.close()
     conn.close()
     return [Torneo.from_row(f) for f in filas]
+
+
+def eliminar_completo(torneo_id):
+    """
+    Borra el torneo y todo lo que depende de él, en el orden correcto
+    para no chocar con las foreign keys: primero lo más 'hijo'
+    (partido, extensiones de torneo_jugador), después grupo y
+    torneo_jugador, y recién al final el torneo en sí.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM partido WHERE torneo_id = %s", (torneo_id,))
+        cursor.execute(
+            """DELETE tjg FROM torneo_jugador_grupo tjg
+               JOIN torneo_jugador tj ON tj.id = tjg.torneo_jugador_id
+               WHERE tj.torneo_id = %s""",
+            (torneo_id,),
+        )
+        cursor.execute(
+            """DELETE tjv FROM torneo_jugador_vidas tjv
+               JOIN torneo_jugador tj ON tj.id = tjv.torneo_jugador_id
+               WHERE tj.torneo_id = %s""",
+            (torneo_id,),
+        )
+        cursor.execute("DELETE FROM grupo WHERE torneo_id = %s", (torneo_id,))
+        cursor.execute("DELETE FROM torneo_jugador WHERE torneo_id = %s", (torneo_id,))
+        cursor.execute("DELETE FROM torneo WHERE id = %s", (torneo_id,))
+        filas_afectadas = cursor.rowcount
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+    return filas_afectadas > 0
