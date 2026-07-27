@@ -246,13 +246,14 @@ def marcar_pospuesto(partido_id):
     conn.close()
 
 
-def marcar_finalizado(partido_id, ganador_id):
+def marcar_finalizado(partido_id, ganador_id, peleador1_id=None, peleador2_id=None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """UPDATE partido SET estado = 'finalizado', ganador_id = %s, fecha_jugado = NOW()
+        """UPDATE partido SET estado = 'finalizado', ganador_id = %s,
+           jugador1_peleador_id = %s, jugador2_peleador_id = %s, fecha_jugado = NOW()
            WHERE id = %s""",
-        (ganador_id, partido_id),
+        (ganador_id, peleador1_id, peleador2_id, partido_id),
     )
     conn.commit()
     cursor.close()

@@ -139,8 +139,18 @@ def listar_partidos_pendientes(torneo_id):
     return [p.to_dict() for p in partidos]
 
 
+class PartidoInvalidoError(Exception):
+    pass
+
+
 def seleccionar_partido_actual(torneo_id, partido_id):
     """Navegar a otro enfrentamiento. El que estaba en curso queda pospuesto."""
+    nuevo_actual = partido_repository.obtener_por_id(partido_id)
+    if nuevo_actual is None or nuevo_actual.torneo_id != torneo_id:
+        raise PartidoInvalidoError(
+            f"El partido {partido_id} no existe o no pertenece al torneo {torneo_id}"
+        )
+
     actual = partido_repository.obtener_en_curso(torneo_id)
     if actual is not None and actual.id != partido_id:
         partido_repository.marcar_pospuesto(actual.id)
@@ -152,8 +162,10 @@ class ResultadoInvalidoError(Exception):
     pass
 
 
-def cargar_resultado(partido_id, ganador_id):
+def cargar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=None):
     partido = partido_repository.obtener_por_id(partido_id)
+    if partido is None:
+        raise PartidoInvalidoError(f"No existe el partido {partido_id}")
 
     if ganador_id not in (partido.jugador1_id, partido.jugador2_id):
         raise ResultadoInvalidoError(
@@ -161,7 +173,7 @@ def cargar_resultado(partido_id, ganador_id):
             f"o jugador2_id ({partido.jugador2_id}) de este partido"
         )
 
-    partido_repository.marcar_finalizado(partido_id, ganador_id)
+    partido_repository.marcar_finalizado(partido_id, ganador_id, peleador1_id, peleador2_id)
 
     fase = partido.fase
     torneo_id = partido.torneo_id
@@ -281,11 +293,14 @@ def calcular_clasificados(torneo_id):
         for posicion, fila in enumerate(tabla):
             torneo_jugador_id = fila["torneo_jugador_id"]
             if posicion < n_directos:
-                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, True)
+                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, gid, True)
             elif gid in candidatos_repechaje and posicion == n_directos:
-                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, None)  # pendiente
+                # No clasificó directo de este grupo; su chance real queda
+                # registrada en la fila nueva del grupo de repechaje (que
+                # nace en NULL). Acá no debe quedar un NULL huérfano.
+                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, gid, False)
             else:
-                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, False)
+                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, gid, False)
 
     if candidatos_repechaje:
         jugadores_repechaje = [
@@ -310,7 +325,7 @@ def resolver_repechaje(torneo_id, grupo_id):
     if sin_empate:
         for posicion, fila in enumerate(tabla):
             torneo_jugador_repository.marcar_clasificado(
-                fila["torneo_jugador_id"], posicion < slots
+                fila["torneo_jugador_id"], grupo_id, posicion < slots
             )
         generar_fase_eliminacion(torneo_id)
         return {"estado": "eliminacion_generada"}
@@ -329,8 +344,9 @@ def reintentar_desempate(torneo_id, jugadores_empatados_ids, slots):
 def forzar_clasificado(torneo_id, jugador_id, clasificado, observacion=None):
     """El admin decide 'a mano' quién pasa, sin necesidad de jugar más partidos."""
     torneo_jugador_id = torneo_jugador_repository.obtener_id(torneo_id, jugador_id)
+    grupo_id = torneo_jugador_repository.obtener_grupo_pendiente(torneo_jugador_id)
     torneo_jugador_repository.marcar_clasificado(
-        torneo_jugador_id, clasificado, forzado=True, observacion=observacion
+        torneo_jugador_id, grupo_id, clasificado, forzado=True, observacion=observacion
     )
     if not torneo_jugador_repository.hay_pendientes(torneo_id):
         generar_fase_eliminacion(torneo_id)

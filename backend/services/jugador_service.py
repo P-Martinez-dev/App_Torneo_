@@ -1,6 +1,5 @@
 from mysql.connector import Error
 from repositories import jugador_repository
-from models.jugador import Jugador
 
 
 class JugadorNoEncontradoError(Exception):
@@ -13,15 +12,15 @@ class JugadorConHistorialError(Exception):
 
 
 def listar_jugadores():
-    filas = jugador_repository.obtener_todos()
-    return [Jugador.from_row(f).to_dict() for f in filas]
+    jugadores = jugador_repository.obtener_todos()
+    return [j.to_dict() for j in jugadores]
 
 
 def obtener_jugador(jugador_id):
-    fila = jugador_repository.obtener_por_id(jugador_id)
-    if fila is None:
+    jugador = jugador_repository.obtener_por_id(jugador_id)
+    if jugador is None:
         raise JugadorNoEncontradoError(f"No existe el jugador {jugador_id}")
-    return Jugador.from_row(fila).to_dict()
+    return jugador.to_dict()
 
 
 def crear_jugador(nombre, fecha_nacimiento=None):

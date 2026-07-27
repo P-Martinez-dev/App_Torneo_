@@ -110,7 +110,7 @@ def calcular_tabla_general(torneos_excluidos_ids=None):
         if p.ganador_id in stats:
             stats[p.ganador_id]["pg"] += 1
 
-    nombres = {j["id"]: j["nombre"] for j in jugador_repository.obtener_todos()}
+    nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
 
     resultado = []
     for jugador_id, entrada in acumulado.items():

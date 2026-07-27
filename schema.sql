@@ -32,11 +32,12 @@ CREATE TABLE torneo_jugador (
 );
 
 CREATE TABLE torneo_jugador_grupo (
-    torneo_jugador_id INT PRIMARY KEY,
+    torneo_jugador_id INT NOT NULL,
     grupo_id INT NOT NULL,
     clasificado BOOLEAN NULL,
     clasificacion_forzada BOOLEAN DEFAULT FALSE,
     observacion_forzado TEXT NULL,
+    PRIMARY KEY (torneo_jugador_id, grupo_id),
     FOREIGN KEY (torneo_jugador_id) REFERENCES torneo_jugador(id),
     FOREIGN KEY (grupo_id) REFERENCES grupo(id)
 );
@@ -51,6 +52,11 @@ CREATE TABLE torneo_jugador_vidas (
     FOREIGN KEY (torneo_jugador_id) REFERENCES torneo_jugador(id)
 );
 
+CREATE TABLE peleador (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL
+);
+
 CREATE TABLE partido (
     id INT AUTO_INCREMENT PRIMARY KEY,
     torneo_id INT NOT NULL,
@@ -62,11 +68,15 @@ CREATE TABLE partido (
     jornada INT NULL,
     orden INT NOT NULL,
     grupo_id INT NULL,
+    jugador1_peleador_id INT NULL,
+    jugador2_peleador_id INT NULL,
     estado ENUM('pendiente', 'en_curso', 'finalizado', 'pospuesto') DEFAULT 'pendiente',
     fecha_jugado DATETIME NULL,
     FOREIGN KEY (torneo_id) REFERENCES torneo(id),
     FOREIGN KEY (jugador1_id) REFERENCES jugador(id),
     FOREIGN KEY (jugador2_id) REFERENCES jugador(id),
     FOREIGN KEY (ganador_id) REFERENCES jugador(id),
-    FOREIGN KEY (grupo_id) REFERENCES grupo(id)
+    FOREIGN KEY (grupo_id) REFERENCES grupo(id),
+    FOREIGN KEY (jugador1_peleador_id) REFERENCES peleador(id),
+    FOREIGN KEY (jugador2_peleador_id) REFERENCES peleador(id)
 );

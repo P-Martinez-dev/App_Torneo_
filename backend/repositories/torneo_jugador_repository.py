@@ -14,18 +14,35 @@ def obtener_id(torneo_id, jugador_id):
     return fila[0] if fila else None
 
 
-def marcar_clasificado(torneo_jugador_id, clasificado, forzado=False, observacion=None):
+def marcar_clasificado(torneo_jugador_id, grupo_id, clasificado, forzado=False, observacion=None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         """UPDATE torneo_jugador_grupo
            SET clasificado = %s, clasificacion_forzada = %s, observacion_forzado = %s
-           WHERE torneo_jugador_id = %s""",
-        (clasificado, forzado, observacion, torneo_jugador_id),
+           WHERE torneo_jugador_id = %s AND grupo_id = %s""",
+        (clasificado, forzado, observacion, torneo_jugador_id, grupo_id),
     )
     conn.commit()
     cursor.close()
     conn.close()
+
+
+def obtener_grupo_pendiente(torneo_jugador_id):
+    """El grupo (de los que pertenece este torneo_jugador) donde todavía
+    no se definió si clasificó o no. Se usa para saber a cuál aplicar
+    un forzado cuando no se especifica el grupo explícitamente."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT grupo_id FROM torneo_jugador_grupo
+           WHERE torneo_jugador_id = %s AND clasificado IS NULL LIMIT 1""",
+        (torneo_jugador_id,),
+    )
+    fila = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return fila[0] if fila else None
 
 
 def hay_pendientes(torneo_id):

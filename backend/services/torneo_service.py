@@ -35,11 +35,17 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
     if not nombre or not nombre.strip():
         raise DatosTorneoInvalidosError("El nombre del torneo es obligatorio")
 
+    if not fecha:
+        raise DatosTorneoInvalidosError("La fecha del torneo es obligatoria")
+
     if modo not in ("todos_contra_todos", "grupos_eliminacion", "cinco_vidas"):
         raise DatosTorneoInvalidosError(f"Modo inválido: {modo}")
 
     if len(jugadores_ids) < 2:
         raise DatosTorneoInvalidosError("Se necesitan al menos 2 jugadores")
+
+    if len(set(jugadores_ids)) != len(jugadores_ids):
+        raise DatosTorneoInvalidosError("jugadores_ids no puede tener jugadores repetidos")
 
     if modo == "grupos_eliminacion":
         if not cupos_eliminacion or cupos_eliminacion < 2:
@@ -60,6 +66,12 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
             raise DatosTorneoInvalidosError(
                 "cantidad_grupos no puede superar la cantidad de jugadores"
             )
+        tamaño_grupo_mas_chico = len(jugadores_ids) // cantidad_grupos
+        if tamaño_grupo_mas_chico < 3:
+            raise DatosTorneoInvalidosError(
+                f"Con {len(jugadores_ids)} jugadores y {cantidad_grupos} grupos, "
+                f"algún grupo quedaría con menos de 3 jugadores. Reducí cantidad_grupos."
+            )
 
     torneo_id = torneo_repository.crear(
         nombre.strip(), modo, fecha,
@@ -71,5 +83,6 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
     partido_service.generar_fixture_inicial(
         torneo_id, modo, jugadores_ids, cupos_eliminacion, cantidad_grupos
     )
+    torneo_repository.marcar_en_curso(torneo_id)
 
     return torneo_repository.obtener_por_id(torneo_id).to_dict()

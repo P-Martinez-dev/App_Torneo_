@@ -16,8 +16,11 @@ def obtener_partido_actual(torneo_id):
 def seleccionar_partido_actual(torneo_id):
     """Navegar a otro enfrentamiento. El que estaba en pantalla queda pospuesto."""
     datos = request.get_json()
-    partido = partido_service.seleccionar_partido_actual(torneo_id, datos.get("partido_id"))
-    return jsonify(partido), 200
+    try:
+        partido = partido_service.seleccionar_partido_actual(torneo_id, datos.get("partido_id"))
+        return jsonify(partido), 200
+    except partido_service.PartidoInvalidoError as e:
+        return jsonify({"error": str(e)}), 400
 
 
 @partido_bp.route("/torneos/<int:torneo_id>/partidos-pendientes", methods=["GET"])
@@ -30,7 +33,14 @@ def listar_pendientes(torneo_id):
 def cargar_resultado(partido_id):
     datos = request.get_json()
     try:
-        partido = partido_service.cargar_resultado(partido_id, datos.get("ganador_id"))
+        partido = partido_service.cargar_resultado(
+            partido_id,
+            datos.get("ganador_id"),
+            peleador1_id=datos.get("peleador1_id"),
+            peleador2_id=datos.get("peleador2_id"),
+        )
         return jsonify(partido), 200
     except partido_service.ResultadoInvalidoError as e:
         return jsonify({"error": str(e)}), 400
+    except partido_service.PartidoInvalidoError as e:
+        return jsonify({"error": str(e)}), 404

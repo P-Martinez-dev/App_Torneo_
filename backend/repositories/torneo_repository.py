@@ -101,6 +101,15 @@ def marcar_finalizado(torneo_id):
     conn.close()
 
 
+def marcar_en_curso(torneo_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE torneo SET estado = 'en_curso' WHERE id = %s", (torneo_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
 def obtener_finalizados(excluidos_ids=None):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)

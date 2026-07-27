@@ -4,6 +4,7 @@ from config import Config
 from controllers.jugador_routes import jugador_bp
 from controllers.torneo_routes import torneo_bp
 from controllers.partido_routes import partido_bp
+from controllers.peleador_routes import peleador_bp
 
 
 def create_app():
@@ -13,6 +14,7 @@ def create_app():
     app.register_blueprint(jugador_bp)
     app.register_blueprint(torneo_bp)
     app.register_blueprint(partido_bp)
+    app.register_blueprint(peleador_bp)
 
     return app
 
