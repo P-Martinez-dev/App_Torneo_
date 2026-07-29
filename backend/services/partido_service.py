@@ -139,6 +139,13 @@ def listar_partidos_pendientes(torneo_id):
     return [p.to_dict() for p in partidos]
 
 
+def listar_partidos(torneo_id):
+    """Todos los partidos del torneo (cualquier estado/fase), útil para
+    inspeccionar rondas específicas como cuartos, semis, etc."""
+    partidos = partido_repository.obtener_por_torneo(torneo_id)
+    return [p.to_dict() for p in partidos]
+
+
 class PartidoInvalidoError(Exception):
     pass
 

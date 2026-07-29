@@ -29,6 +29,12 @@ def listar_pendientes(torneo_id):
     return jsonify(partido_service.listar_partidos_pendientes(torneo_id)), 200
 
 
+@partido_bp.route("/torneos/<int:torneo_id>/partidos", methods=["GET"])
+def listar_todos(torneo_id):
+    """Todos los partidos del torneo, cualquier estado o fase."""
+    return jsonify(partido_service.listar_partidos(torneo_id)), 200
+
+
 @partido_bp.route("/partidos/<int:partido_id>/resultado", methods=["POST"])
 def cargar_resultado(partido_id):
     datos = request.get_json()

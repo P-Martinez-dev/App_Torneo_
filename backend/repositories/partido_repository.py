@@ -84,6 +84,20 @@ def obtener_pendientes_y_pospuestos(torneo_id):
     return [Partido.from_row(f) for f in filas]
 
 
+def obtener_por_torneo(torneo_id):
+    """Todos los partidos del torneo, sin filtrar por estado. Sirve para
+    inspeccionar cualquier fase/ronda (ej: ver los cuartos de final)."""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT * FROM partido WHERE torneo_id = %s ORDER BY orden ASC", (torneo_id,)
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [Partido.from_row(f) for f in filas]
+
+
 def obtener_max_orden(torneo_id):
     conn = get_connection()
     cursor = conn.cursor()
