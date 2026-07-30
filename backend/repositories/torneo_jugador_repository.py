@@ -60,6 +60,25 @@ def hay_pendientes(torneo_id):
     return total > 0
 
 
+def hay_desempates_internos_pendientes(torneo_id):
+    """Igual que hay_pendientes, pero scopeado solo a los mini-grupos de
+    desempate interno de grupo (grupo_padre_id IS NOT NULL). Se usa para
+    saber cuándo ya se puede calcular el repechaje cruzado entre grupos."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT COUNT(*) FROM torneo_jugador_grupo tjg
+           JOIN grupo g ON g.id = tjg.grupo_id
+           WHERE g.torneo_id = %s AND g.grupo_padre_id IS NOT NULL
+             AND tjg.clasificado IS NULL""",
+        (torneo_id,),
+    )
+    total = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+    return total > 0
+
+
 def obtener_clasificados(torneo_id):
     """Devuelve [{jugador_id, grupo_id}] de todos los que clasificaron TRUE,
     tanto de grupos originales como de repechaje/desempate."""
@@ -92,6 +111,24 @@ def obtener_jugadores_de_grupo(grupo_id):
     cursor.close()
     conn.close()
     return filas
+
+
+def contar_repechajes_y_desempates(jugador_id):
+    """Cantidad de veces (grupos distintos, no partidos) que un jugador
+    terminó en un repechaje o desempate a lo largo de su carrera."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT COUNT(DISTINCT g.id) FROM torneo_jugador_grupo tjg
+           JOIN torneo_jugador tj ON tj.id = tjg.torneo_jugador_id
+           JOIN grupo g ON g.id = tjg.grupo_id
+           WHERE tj.jugador_id = %s AND g.tipo IN ('repechaje', 'desempate')""",
+        (jugador_id,),
+    )
+    total = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+    return total
 
 
 def obtener_jugadores_de_torneo(torneo_id):

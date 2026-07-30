@@ -1,7 +1,7 @@
 from datetime import date
 
-from repositories import torneo_repository
-from services import partido_service
+from repositories import torneo_repository, grupo_repository, partido_repository, jugador_repository
+from services import partido_service, tabla_service, tabla_general_service
 
 
 class DatosTorneoInvalidosError(Exception):
@@ -19,6 +19,10 @@ def obtener_torneo(torneo_id: int) -> dict:
     return torneo.to_dict()
 
 
+def listar_torneos() -> list[dict]:
+    return [t.to_dict() for t in torneo_repository.obtener_todos()]
+
+
 def eliminar_torneo(torneo_id: int) -> None:
     eliminado = torneo_repository.eliminar_completo(torneo_id)
     if not eliminado:
@@ -31,7 +35,8 @@ def _es_potencia_de_dos(n):
 
 def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
                   cupos_eliminacion: int | None = None,
-                  cantidad_grupos: int | None = None) -> dict:
+                  cantidad_grupos: int | None = None,
+                  vidas_iniciales: int | None = None) -> dict:
     if not nombre or not nombre.strip():
         raise DatosTorneoInvalidosError("El nombre del torneo es obligatorio")
 
@@ -46,6 +51,13 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
 
     if len(set(jugadores_ids)) != len(jugadores_ids):
         raise DatosTorneoInvalidosError("jugadores_ids no puede tener jugadores repetidos")
+
+    existentes = jugador_repository.obtener_ids_existentes(jugadores_ids)
+    inexistentes = [jid for jid in jugadores_ids if jid not in existentes]
+    if inexistentes:
+        raise DatosTorneoInvalidosError(
+            f"No existen jugadores con id: {inexistentes}"
+        )
 
     if modo == "grupos_eliminacion":
         if not cupos_eliminacion or cupos_eliminacion < 2:
@@ -73,16 +85,108 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
                 f"algún grupo quedaría con menos de 3 jugadores. Reducí cantidad_grupos."
             )
 
+    if modo == "cinco_vidas":
+        if not isinstance(vidas_iniciales, int) or isinstance(vidas_iniciales, bool) or vidas_iniciales < 1:
+            raise DatosTorneoInvalidosError(
+                "El modo cinco_vidas requiere vidas_iniciales (un entero >= 1)"
+            )
+
     torneo_id = torneo_repository.crear(
         nombre.strip(), modo, fecha,
         cupos_eliminacion if modo == "grupos_eliminacion" else None,
+        vidas_iniciales if modo == "cinco_vidas" else None,
     )
 
     torneo_repository.asignar_jugadores(torneo_id, jugadores_ids)
 
     partido_service.generar_fixture_inicial(
-        torneo_id, modo, jugadores_ids, cupos_eliminacion, cantidad_grupos
+        torneo_id, modo, jugadores_ids, cupos_eliminacion, cantidad_grupos, vidas_iniciales
     )
     torneo_repository.marcar_en_curso(torneo_id)
 
     return torneo_repository.obtener_por_id(torneo_id).to_dict()
+
+
+# =========================================================
+# Resumen del torneo (pensado para "cómo se desarrolló", sobre todo
+# útil una vez finalizado, pero funciona en cualquier estado)
+# =========================================================
+
+NOMBRES_RONDA = {1: "Final", 2: "Semifinal", 4: "Cuartos de final", 8: "Octavos de final"}
+
+
+def obtener_resumen(torneo_id: int) -> dict:
+    torneo = torneo_repository.obtener_por_id(torneo_id)
+    if torneo is None:
+        raise TorneoNoEncontradoError(f"No existe el torneo {torneo_id}")
+
+    nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+    partidos = partido_repository.obtener_por_torneo(torneo_id)  # ya viene ordenado por 'orden'
+
+    def con_nombres(p):
+        d = p.to_dict()
+        d["jugador1_nombre"] = nombres.get(p.jugador1_id)
+        d["jugador2_nombre"] = nombres.get(p.jugador2_id)
+        d["ganador_nombre"] = nombres.get(p.ganador_id)
+        return d
+
+    resumen = {"torneo": torneo.to_dict()}
+
+    if torneo.modo == "todos_contra_todos":
+        resumen["tabla"] = tabla_service.calcular_tabla_todos_contra_todos(torneo_id)
+        resumen["partidos"] = [con_nombres(p) for p in partidos]
+
+    elif torneo.modo == "cinco_vidas":
+        resumen["partidos"] = [con_nombres(p) for p in partidos]
+
+    elif torneo.modo == "grupos_eliminacion":
+        grupos = grupo_repository.obtener_por_torneo(torneo_id)
+        resumen["grupos"] = [
+            {
+                **g.to_dict(),
+                "tabla": tabla_service.calcular_tabla_grupo(g.id),
+                "partidos": [con_nombres(p) for p in partidos if p.grupo_id == g.id],
+            }
+            for g in grupos
+        ]
+        resumen["bracket"] = _armar_bracket(partidos, con_nombres)
+
+    if torneo.estado == "finalizado":
+        resumen["podio"] = _resumen_podio(torneo, nombres)
+
+    return resumen
+
+
+def _armar_bracket(partidos, con_nombres):
+    partidos_elim = [p for p in partidos if p.fase == "eliminacion"]
+    if not partidos_elim:
+        return None
+
+    por_ronda = {}
+    for p in partidos_elim:
+        por_ronda.setdefault(p.ronda, []).append(p)
+
+    rondas = [
+        {
+            "ronda": ronda,
+            "nombre": NOMBRES_RONDA.get(len(por_ronda[ronda]), f"Ronda de {len(por_ronda[ronda]) * 2}"),
+            "partidos": [con_nombres(p) for p in por_ronda[ronda]],
+        }
+        for ronda in sorted(por_ronda)
+    ]
+
+    bracket = {"rondas": rondas}
+    partido_tercer = next((p for p in partidos if p.fase == "tercer_puesto"), None)
+    if partido_tercer:
+        bracket["tercer_puesto"] = con_nombres(partido_tercer)
+    return bracket
+
+
+def _resumen_podio(torneo, nombres):
+    puestos = tabla_general_service.calcular_puestos(torneo)
+    podio = [
+        {"jugador_id": jugador_id, "nombre": nombres.get(jugador_id), "puesto": puesto}
+        for jugador_id, puesto in puestos.items()
+    ]
+    podio.sort(key=lambda f: f["puesto"])
+    return podio

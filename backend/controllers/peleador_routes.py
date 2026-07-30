@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from services import peleador_service
+from controllers.utils import obtener_json_body
 
 peleador_bp = Blueprint("peleador", __name__, url_prefix="/peleadores")
 
@@ -19,7 +20,9 @@ def obtener(peleador_id):
 
 @peleador_bp.route("", methods=["POST"])
 def crear():
-    datos = request.get_json()
+    datos, error = obtener_json_body()
+    if error:
+        return error
     try:
         nuevo = peleador_service.crear_peleador(nombre=datos.get("nombre"))
         return jsonify(nuevo), 201
@@ -29,7 +32,9 @@ def crear():
 
 @peleador_bp.route("/<int:peleador_id>", methods=["PUT"])
 def actualizar(peleador_id):
-    datos = request.get_json()
+    datos, error = obtener_json_body()
+    if error:
+        return error
     try:
         actualizado = peleador_service.actualizar_peleador(peleador_id, nombre=datos.get("nombre"))
         return jsonify(actualizado), 200

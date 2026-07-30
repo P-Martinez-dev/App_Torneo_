@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from services import jugador_service
+from services import jugador_service, estadisticas_service
+from controllers.utils import obtener_json_body
 
 jugador_bp = Blueprint("jugador", __name__, url_prefix="/jugadores")
 
@@ -17,9 +18,21 @@ def obtener(jugador_id):
         return jsonify({"error": str(e)}), 404
 
 
+@jugador_bp.route("/<int:jugador_id>/estadisticas", methods=["GET"])
+def estadisticas(jugador_id):
+    """Estadísticas históricas del jugador: rivales, peleadores, rachas,
+    mejor puesto y veces campeón, sumando todos sus torneos."""
+    try:
+        return jsonify(estadisticas_service.obtener_estadisticas_jugador(jugador_id)), 200
+    except estadisticas_service.JugadorNoEncontradoError as e:
+        return jsonify({"error": str(e)}), 404
+
+
 @jugador_bp.route("", methods=["POST"])
 def crear():
-    datos = request.get_json()
+    datos, error = obtener_json_body()
+    if error:
+        return error
     try:
         nuevo = jugador_service.crear_jugador(
             nombre=datos.get("nombre"),
@@ -32,7 +45,9 @@ def crear():
 
 @jugador_bp.route("/<int:jugador_id>", methods=["PUT"])
 def actualizar(jugador_id):
-    datos = request.get_json()
+    datos, error = obtener_json_body()
+    if error:
+        return error
     try:
         actualizado = jugador_service.actualizar_jugador(
             jugador_id,

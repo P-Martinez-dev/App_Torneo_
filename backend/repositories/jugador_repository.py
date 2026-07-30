@@ -2,6 +2,22 @@ from database.db import get_connection
 from models.jugador import Jugador
 
 
+def obtener_ids_existentes(jugadores_ids):
+    """Subconjunto de jugadores_ids que efectivamente existen en la tabla.
+    Se usa para validar antes de insertar (evita el 500 de MySQL por FK
+    violation cuando llega un id inexistente, y da un mensaje claro)."""
+    if not jugadores_ids:
+        return set()
+    conn = get_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join(["%s"] * len(jugadores_ids))
+    cursor.execute(f"SELECT id FROM jugador WHERE id IN ({placeholders})", jugadores_ids)
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return {fila[0] for fila in filas}
+
+
 def obtener_todos():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)

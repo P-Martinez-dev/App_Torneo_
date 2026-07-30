@@ -1,11 +1,12 @@
 class Grupo:
     def __init__(self, id=None, torneo_id=None, nombre=None,
-                 tipo="grupo", slots_a_clasificar=None):
+                 tipo="grupo", slots_a_clasificar=None, grupo_padre_id=None):
         self.id = id
         self.torneo_id = torneo_id
         self.nombre = nombre
         self.tipo = tipo  # 'grupo' | 'repechaje' | 'desempate'
         self.slots_a_clasificar = slots_a_clasificar
+        self.grupo_padre_id = grupo_padre_id  # set solo en desempates internos de grupo
 
     def to_dict(self):
         return {
@@ -14,6 +15,7 @@ class Grupo:
             "nombre": self.nombre,
             "tipo": self.tipo,
             "slots_a_clasificar": self.slots_a_clasificar,
+            "grupo_padre_id": self.grupo_padre_id,
         }
 
     @staticmethod
@@ -26,4 +28,5 @@ class Grupo:
             nombre=row["nombre"],
             tipo=row["tipo"],
             slots_a_clasificar=row["slots_a_clasificar"],
+            grupo_padre_id=row.get("grupo_padre_id"),
         )

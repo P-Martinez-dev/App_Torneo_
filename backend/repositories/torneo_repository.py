@@ -2,13 +2,13 @@ from database.db import get_connection
 from models.torneo import Torneo
 
 
-def crear(nombre, modo, fecha, cupos_eliminacion=None):
+def crear(nombre, modo, fecha, cupos_eliminacion=None, vidas_iniciales=None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """INSERT INTO torneo (nombre, modo, fecha, cupos_eliminacion, estado)
-           VALUES (%s, %s, %s, %s, 'planificado')""",
-        (nombre, modo, fecha, cupos_eliminacion),
+        """INSERT INTO torneo (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales, estado)
+           VALUES (%s, %s, %s, %s, %s, 'planificado')""",
+        (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales),
     )
     conn.commit()
     nuevo_id = cursor.lastrowid
@@ -25,6 +25,18 @@ def obtener_por_id(torneo_id):
     cursor.close()
     conn.close()
     return Torneo.from_row(fila)
+
+
+def obtener_todos():
+    """Listado de torneos, más recientes primero (por fecha del evento,
+    no por id -- alguien puede cargar torneos pasados fuera de orden)."""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM torneo ORDER BY fecha DESC, id DESC")
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [Torneo.from_row(f) for f in filas]
 
 
 def asignar_jugadores(torneo_id, jugadores_ids):
@@ -66,7 +78,7 @@ def asignar_jugadores_a_grupo(grupo_id, jugadores_ids):
     conn.close()
 
 
-def inicializar_cola_cinco_vidas(torneo_id, jugadores_ids_ordenados):
+def inicializar_cola_cinco_vidas(torneo_id, jugadores_ids_ordenados, vidas_iniciales):
     """
     Crea solo la extensión torneo_jugador_vidas. Las filas base de
     torneo_jugador ya existen (las crea asignar_jugadores en crear_torneo).
@@ -84,8 +96,8 @@ def inicializar_cola_cinco_vidas(torneo_id, jugadores_ids_ordenados):
         cursor.execute(
             """INSERT INTO torneo_jugador_vidas
                (torneo_jugador_id, vidas, eliminado, posicion_cola, en_cancha)
-               VALUES (%s, 3, FALSE, %s, FALSE)""",
-            (torneo_jugador_id, posicion),
+               VALUES (%s, %s, FALSE, %s, FALSE)""",
+            (torneo_jugador_id, vidas_iniciales, posicion),
         )
     conn.commit()
     cursor.close()
@@ -120,6 +132,40 @@ def obtener_finalizados(excluidos_ids=None):
         query += f" AND id NOT IN ({placeholders})"
         params += excluidos_ids
     cursor.execute(query, params)
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [Torneo.from_row(f) for f in filas]
+
+
+def obtener_finalizados_de_jugador(jugador_id):
+    """Torneos finalizados donde participó un jugador -- para calcular su
+    mejor puesto histórico, veces campeón, etc."""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT t.* FROM torneo t
+           JOIN torneo_jugador tj ON tj.torneo_id = t.id
+           WHERE tj.jugador_id = %s AND t.estado = 'finalizado'""",
+        (jugador_id,),
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [Torneo.from_row(f) for f in filas]
+
+
+def obtener_todos_de_jugador(jugador_id):
+    """Todos los torneos donde participó un jugador, sin importar el estado
+    (para contar cuántos jugó por modo, incluidos los que siguen en curso)."""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT t.* FROM torneo t
+           JOIN torneo_jugador tj ON tj.torneo_id = t.id
+           WHERE tj.jugador_id = %s""",
+        (jugador_id,),
+    )
     filas = cursor.fetchall()
     cursor.close()
     conn.close()

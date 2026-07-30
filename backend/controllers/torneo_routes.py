@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from services import torneo_service, partido_service, tabla_service, tabla_general_service
 from repositories import grupo_repository
+from controllers.utils import obtener_json_body
 
 torneo_bp = Blueprint("torneo", __name__, url_prefix="/torneos")
 
@@ -9,9 +10,16 @@ torneo_bp = Blueprint("torneo", __name__, url_prefix="/torneos")
 # Creación / consulta de torneo
 # =========================================================
 
+@torneo_bp.route("", methods=["GET"])
+def listar():
+    return jsonify(torneo_service.listar_torneos()), 200
+
+
 @torneo_bp.route("", methods=["POST"])
 def crear():
-    datos = request.get_json()
+    datos, error = obtener_json_body()
+    if error:
+        return error
     try:
         nuevo = torneo_service.crear_torneo(
             nombre=datos.get("nombre"),
@@ -20,6 +28,7 @@ def crear():
             jugadores_ids=datos.get("jugadores_ids", []),
             cupos_eliminacion=datos.get("cupos_eliminacion"),
             cantidad_grupos=datos.get("cantidad_grupos"),
+            vidas_iniciales=datos.get("vidas_iniciales"),
         )
         return jsonify(nuevo), 201
     except torneo_service.DatosTorneoInvalidosError as e:
@@ -30,6 +39,17 @@ def crear():
 def obtener(torneo_id):
     try:
         return jsonify(torneo_service.obtener_torneo(torneo_id)), 200
+    except torneo_service.TorneoNoEncontradoError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+@torneo_bp.route("/<int:torneo_id>/resumen", methods=["GET"])
+def resumen(torneo_id):
+    """Todo el desarrollo del torneo en un solo llamado: tablas de cada
+    grupo/mini-grupo, bracket de eliminación armado por ronda, y podio si
+    ya terminó. Pensado para pintar la pantalla de 'cómo se desarrolló'."""
+    try:
+        return jsonify(torneo_service.obtener_resumen(torneo_id)), 200
     except torneo_service.TorneoNoEncontradoError as e:
         return jsonify({"error": str(e)}), 404
 
@@ -89,22 +109,32 @@ def tabla_general():
 
 @torneo_bp.route("/<int:torneo_id>/reintentar-desempate", methods=["POST"])
 def reintentar_desempate(torneo_id):
-    datos = request.get_json()
-    grupo_id = partido_service.reintentar_desempate(
-        torneo_id,
-        datos.get("jugadores_empatados_ids", []),
-        datos.get("slots"),
-    )
-    return jsonify({"grupo_id": grupo_id}), 201
+    datos, error = obtener_json_body()
+    if error:
+        return error
+    try:
+        grupo_id = partido_service.reintentar_desempate(
+            torneo_id,
+            datos.get("jugadores_empatados_ids", []),
+            datos.get("slots"),
+        )
+        return jsonify({"grupo_id": grupo_id}), 201
+    except partido_service.ClasificacionInvalidaError as e:
+        return jsonify({"error": str(e)}), 400
 
 
 @torneo_bp.route("/<int:torneo_id>/forzar-clasificado", methods=["POST"])
 def forzar_clasificado(torneo_id):
-    datos = request.get_json()
-    partido_service.forzar_clasificado(
-        torneo_id,
-        jugador_id=datos.get("jugador_id"),
-        clasificado=datos.get("clasificado"),
-        observacion=datos.get("observacion"),
-    )
-    return "", 204
+    datos, error = obtener_json_body()
+    if error:
+        return error
+    try:
+        partido_service.forzar_clasificado(
+            torneo_id,
+            jugador_id=datos.get("jugador_id"),
+            clasificado=datos.get("clasificado"),
+            observacion=datos.get("observacion"),
+        )
+        return "", 204
+    except partido_service.ClasificacionInvalidaError as e:
+        return jsonify({"error": str(e)}), 400

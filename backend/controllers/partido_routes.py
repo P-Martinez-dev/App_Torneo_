@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from services import partido_service
+from controllers.utils import obtener_json_body
 
 partido_bp = Blueprint("partido", __name__)
 
@@ -15,7 +16,9 @@ def obtener_partido_actual(torneo_id):
 @partido_bp.route("/torneos/<int:torneo_id>/partido-actual", methods=["POST"])
 def seleccionar_partido_actual(torneo_id):
     """Navegar a otro enfrentamiento. El que estaba en pantalla queda pospuesto."""
-    datos = request.get_json()
+    datos, error = obtener_json_body()
+    if error:
+        return error
     try:
         partido = partido_service.seleccionar_partido_actual(torneo_id, datos.get("partido_id"))
         return jsonify(partido), 200
@@ -37,7 +40,9 @@ def listar_todos(torneo_id):
 
 @partido_bp.route("/partidos/<int:partido_id>/resultado", methods=["POST"])
 def cargar_resultado(partido_id):
-    datos = request.get_json()
+    datos, error = obtener_json_body()
+    if error:
+        return error
     try:
         partido = partido_service.cargar_resultado(
             partido_id,
@@ -48,5 +53,12 @@ def cargar_resultado(partido_id):
         return jsonify(partido), 200
     except partido_service.ResultadoInvalidoError as e:
         return jsonify({"error": str(e)}), 400
+
+
+@partido_bp.route("/partidos/<int:partido_id>/no-realizado", methods=["POST"])
+def marcar_no_realizado(partido_id):
+    try:
+        partido = partido_service.marcar_no_realizado(partido_id)
+        return jsonify(partido), 200
     except partido_service.PartidoInvalidoError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400

@@ -124,6 +124,24 @@ def contar_pendientes_por_fase(torneo_id, fase):
     return total
 
 
+def contar_pendientes_por_grupo(grupo_id):
+    """A diferencia de contar_pendientes_por_fase (que mira todo el torneo),
+    esto scopea a una instancia puntual de grupo -- necesario para no pisar
+    la resolución de un desempate/repechaje cuando hay varios corriendo en
+    paralelo en distintos grupos."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """SELECT COUNT(*) FROM partido
+           WHERE grupo_id = %s AND estado IN ('pendiente', 'en_curso', 'pospuesto')""",
+        (grupo_id,),
+    )
+    total = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+    return total
+
+
 def obtener_finalizados_por_grupo(grupo_id, excluidos_ids):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -170,16 +188,59 @@ def obtener_ultima_ronda(torneo_id):
     return ultima
 
 
+def obtener_partido_eliminacion(torneo_id, jugador_id):
+    """El partido (cinco_vidas) en el que un jugador perdió su última vida
+    en ese torneo específico -- o None si nunca fue eliminado ahí (fue
+    campeón, o el torneo sigue en curso)."""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT * FROM partido
+           WHERE torneo_id = %s AND fase = 'cinco_vidas' AND estado = 'finalizado'
+             AND (jugador1_id = %s OR jugador2_id = %s) AND ganador_id != %s
+           ORDER BY fecha_jugado DESC LIMIT 1""",
+        (torneo_id, jugador_id, jugador_id, jugador_id),
+    )
+    fila = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return Partido.from_row(fila)
+
+
+def obtener_finalizados_por_jugador(jugador_id):
+    """Todos los partidos finalizados de un jugador en cualquier torneo,
+    ordenados cronológicamente. Excluye repechaje/desempate a propósito
+    (mismo criterio que las estadísticas de la tabla general: no son
+    partidos 'de verdad' del torneo)."""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT * FROM partido
+           WHERE (jugador1_id = %s OR jugador2_id = %s)
+             AND estado = 'finalizado' AND fase NOT IN ('repechaje', 'desempate')
+           ORDER BY fecha_jugado ASC""",
+        (jugador_id, jugador_id),
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [Partido.from_row(f) for f in filas]
+
+
 def obtener_finalizados_por_torneos(torneos_ids):
-    """Todos los partidos finalizados de una lista de torneos, sin importar la fase.
-    Se usa para el desempate de la tabla general (puntos de victoria y win rate)."""
+    """Partidos finalizados de una lista de torneos, para el desempate de la
+    tabla general (puntos de victoria y win rate). Excluye repechaje y
+    desempate a propósito: son mecanismos de resolución de empates, no
+    partidos "de verdad" del torneo, y no deben inflar el récord de nadie.
+    Eliminación y tercer puesto sí cuentan."""
     if not torneos_ids:
         return []
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     placeholders = ",".join(["%s"] * len(torneos_ids))
     cursor.execute(
-        f"SELECT * FROM partido WHERE torneo_id IN ({placeholders}) AND estado = 'finalizado'",
+        f"""SELECT * FROM partido WHERE torneo_id IN ({placeholders})
+            AND estado = 'finalizado' AND fase NOT IN ('repechaje', 'desempate')""",
         torneos_ids,
     )
     filas = cursor.fetchall()
@@ -268,6 +329,22 @@ def marcar_finalizado(partido_id, ganador_id, peleador1_id=None, peleador2_id=No
            jugador1_peleador_id = %s, jugador2_peleador_id = %s, fecha_jugado = NOW()
            WHERE id = %s""",
         (ganador_id, peleador1_id, peleador2_id, partido_id),
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def marcar_no_realizado(partido_id):
+    """Partido que no se va a jugar (no confundir con 'pospuesto', que
+    implica que se retoma después). No cuenta en tablas (obtener_finalizados_*
+    ya filtra por estado='finalizado') ni bloquea el avance de fase
+    (contar_pendientes_por_fase/grupo ya no lo incluye en su IN, porque no
+    es 'pendiente', 'en_curso' ni 'pospuesto')."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE partido SET estado = 'no_realizado' WHERE id = %s", (partido_id,)
     )
     conn.commit()
     cursor.close()

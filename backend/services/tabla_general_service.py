@@ -13,8 +13,22 @@ def _puntos_por_puesto(puesto):
 # =========================================================
 
 def _puestos_todos_contra_todos(torneo_id):
+    """
+    Ranking 'denso': todos los empatados en puntos comparten el mismo
+    puesto, y el próximo grupo de puntos distinto pasa al puesto siguiente
+    sin saltar números (no es 1,1,1,4 -- es 1,1,1,2). Ej: si 9 de 10
+    jugadores empatan en la cima, los 9 son 1° y el restante es 2°, no 10°.
+    """
     tabla = tabla_service.calcular_tabla_todos_contra_todos(torneo_id)
-    return {fila["jugador_id"]: posicion + 1 for posicion, fila in enumerate(tabla)}
+    puestos = {}
+    puesto_actual = 0
+    puntos_anterior = None
+    for fila in tabla:
+        if fila["puntos"] != puntos_anterior:
+            puesto_actual += 1
+            puntos_anterior = fila["puntos"]
+        puestos[fila["jugador_id"]] = puesto_actual
+    return puestos
 
 
 def _puestos_cinco_vidas(torneo_id):

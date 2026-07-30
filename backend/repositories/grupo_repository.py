@@ -2,19 +2,35 @@ from database.db import get_connection
 from models.grupo import Grupo
 
 
-def crear(torneo_id, nombre, tipo="grupo", slots_a_clasificar=None):
+def crear(torneo_id, nombre, tipo="grupo", slots_a_clasificar=None, grupo_padre_id=None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """INSERT INTO grupo (torneo_id, nombre, tipo, slots_a_clasificar)
-           VALUES (%s, %s, %s, %s)""",
-        (torneo_id, nombre, tipo, slots_a_clasificar),
+        """INSERT INTO grupo (torneo_id, nombre, tipo, slots_a_clasificar, grupo_padre_id)
+           VALUES (%s, %s, %s, %s, %s)""",
+        (torneo_id, nombre, tipo, slots_a_clasificar, grupo_padre_id),
     )
     conn.commit()
     nuevo_id = cursor.lastrowid
     cursor.close()
     conn.close()
     return nuevo_id
+
+
+def obtener_desempate_interno(grupo_padre_id):
+    """Devuelve el mini-grupo de desempate interno de un grupo (si existe).
+    Un grupo original tiene a lo sumo uno: si vuelve a empatar, se fuerza o
+    se rejuega ese mismo mini-grupo, no se crea uno nuevo."""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT * FROM grupo WHERE grupo_padre_id = %s AND tipo = 'desempate'",
+        (grupo_padre_id,),
+    )
+    fila = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return Grupo.from_row(fila)
 
 
 def obtener_por_id(grupo_id):

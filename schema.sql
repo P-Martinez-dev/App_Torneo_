@@ -10,7 +10,8 @@ CREATE TABLE torneo (
     modo ENUM('todos_contra_todos', 'grupos_eliminacion', 'cinco_vidas') NOT NULL,
     fecha DATE NOT NULL,
     estado ENUM('planificado', 'en_curso', 'finalizado') DEFAULT 'planificado',
-    cupos_eliminacion INT NULL
+    cupos_eliminacion INT NULL,
+    vidas_iniciales INT NULL
 );
 
 CREATE TABLE grupo (
@@ -19,7 +20,9 @@ CREATE TABLE grupo (
     nombre VARCHAR(50) NOT NULL,
     tipo ENUM('grupo', 'repechaje', 'desempate') DEFAULT 'grupo',
     slots_a_clasificar INT NULL,
-    FOREIGN KEY (torneo_id) REFERENCES torneo(id)
+    grupo_padre_id INT NULL,
+    FOREIGN KEY (torneo_id) REFERENCES torneo(id),
+    FOREIGN KEY (grupo_padre_id) REFERENCES grupo(id) ON DELETE CASCADE
 );
 
 CREATE TABLE torneo_jugador (
@@ -70,7 +73,7 @@ CREATE TABLE partido (
     grupo_id INT NULL,
     jugador1_peleador_id INT NULL,
     jugador2_peleador_id INT NULL,
-    estado ENUM('pendiente', 'en_curso', 'finalizado', 'pospuesto') DEFAULT 'pendiente',
+    estado ENUM('pendiente', 'en_curso', 'finalizado', 'pospuesto', 'no_realizado') DEFAULT 'pendiente',
     fecha_jugado DATETIME NULL,
     FOREIGN KEY (torneo_id) REFERENCES torneo(id),
     FOREIGN KEY (jugador1_id) REFERENCES jugador(id),

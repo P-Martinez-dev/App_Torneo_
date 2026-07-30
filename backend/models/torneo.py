@@ -1,12 +1,13 @@
 class Torneo:
     def __init__(self, id=None, nombre=None, modo=None, fecha=None,
-                 estado="planificado", cupos_eliminacion=None):
+                 estado="planificado", cupos_eliminacion=None, vidas_iniciales=None):
         self.id = id
         self.nombre = nombre
         self.modo = modo
         self.fecha = fecha
         self.estado = estado
         self.cupos_eliminacion = cupos_eliminacion
+        self.vidas_iniciales = vidas_iniciales
 
     def to_dict(self):
         return {
@@ -16,6 +17,7 @@ class Torneo:
             "fecha": self.fecha.isoformat() if self.fecha else None,
             "estado": self.estado,
             "cupos_eliminacion": self.cupos_eliminacion,
+            "vidas_iniciales": self.vidas_iniciales,
         }
 
     @staticmethod
@@ -29,4 +31,5 @@ class Torneo:
             fecha=row["fecha"],
             estado=row["estado"],
             cupos_eliminacion=row["cupos_eliminacion"],
+            vidas_iniciales=row.get("vidas_iniciales"),
         )

@@ -9,13 +9,13 @@ from services import tabla_service
 # =========================================================
 
 def generar_fixture_inicial(torneo_id, modo, jugadores_ids,
-                             cupos_eliminacion=None, cantidad_grupos=None):
+                             cupos_eliminacion=None, cantidad_grupos=None, vidas_iniciales=None):
     if modo == "todos_contra_todos":
         _generar_todos_contra_todos(torneo_id, jugadores_ids)
     elif modo == "grupos_eliminacion":
         _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos)
     elif modo == "cinco_vidas":
-        _generar_cinco_vidas(torneo_id, jugadores_ids)
+        _generar_cinco_vidas(torneo_id, jugadores_ids, vidas_iniciales)
 
 
 def _fixture_round_robin(jugadores_ids):
@@ -107,12 +107,12 @@ def _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos
     partido_repository.crear_muchos(partidos_a_crear)
 
 
-def _generar_cinco_vidas(torneo_id, jugadores_ids, orden_aleatorio=True):
+def _generar_cinco_vidas(torneo_id, jugadores_ids, vidas_iniciales, orden_aleatorio=True):
     orden = jugadores_ids.copy()
     if orden_aleatorio:
         random.shuffle(orden)
 
-    torneo_repository.inicializar_cola_cinco_vidas(torneo_id, orden)
+    torneo_repository.inicializar_cola_cinco_vidas(torneo_id, orden, vidas_iniciales)
 
     partido_repository.crear_muchos([{
         "torneo_id": torneo_id, "jugador1_id": orden[0], "jugador2_id": orden[1],
@@ -169,6 +169,32 @@ class ResultadoInvalidoError(Exception):
     pass
 
 
+def marcar_no_realizado(partido_id):
+    """
+    Partido que no se llegó a jugar (por ejemplo, un jugador que no vino).
+    Por ahora solo soportado en todos_contra_todos: en grupos_eliminacion,
+    el head-to-head de un empate interno asume que el round-robin del grupo
+    está completo, y en cinco_vidas/eliminación no hay un "perdedor" que
+    darle a la lógica de avance. Extenderlo a esos modos es trabajo aparte.
+    """
+    partido = partido_repository.obtener_por_id(partido_id)
+    if partido is None:
+        raise PartidoInvalidoError(f"No existe el partido {partido_id}")
+    if partido.fase != "todos_contra_todos":
+        raise PartidoInvalidoError(
+            "Por ahora 'no realizado' solo está soportado en el modo todos_contra_todos"
+        )
+    if partido.estado == "finalizado":
+        raise PartidoInvalidoError("Este partido ya tiene un resultado cargado")
+
+    partido_repository.marcar_no_realizado(partido_id)
+
+    if _fase_completa(partido.torneo_id, "todos_contra_todos"):
+        torneo_repository.marcar_finalizado(partido.torneo_id)
+
+    return partido_repository.obtener_por_id(partido_id).to_dict()
+
+
 def cargar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=None):
     partido = partido_repository.obtener_por_id(partido_id)
     if partido is None:
@@ -191,7 +217,7 @@ def cargar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=Non
         torneo_repository.marcar_finalizado(torneo_id)
     elif fase == "grupos" and _fase_completa(torneo_id, "grupos"):
         calcular_clasificados(torneo_id)
-    elif fase in ("repechaje", "desempate") and _fase_completa(torneo_id, fase):
+    elif fase in ("repechaje", "desempate") and _grupo_completo(partido.grupo_id):
         resolver_repechaje(torneo_id, partido.grupo_id)
     elif fase == "eliminacion" and _fase_completa(torneo_id, "eliminacion"):
         _generar_siguiente_ronda_eliminacion(torneo_id)
@@ -203,6 +229,13 @@ def cargar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=Non
 
 def _fase_completa(torneo_id, fase):
     return partido_repository.contar_pendientes_por_fase(torneo_id, fase) == 0
+
+
+def _grupo_completo(grupo_id):
+    """Igual que _fase_completa pero scopeado a una instancia puntual de
+    grupo, para no confundir la resolución de desempates/repechajes que
+    corren en paralelo en distintos grupos."""
+    return partido_repository.contar_pendientes_por_grupo(grupo_id) == 0
 
 
 # =========================================================
@@ -252,29 +285,91 @@ def _avanzar_cinco_vidas(torneo_id, partido, ganador_id):
 def calcular_clasificados(torneo_id):
     """
     Aplica el reparto proporcional de cupos por grupo (método de mayor resto).
-    Si hay empate en el corte, genera un mini-grupo de repechaje.
-    Si no hay empate, pasa directo a armar el bracket de eliminación.
+    Si hay empate en el corte de algún grupo, primero intenta desempatar por
+    enfrentamiento directo (sin partidos nuevos); si queda un ciclo real,
+    genera un mini-grupo de desempate. El repechaje cruzado entre grupos se
+    calcula recién cuando no queda ningún desempate interno pendiente,
+    porque hasta entonces no se sabe con certeza quién es "el candidato" de
+    cada grupo empatado.
     """
     torneo = torneo_repository.obtener_por_id(torneo_id)
-    cupos = torneo.cupos_eliminacion
     grupos = [g for g in grupo_repository.obtener_por_torneo(torneo_id) if g.tipo == "grupo"]
-
     tablas = {g.id: tabla_service.calcular_tabla_grupo(g.id) for g in grupos}
     tamaños = {g.id: len(tablas[g.id]) for g in grupos}
-    total_jugadores = sum(tamaños.values())
 
-    cupo_directo, resto = {}, {}
+    cupo_directo, candidatos_repechaje, slots_repechaje = _calcular_reparto_cupos(tamaños, torneo.cupos_eliminacion)
+
+    grupos_con_empate_interno = {}  # gid -> (bloque, slots_bloque); ciclo real, necesita mini-grupo
+
+    # Marcar clasificados directos / no clasificados / pendientes
     for g in grupos:
         gid = g.id
-        cupo_directo[gid] = (tamaños[gid] * cupos) // total_jugadores
-        resto[gid] = (tamaños[gid] * cupos) % total_jugadores
+        tabla = tablas[gid]
+        n_directos = cupo_directo[gid]
+
+        bloque_en_riesgo = tabla_service.detectar_bloque_en_riesgo(tabla, n_directos)
+        clasifica_por_id = {}
+        if bloque_en_riesgo:
+            bloque, slots_bloque = bloque_en_riesgo
+            orden_h2h = tabla_service.resolver_por_enfrentamiento_directo(gid, bloque)
+            if orden_h2h is not None:
+                clasifica_por_id = {
+                    f["torneo_jugador_id"]: (i < slots_bloque) for i, f in enumerate(orden_h2h)
+                }
+            else:
+                grupos_con_empate_interno[gid] = (bloque, slots_bloque)
+
+        ids_en_riesgo = (
+            {f["torneo_jugador_id"] for f in grupos_con_empate_interno[gid][0]}
+            if gid in grupos_con_empate_interno else set()
+        )
+
+        for posicion, fila in enumerate(tabla):
+            torneo_jugador_id = fila["torneo_jugador_id"]
+            if torneo_jugador_id in clasifica_por_id:
+                torneo_jugador_repository.marcar_clasificado(
+                    torneo_jugador_id, gid, clasifica_por_id[torneo_jugador_id]
+                )
+            elif torneo_jugador_id in ids_en_riesgo:
+                # No puede quedar en NULL acá -- su chance real vive en la
+                # fila nueva del mini-grupo de desempate.
+                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, gid, False)
+            elif posicion < n_directos:
+                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, gid, True)
+            elif gid in candidatos_repechaje and posicion == n_directos:
+                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, gid, False)
+            else:
+                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, gid, False)
+
+    for gid, (bloque, slots_bloque) in grupos_con_empate_interno.items():
+        jugadores_ids = [f["jugador_id"] for f in bloque]
+        _crear_grupo_repechaje(torneo_id, jugadores_ids, slots_bloque, tipo="desempate", grupo_padre_id=gid)
+
+    if grupos_con_empate_interno:
+        # El repechaje cruzado (si corresponde) se recalcula recién cuando
+        # se resuelvan todos los desempates internos -- ver resolver_repechaje.
+        return {"estado": "desempate_interno_generado", "grupos": list(grupos_con_empate_interno.keys())}
+
+    return _resolver_repechaje_cruzado(torneo_id, candidatos_repechaje, slots_repechaje, tablas, cupo_directo)
+
+
+def _calcular_reparto_cupos(tamaños, cupos):
+    """
+    Reparto proporcional de cupos directos por grupo (método de mayor
+    resto). Depende solo de tamaños de grupo y cupos totales -- no de
+    resultados de partidos -- así que es seguro recalcularlo en cualquier
+    momento del torneo, siempre da lo mismo.
+    """
+    total_jugadores = sum(tamaños.values())
+    cupo_directo, resto = {}, {}
+    for gid, tam in tamaños.items():
+        cupo_directo[gid] = (tam * cupos) // total_jugadores
+        resto[gid] = (tam * cupos) % total_jugadores
 
     sobran = cupos - sum(cupo_directo.values())
     orden_restos = sorted(resto, key=lambda gid: resto[gid], reverse=True)
 
-    candidatos_repechaje = []
-    slots_repechaje = 0
-
+    candidatos_repechaje, slots_repechaje = [], 0
     if sobran > 0:
         valor_corte = resto[orden_restos[sobran - 1]]
         por_encima = [gid for gid in orden_restos if resto[gid] > valor_corte]
@@ -292,33 +387,53 @@ def calcular_clasificados(torneo_id):
             candidatos_repechaje = empatados
             slots_repechaje = slots_restantes
 
-    # Marcar clasificados directos / no clasificados / pendientes de repechaje
-    for g in grupos:
-        gid = g.id
-        tabla = tablas[gid]
-        n_directos = cupo_directo[gid]
-        for posicion, fila in enumerate(tabla):
-            torneo_jugador_id = fila["torneo_jugador_id"]
-            if posicion < n_directos:
-                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, gid, True)
-            elif gid in candidatos_repechaje and posicion == n_directos:
-                # No clasificó directo de este grupo; su chance real queda
-                # registrada en la fila nueva del grupo de repechaje (que
-                # nace en NULL). Acá no debe quedar un NULL huérfano.
-                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, gid, False)
-            else:
-                torneo_jugador_repository.marcar_clasificado(torneo_jugador_id, gid, False)
+    return cupo_directo, candidatos_repechaje, slots_repechaje
 
-    if candidatos_repechaje:
-        jugadores_repechaje = [
-            tablas[gid][cupo_directo[gid]]["jugador_id"] for gid in candidatos_repechaje
-        ]
-        grupo_id = _crear_grupo_repechaje(torneo_id, jugadores_repechaje, slots_repechaje, tipo="repechaje")
-        return {"estado": "repechaje_generado", "candidatos": jugadores_repechaje,
-                "slots": slots_repechaje, "grupo_id": grupo_id}
-    else:
+
+def _candidato_de_grupo(gid, tabla_gid, n_directos):
+    """
+    Devuelve el jugador_id que le corresponde a un grupo como candidato al
+    repechaje cruzado. Si ese grupo tuvo un empate interno en el corte, lo
+    resuelve (de nuevo, es determinístico porque los partidos del grupo ya
+    no cambian) por head-to-head; si fue un ciclo real, usa el resultado ya
+    jugado en su mini-grupo de desempate.
+    """
+    bloque_en_riesgo = tabla_service.detectar_bloque_en_riesgo(tabla_gid, n_directos)
+    if not bloque_en_riesgo:
+        return tabla_gid[n_directos]["jugador_id"]
+
+    bloque, slots_bloque = bloque_en_riesgo
+    orden_h2h = tabla_service.resolver_por_enfrentamiento_directo(gid, bloque)
+    if orden_h2h is not None:
+        return orden_h2h[slots_bloque]["jugador_id"]
+
+    hijo = grupo_repository.obtener_desempate_interno(gid)
+    tabla_hijo = tabla_service.calcular_tabla_grupo(hijo.id)
+    return tabla_hijo[hijo.slots_a_clasificar]["jugador_id"]
+
+
+def _resolver_repechaje_cruzado(torneo_id, candidatos_repechaje, slots_repechaje, tablas, cupo_directo):
+    if not candidatos_repechaje:
         generar_fase_eliminacion(torneo_id)
         return {"estado": "eliminacion_generada"}
+
+    jugadores_repechaje = [
+        _candidato_de_grupo(gid, tablas[gid], cupo_directo[gid]) for gid in candidatos_repechaje
+    ]
+    grupo_id = _crear_grupo_repechaje(torneo_id, jugadores_repechaje, slots_repechaje, tipo="repechaje")
+    return {"estado": "repechaje_generado", "candidatos": jugadores_repechaje,
+            "slots": slots_repechaje, "grupo_id": grupo_id}
+
+
+def _reintentar_repechaje_cruzado(torneo_id):
+    """Recalcula y arma el repechaje cruzado una vez que ya no queda ningún
+    desempate interno pendiente en el torneo (ver resolver_repechaje)."""
+    torneo = torneo_repository.obtener_por_id(torneo_id)
+    grupos = [g for g in grupo_repository.obtener_por_torneo(torneo_id) if g.tipo == "grupo"]
+    tablas = {g.id: tabla_service.calcular_tabla_grupo(g.id) for g in grupos}
+    tamaños = {g.id: len(tablas[g.id]) for g in grupos}
+    cupo_directo, candidatos_repechaje, slots_repechaje = _calcular_reparto_cupos(tamaños, torneo.cupos_eliminacion)
+    return _resolver_repechaje_cruzado(torneo_id, candidatos_repechaje, slots_repechaje, tablas, cupo_directo)
 
 
 def resolver_repechaje(torneo_id, grupo_id):
@@ -334,6 +449,19 @@ def resolver_repechaje(torneo_id, grupo_id):
             torneo_jugador_repository.marcar_clasificado(
                 fila["torneo_jugador_id"], grupo_id, posicion < slots
             )
+
+        if grupo.grupo_padre_id is not None:
+            # Era un desempate interno de grupo. Hasta que no se resuelvan
+            # todos los que estén corriendo en paralelo, no sabemos si hace
+            # falta armar (o completar) el repechaje cruzado.
+            if torneo_jugador_repository.hay_desempates_internos_pendientes(torneo_id):
+                return {"estado": "grupo_resuelto_esperando_otros", "grupo_id": grupo_id}
+            return _reintentar_repechaje_cruzado(torneo_id)
+
+        if torneo_jugador_repository.hay_pendientes(torneo_id):
+            # Todavía hay otro repechaje/desempate corriendo en paralelo en
+            # otro grupo -- no generamos el bracket todavía.
+            return {"estado": "grupo_resuelto_esperando_otros", "grupo_id": grupo_id}
         generar_fase_eliminacion(torneo_id)
         return {"estado": "eliminacion_generada"}
 
@@ -343,15 +471,42 @@ def resolver_repechaje(torneo_id, grupo_id):
             "slots": slots}
 
 
+class ClasificacionInvalidaError(Exception):
+    pass
+
+
 def reintentar_desempate(torneo_id, jugadores_empatados_ids, slots):
     """El admin elige 'jugar de nuevo': arma un mini-grupo nuevo (tipo='desempate')."""
+    if not jugadores_empatados_ids or len(jugadores_empatados_ids) < 2:
+        raise ClasificacionInvalidaError("jugadores_empatados_ids necesita al menos 2 jugadores")
+    if len(set(jugadores_empatados_ids)) != len(jugadores_empatados_ids):
+        raise ClasificacionInvalidaError("jugadores_empatados_ids no puede tener jugadores repetidos")
+    if not isinstance(slots, int) or isinstance(slots, bool) or not (1 <= slots < len(jugadores_empatados_ids)):
+        raise ClasificacionInvalidaError(
+            f"slots debe ser un entero entre 1 y {len(jugadores_empatados_ids) - 1}"
+        )
     return _crear_grupo_repechaje(torneo_id, jugadores_empatados_ids, slots, tipo="desempate")
 
 
 def forzar_clasificado(torneo_id, jugador_id, clasificado, observacion=None):
     """El admin decide 'a mano' quién pasa, sin necesidad de jugar más partidos."""
+    if jugador_id is None:
+        raise ClasificacionInvalidaError("jugador_id es obligatorio")
+    if not isinstance(clasificado, bool):
+        raise ClasificacionInvalidaError("clasificado es obligatorio y debe ser true/false")
+
     torneo_jugador_id = torneo_jugador_repository.obtener_id(torneo_id, jugador_id)
+    if torneo_jugador_id is None:
+        raise ClasificacionInvalidaError(
+            f"El jugador {jugador_id} no participa del torneo {torneo_id}"
+        )
+
     grupo_id = torneo_jugador_repository.obtener_grupo_pendiente(torneo_jugador_id)
+    if grupo_id is None:
+        raise ClasificacionInvalidaError(
+            f"El jugador {jugador_id} no tiene ninguna clasificación pendiente para forzar"
+        )
+
     torneo_jugador_repository.marcar_clasificado(
         torneo_jugador_id, grupo_id, clasificado, forzado=True, observacion=observacion
     )
@@ -359,9 +514,10 @@ def forzar_clasificado(torneo_id, jugador_id, clasificado, observacion=None):
         generar_fase_eliminacion(torneo_id)
 
 
-def _crear_grupo_repechaje(torneo_id, jugadores_ids, slots, tipo):
+def _crear_grupo_repechaje(torneo_id, jugadores_ids, slots, tipo, grupo_padre_id=None):
     grupo_id = grupo_repository.crear(
-        torneo_id, nombre=tipo.capitalize(), tipo=tipo, slots_a_clasificar=slots
+        torneo_id, nombre=tipo.capitalize(), tipo=tipo, slots_a_clasificar=slots,
+        grupo_padre_id=grupo_padre_id,
     )
     torneo_repository.asignar_jugadores_a_grupo(grupo_id, jugadores_ids)
 
@@ -434,6 +590,20 @@ def _generar_siguiente_ronda_eliminacion(torneo_id):
     ronda_anterior = partido_repository.obtener_ultima_ronda(torneo_id)
     orden = partido_repository.obtener_max_orden(torneo_id) + 1
     partidos = []
+
+    if len(ganadores) == 2:
+        # La próxima ronda que se genera es la final. El partido por el
+        # tercer puesto se arma primero (orden más bajo) para que se juegue
+        # antes que la final, no después.
+        perdedores = partido_repository.obtener_perdedores_ultima_ronda(torneo_id)
+        partidos.append({
+            "torneo_id": torneo_id,
+            "jugador1_id": perdedores[0], "jugador2_id": perdedores[1],
+            "fase": "tercer_puesto", "ronda": ronda_anterior + 1, "jornada": None, "orden": orden,
+            "grupo_id": None,
+        })
+        orden += 1
+
     for i in range(0, len(ganadores), 2):
         partidos.append({
             "torneo_id": torneo_id,
@@ -442,17 +612,6 @@ def _generar_siguiente_ronda_eliminacion(torneo_id):
             "grupo_id": None,
         })
         orden += 1
-
-    if len(ganadores) == 2:
-        # La próxima ronda que se genera es la final -> sumar el partido
-        # por el tercer puesto entre los dos perdedores de semifinal.
-        perdedores = partido_repository.obtener_perdedores_ultima_ronda(torneo_id)
-        partidos.append({
-            "torneo_id": torneo_id,
-            "jugador1_id": perdedores[0], "jugador2_id": perdedores[1],
-            "fase": "tercer_puesto", "ronda": ronda_anterior + 1, "jornada": None, "orden": orden,
-            "grupo_id": None,
-        })
 
     partido_repository.crear_muchos(partidos)
 
