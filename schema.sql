@@ -1,7 +1,9 @@
 CREATE TABLE jugador (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
-    fecha_nacimiento DATE
+    fecha_nacimiento DATE,
+    imagen_vertical_path VARCHAR(255) NULL,
+    imagen_icono_path VARCHAR(255) NULL
 );
 
 CREATE TABLE torneo (
@@ -73,6 +75,7 @@ CREATE TABLE partido (
     grupo_id INT NULL,
     jugador1_peleador_id INT NULL,
     jugador2_peleador_id INT NULL,
+    rondas_jugadas INT NULL,
     estado ENUM('pendiente', 'en_curso', 'finalizado', 'pospuesto', 'no_realizado') DEFAULT 'pendiente',
     fecha_jugado DATETIME NULL,
     FOREIGN KEY (torneo_id) REFERENCES torneo(id),

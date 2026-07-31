@@ -33,6 +33,7 @@ def obtener_estadisticas_jugador(jugador_id: int) -> dict:
         "peleadores": _stats_peleadores(jugador_id, partidos),
         "peleadores_rivales": _stats_peleadores_rivales(jugador_id, partidos),
         "rachas": _stats_rachas(jugador_id, partidos),
+        "rounds": _stats_rounds(jugador_id, partidos),
         "torneos": _stats_torneos(jugador_id, torneos_finalizados, torneos_todos),
         "cinco_vidas": _stats_cinco_vidas(jugador_id, torneos_finalizados),
         "veces_en_repechaje_o_desempate": torneo_jugador_repository.contar_repechajes_y_desempates(jugador_id),
@@ -230,6 +231,55 @@ def _stats_torneos(jugador_id, torneos_finalizados, torneos_todos):
         "veces_campeon": veces_campeon,
         "mejor_puesto_historico": mejor_puesto,
         "promedio_puesto": round(suma_puestos / cantidad_puestos, 2) if cantidad_puestos else None,
+    }
+
+
+def _stats_rounds(jugador_id, partidos):
+    """
+    2 rounds jugados = 2-0 (barrida). 3 rounds jugados = 2-1 (cerrado).
+    rondas_jugadas es opcional por partido -- solo cuenta los que sí lo
+    tienen cargado, el resto se ignora sin romper el promedio.
+    """
+    rounds_ganados = 0
+    rounds_perdidos = 0
+    barridas_hechas = 0
+    barridas_recibidas = 0
+    cerrados_ganados = 0
+    cerrados_perdidos = 0
+    partidos_con_datos = 0
+
+    for p in partidos:
+        if p.rondas_jugadas not in (2, 3):
+            continue
+        partidos_con_datos += 1
+        gano = p.ganador_id == jugador_id
+        if p.rondas_jugadas == 2:
+            if gano:
+                rounds_ganados += 2
+                barridas_hechas += 1
+            else:
+                rounds_perdidos += 2
+                barridas_recibidas += 1
+        else:
+            if gano:
+                rounds_ganados += 2
+                rounds_perdidos += 1
+                cerrados_ganados += 1
+            else:
+                rounds_ganados += 1
+                rounds_perdidos += 2
+                cerrados_perdidos += 1
+
+    total_rounds = rounds_ganados + rounds_perdidos
+    return {
+        "partidos_con_datos_de_rondas": partidos_con_datos,
+        "rounds_ganados": rounds_ganados,
+        "rounds_perdidos": rounds_perdidos,
+        "round_win_rate": round(rounds_ganados / total_rounds, 3) if total_rounds else None,
+        "barridas_hechas": barridas_hechas,
+        "barridas_recibidas": barridas_recibidas,
+        "cerrados_ganados": cerrados_ganados,
+        "cerrados_perdidos": cerrados_perdidos,
     }
 
 

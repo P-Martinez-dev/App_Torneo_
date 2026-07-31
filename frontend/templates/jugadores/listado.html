@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Jugadores · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Jugadores</p>
+    <h1 class="display-title">Roster</h1>
+  </div>
+</div>
+
+<div class="jugador-grid">
+  <a href="{{ url_for('jugador.crear') }}" class="jugador-tile jugador-tile-nuevo">
+    <span class="jugador-tile-mas">+</span>
+    <span class="jugador-tile-nombre">Nuevo jugador</span>
+  </a>
+  {% for j in jugadores %}
+  <a href="{{ url_for('jugador.detalle', jugador_id=j.id) }}" class="jugador-tile">
+    {% if j.imagen_icono %}
+    <img class="jugador-icono" src="{{ imagen_url(j.imagen_icono) }}" alt="">
+    {% else %}
+    <span class="jugador-icono jugador-icono-placeholder">{{ j.nombre[0] | upper }}</span>
+    {% endif %}
+    <span class="jugador-tile-nombre">{{ j.nombre }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

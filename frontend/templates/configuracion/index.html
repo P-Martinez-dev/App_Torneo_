@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Configuración · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Configuración</p>
+    <h1 class="display-title">Herramientas</h1>
+  </div>
+</div>
+
+<div class="menu-grid">
+  <a href="{{ url_for('configuracion.peleadores') }}" class="menu-tile">
+    <span class="menu-tile-titulo">Peleadores</span>
+  </a>
+</div>
+{% endblock %}

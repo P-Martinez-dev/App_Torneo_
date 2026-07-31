@@ -13,6 +13,13 @@ def obtener_partido_actual(torneo_id):
     return jsonify(partido), 200
 
 
+@partido_bp.route("/torneos/<int:torneo_id>/estado-actual", methods=["GET"])
+def obtener_estado_actual(torneo_id):
+    """Pensado para el frontend: distingue 'hay partido', 'terminó' y
+    'está trabado esperando una decisión de empate sin resolver'."""
+    return jsonify(partido_service.obtener_estado_actual(torneo_id)), 200
+
+
 @partido_bp.route("/torneos/<int:torneo_id>/partido-actual", methods=["POST"])
 def seleccionar_partido_actual(torneo_id):
     """Navegar a otro enfrentamiento. El que estaba en pantalla queda pospuesto."""
@@ -49,6 +56,7 @@ def cargar_resultado(partido_id):
             datos.get("ganador_id"),
             peleador1_id=datos.get("peleador1_id"),
             peleador2_id=datos.get("peleador2_id"),
+            rondas_jugadas=datos.get("rondas_jugadas"),
         )
         return jsonify(partido), 200
     except partido_service.ResultadoInvalidoError as e:

@@ -122,6 +122,19 @@ def marcar_en_curso(torneo_id):
     conn.close()
 
 
+def existe_torneo_sin_finalizar():
+    """Regla de negocio: no se puede arrancar un torneo nuevo mientras haya
+    uno en curso. 'planificado' no se chequea porque en la práctica ningún
+    torneo queda en ese estado -- crear_torneo pasa a 'en_curso' enseguida."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM torneo WHERE estado = 'en_curso'")
+    total = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+    return total > 0
+
+
 def obtener_finalizados(excluidos_ids=None):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)

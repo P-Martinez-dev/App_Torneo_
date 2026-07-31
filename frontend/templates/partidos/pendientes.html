@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Partidos pendientes · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Posponer</p>
+    <h1 class="display-title">Elegí&nbsp;el&nbsp;próximo</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('partido.actual', torneo_id=torneo_id) }}">Cancelar</a>
+</div>
+
+{% if pendientes %}
+<div class="ticket-grid">
+  {% for p in pendientes %}
+  <form method="post" action="{{ url_for('partido.posponer', torneo_id=torneo_id) }}" class="ticket ticket-form">
+    <input type="hidden" name="partido_id" value="{{ p.id }}">
+    <p class="ticket-fecha">{{ p.fase.replace('_', ' ') }}{% if p.estado == 'pospuesto' %} · pospuesto{% endif %}</p>
+    <h2 class="ticket-nombre">{{ p.nombre1 }} vs {{ p.nombre2 }}</h2>
+    <button type="submit" class="btn btn-stamp">Poner en pantalla</button>
+  </form>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <p class="empty-title">No hay otros partidos pendientes.</p>
+</div>
+{% endif %}
+{% endblock %}

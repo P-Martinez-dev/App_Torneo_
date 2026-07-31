@@ -9,13 +9,14 @@ from services import tabla_service
 # =========================================================
 
 def generar_fixture_inicial(torneo_id, modo, jugadores_ids,
-                             cupos_eliminacion=None, cantidad_grupos=None, vidas_iniciales=None):
+                             cupos_eliminacion=None, cantidad_grupos=None,
+                             vidas_iniciales=None, orden_jugadores_ids=None):
     if modo == "todos_contra_todos":
         _generar_todos_contra_todos(torneo_id, jugadores_ids)
     elif modo == "grupos_eliminacion":
         _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos)
     elif modo == "cinco_vidas":
-        _generar_cinco_vidas(torneo_id, jugadores_ids, vidas_iniciales)
+        _generar_cinco_vidas(torneo_id, jugadores_ids, vidas_iniciales, orden_jugadores_ids)
 
 
 def _fixture_round_robin(jugadores_ids):
@@ -107,9 +108,17 @@ def _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos
     partido_repository.crear_muchos(partidos_a_crear)
 
 
-def _generar_cinco_vidas(torneo_id, jugadores_ids, vidas_iniciales, orden_aleatorio=True):
-    orden = jugadores_ids.copy()
-    if orden_aleatorio:
+def _generar_cinco_vidas(torneo_id, jugadores_ids, vidas_iniciales, orden_jugadores_ids=None):
+    """
+    Si el admin eligió el orden a mano (drag-and-drop en el frontend), se
+    respeta tal cual. Si no, se sortea -- comportamiento de siempre.
+    La validación de que orden_jugadores_ids sea realmente una permutación
+    de jugadores_ids vive en torneo_service, antes de llegar acá.
+    """
+    if orden_jugadores_ids is not None:
+        orden = list(orden_jugadores_ids)
+    else:
+        orden = jugadores_ids.copy()
         random.shuffle(orden)
 
     torneo_repository.inicializar_cola_cinco_vidas(torneo_id, orden, vidas_iniciales)
@@ -132,6 +141,43 @@ def obtener_partido_actual(torneo_id):
         if partido is not None:
             partido_repository.marcar_en_curso(partido.id)
     return partido.to_dict() if partido else None
+
+
+def obtener_estado_actual(torneo_id):
+    """
+    Pensado para la pantalla de 'partido actual' del frontend: le da un
+    panorama completo de qué mostrar, en vez de un simple 404 que no
+    distingue 'terminó' de 'está trabado esperando que el admin decida'.
+    """
+    partido = obtener_partido_actual(torneo_id)
+    if partido is not None:
+        return {"tipo": "partido", "partido": partido}
+
+    torneo = torneo_repository.obtener_por_id(torneo_id)
+    if torneo is not None and torneo.estado == "finalizado":
+        return {"tipo": "finalizado"}
+
+    bloqueado = _buscar_grupo_bloqueado(torneo_id)
+    if bloqueado is not None:
+        return {"tipo": "empate_sin_resolver", **bloqueado}
+
+    return {"tipo": "sin_partidos"}
+
+
+def _buscar_grupo_bloqueado(torneo_id):
+    """Un grupo de repechaje/desempate queda 'bloqueado' cuando terminó
+    todos sus partidos pero nadie se marcó clasificado True/False --
+    exactamente lo que pasa cuando resolver_repechaje devuelve
+    'empate_sin_resolver' y no marca a nadie."""
+    grupos = [g for g in grupo_repository.obtener_por_torneo(torneo_id) if g.tipo in ("repechaje", "desempate")]
+    for g in grupos:
+        completo = partido_repository.contar_pendientes_por_grupo(g.id) == 0
+        if completo and torneo_jugador_repository.hay_pendientes_en_grupo(g.id):
+            tabla = tabla_service.calcular_tabla_grupo(g.id)
+            slots = g.slots_a_clasificar
+            empatados = [f["jugador_id"] for f in tabla if f["puntos"] == tabla[slots - 1]["puntos"]]
+            return {"grupo_id": g.id, "empatados": empatados, "slots": slots}
+    return None
 
 
 def listar_partidos_pendientes(torneo_id):
@@ -195,7 +241,7 @@ def marcar_no_realizado(partido_id):
     return partido_repository.obtener_por_id(partido_id).to_dict()
 
 
-def cargar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=None):
+def cargar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=None, rondas_jugadas=None):
     partido = partido_repository.obtener_por_id(partido_id)
     if partido is None:
         raise PartidoInvalidoError(f"No existe el partido {partido_id}")
@@ -206,7 +252,13 @@ def cargar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=Non
             f"o jugador2_id ({partido.jugador2_id}) de este partido"
         )
 
-    partido_repository.marcar_finalizado(partido_id, ganador_id, peleador1_id, peleador2_id)
+    if rondas_jugadas is not None:
+        if rondas_jugadas not in (2, 3):
+            raise ResultadoInvalidoError(
+                "rondas_jugadas debe ser 2 (2-0) o 3 (2-1) -- es opcional, se puede omitir"
+            )
+
+    partido_repository.marcar_finalizado(partido_id, ganador_id, peleador1_id, peleador2_id, rondas_jugadas)
 
     fase = partido.fase
     torneo_id = partido.torneo_id
@@ -539,6 +591,63 @@ def _crear_grupo_repechaje(torneo_id, jugadores_ids, slots, tipo, grupo_padre_id
 # =========================================================
 # Fase de eliminación directa (escalable a cualquier potencia de 2)
 # =========================================================
+
+class BracketInvalidoError(Exception):
+    pass
+
+
+def resembrar_bracket_manual(torneo_id, emparejamientos):
+    """
+    Reemplaza el sembrado automático de la ronda 1 de eliminación por uno
+    elegido a mano -- pensado para reconstruir torneos que ya se jugaron
+    en la vida real, donde los cruces no salieron del sorteo de
+    _sembrar_bracket sino de lo que pasó esa noche. emparejamientos es una
+    lista de pares [jugador1_id, jugador2_id]. Solo se puede usar si la
+    ronda 1 todavía no tiene ningún resultado cargado.
+    """
+    partidos_ronda1 = partido_repository.obtener_por_fase_y_ronda(torneo_id, "eliminacion", 1)
+    if not partidos_ronda1:
+        raise BracketInvalidoError("Todavía no se generó el bracket de eliminación para este torneo")
+    if any(p.estado != "pendiente" for p in partidos_ronda1):
+        raise BracketInvalidoError(
+            "Ya se jugó al menos un partido de la ronda 1 -- no se puede resembrar"
+        )
+
+    clasificados_ids = {jid for p in partidos_ronda1 for jid in (p.jugador1_id, p.jugador2_id)}
+    ids_en_emparejamientos = [jid for par in emparejamientos for jid in par]
+
+    if len(emparejamientos) != len(partidos_ronda1):
+        raise BracketInvalidoError(
+            f"Se esperaban {len(partidos_ronda1)} enfrentamientos, llegaron {len(emparejamientos)}"
+        )
+    if any(len(par) != 2 for par in emparejamientos):
+        raise BracketInvalidoError("Cada enfrentamiento debe tener exactamente 2 jugadores")
+    if len(set(ids_en_emparejamientos)) != len(ids_en_emparejamientos):
+        raise BracketInvalidoError("Un jugador no puede aparecer en más de un enfrentamiento")
+    if set(ids_en_emparejamientos) != clasificados_ids:
+        raise BracketInvalidoError(
+            "Los emparejamientos deben incluir exactamente a los jugadores clasificados, "
+            "sin repetidos ni faltantes"
+        )
+
+    orden_base = min(p.orden for p in partidos_ronda1)
+    for p in partidos_ronda1:
+        partido_repository.eliminar(p.id)
+
+    nuevos = [
+        {
+            "torneo_id": torneo_id, "jugador1_id": j1, "jugador2_id": j2,
+            "fase": "eliminacion", "ronda": 1, "jornada": None, "orden": orden_base + i,
+            "grupo_id": None,
+        }
+        for i, (j1, j2) in enumerate(emparejamientos)
+    ]
+    partido_repository.crear_muchos(nuevos)
+
+
+def obtener_bracket_ronda1(torneo_id):
+    return [p.to_dict() for p in partido_repository.obtener_por_fase_y_ronda(torneo_id, "eliminacion", 1)]
+
 
 def generar_fase_eliminacion(torneo_id):
     clasificados = torneo_jugador_repository.obtener_clasificados(torneo_id)  # [{jugador_id, grupo_id}]

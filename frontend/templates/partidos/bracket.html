@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Resembrar bracket · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Bracket de eliminación</p>
+    <h1 class="display-title">Resembrar&nbsp;a&nbsp;mano</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('partido.actual', torneo_id=torneo_id) }}">Cancelar</a>
+</div>
+
+<p class="empty-body">
+  Elegí quién enfrenta a quién en cada llave. Solo funciona si todavía no se cargó
+  ningún resultado de la ronda 1 -- pensado para reconstruir un torneo que ya se jugó.
+</p>
+
+<form method="post" action="{{ url_for('partido.bracket', torneo_id=torneo_id) }}" class="form-ticket">
+  {% for match in bracket %}
+  <div class="field-row">
+    <div class="field">
+      <label>Llave {{ loop.index }} · Jugador 1</label>
+      <select name="jugador1_{{ loop.index0 }}" required>
+        {% for j in clasificados %}
+        <option value="{{ j.id }}" {% if j.id == match.jugador1_id %}selected{% endif %}>{{ j.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Llave {{ loop.index }} · Jugador 2</label>
+      <select name="jugador2_{{ loop.index0 }}" required>
+        {% for j in clasificados %}
+        <option value="{{ j.id }}" {% if j.id == match.jugador2_id %}selected{% endif %}>{{ j.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  {% endfor %}
+  <button type="submit" class="btn btn-stamp btn-submit">Guardar bracket</button>
+</form>
+{% endblock %}

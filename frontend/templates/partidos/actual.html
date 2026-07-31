@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Partido actual · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="vs-screen">
+  <div class="vs-lado vs-izq">
+    <p class="vs-nombre">{{ nombre1 }}</p>
+  </div>
+  <div class="vs-centro">
+    <p class="vs-letras">VS</p>
+    <button type="button" id="btn-opciones" class="btn btn-stamp">Opciones</button>
+  </div>
+  <div class="vs-lado vs-der">
+    <p class="vs-nombre">{{ nombre2 }}</p>
+  </div>
+</div>
+
+<dialog id="dialog-opciones" class="dialog-ticket">
+  <p class="dialog-texto">Opciones</p>
+  <div class="dialog-acciones dialog-acciones-columna">
+    <button type="button" id="btn-abrir-cargar-datos" class="btn btn-stamp">Cargar datos</button>
+    <a href="{{ url_for('partido.pendientes', torneo_id=torneo_id) }}" class="btn btn-ghost">Posponer partido</a>
+    {% if partido.fase == 'eliminacion' and partido.ronda == 1 %}
+    <a href="{{ url_for('partido.bracket', torneo_id=torneo_id) }}" class="btn btn-ghost">Resembrar bracket</a>
+    {% endif %}
+    {% if partido.fase == 'todos_contra_todos' %}
+    <form method="post" action="{{ url_for('partido.descartar', torneo_id=torneo_id) }}">
+      <input type="hidden" name="partido_id" value="{{ partido.id }}">
+      <button type="submit" class="btn btn-ghost">Descartar (no se realizó)</button>
+    </form>
+    {% endif %}
+    <button type="button" id="btn-cerrar-opciones" class="btn btn-ghost">Cerrar</button>
+  </div>
+</dialog>
+
+<dialog id="dialog-cargar-datos" class="dialog-ticket">
+  <p class="dialog-texto">Cargar resultado</p>
+  <form method="post" action="{{ url_for('partido.cargar_datos', torneo_id=torneo_id) }}" class="form-ticket">
+    <input type="hidden" name="partido_id" value="{{ partido.id }}">
+    <div class="field">
+      <label>Ganador</label>
+      <label class="roster-item">
+        <input type="radio" name="ganador_id" value="{{ partido.jugador1_id }}" required> {{ nombre1 }}
+      </label>
+      <label class="roster-item">
+        <input type="radio" name="ganador_id" value="{{ partido.jugador2_id }}" required> {{ nombre2 }}
+      </label>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="peleador1_id">Peleador de {{ nombre1 }}</label>
+        <select id="peleador1_id" name="peleador1_id">
+          <option value="">-- ninguno --</option>
+          {% for p in peleadores %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="peleador2_id">Peleador de {{ nombre2 }}</label>
+        <select id="peleador2_id" name="peleador2_id">
+          <option value="">-- ninguno --</option>
+          {% for p in peleadores %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="rondas_jugadas">Rondas jugadas (opcional)</label>
+      <select id="rondas_jugadas" name="rondas_jugadas">
+        <option value="">-- no cargar --</option>
+        <option value="2">2 (2-0)</option>
+        <option value="3">3 (2-1)</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-stamp btn-submit">Confirmar</button>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/partido_actual.js') }}"></script>
+{% endblock %}

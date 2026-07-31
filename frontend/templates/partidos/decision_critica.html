@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Decisión requerida · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Decisión requerida</p>
+    <h1 class="display-title">Empate&nbsp;sin&nbsp;resolver</h1>
+  </div>
+</div>
+
+<p class="dialog-texto">
+  Quedaron empatados: <strong>{{ empatados | map(attribute='nombre') | join(', ') }}</strong>.
+  Hay {{ slots }} lugar{{ 'es' if slots != 1 else '' }} disponible{{ 's' if slots != 1 else '' }} entre ellos.
+</p>
+
+<div class="decision-columnas">
+  <div class="decision-columna">
+    <h2 class="ticket-nombre">Rejugar</h2>
+    <form method="post" action="{{ url_for('partido.reintentar', torneo_id=torneo_id) }}">
+      {% for j in empatados %}
+      <input type="hidden" name="jugadores_empatados_ids" value="{{ j.id }}">
+      {% endfor %}
+      <div class="field">
+        <label for="slots">Cupos a repartir</label>
+        <input type="number" id="slots" name="slots" value="{{ slots }}" min="1" max="{{ empatados|length - 1 }}">
+      </div>
+      <button type="submit" class="btn btn-stamp btn-submit">Armar mini-grupo y rejugar</button>
+    </form>
+  </div>
+
+  <div class="decision-columna">
+    <h2 class="ticket-nombre">Forzar a mano</h2>
+    {% for j in empatados %}
+    <form method="post" action="{{ url_for('partido.forzar', torneo_id=torneo_id) }}" class="forzar-fila">
+      <input type="hidden" name="jugador_id" value="{{ j.id }}">
+      <span>{{ j.nombre }}</span>
+      <input type="text" name="observacion" placeholder="Observación (opcional)">
+      <button type="submit" name="clasificado" value="si" class="btn btn-stamp">Clasifica</button>
+      <button type="submit" name="clasificado" value="no" class="btn btn-ghost">No clasifica</button>
+    </form>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

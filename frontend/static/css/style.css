@@ -1,0 +1,691 @@
+/* =========================================================
+   Bracket Log -- design tokens
+   Inspirado en hojas de bracket de papel y fichas de torneo de
+   eventos locales, no en un dashboard SaaS genérico.
+   ========================================================= */
+:root {
+  --paper: #E9E4D6;      /* fondo de página, papel de anotador */
+  --card: #F5F1E4;       /* superficie de tarjeta/ficha */
+  --ink: #201F1D;        /* texto principal, líneas */
+  --graphite: #6B6558;   /* texto secundario */
+  --stamp: #B23A2E;      /* sello rojo -- acciones, alertas */
+  --marker: #1F5C4A;     /* verde de anotador -- en curso */
+  --slate: #3C4A52;      /* finalizado / archivado */
+  --line: #C9C0A8;       /* líneas guía / perforado */
+
+  --font-display: "Big Shoulders Display", sans-serif;
+  --font-body: "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+a { color: inherit; }
+
+/* ---------- Header ---------- */
+.site-header {
+  border-bottom: 3px solid var(--ink);
+  padding: 20px 32px;
+}
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 40px 32px 80px;
+}
+
+/* ---------- Page head ---------- */
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 36px;
+  flex-wrap: wrap;
+}
+.eyebrow {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 12px;
+  color: var(--stamp);
+  margin: 0 0 6px;
+  font-weight: 500;
+}
+.display-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 56px;
+  line-height: 0.95;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 14px;
+  text-decoration: none;
+  padding: 12px 22px;
+  border-radius: 2px;
+  border: 2px solid var(--ink);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+.btn-stamp {
+  background: var(--stamp);
+  color: var(--card);
+  border-color: var(--stamp);
+}
+.btn-stamp:hover { transform: translateY(-2px); }
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+}
+.btn-ghost:hover { background: var(--card); }
+.btn-submit { align-self: flex-start; margin-top: 8px; border: none; }
+
+/* ---------- Flash messages ---------- */
+.flash {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  padding: 12px 16px;
+  border-left: 4px solid var(--marker);
+  background: var(--card);
+  margin-bottom: 28px;
+}
+.flash-error { border-color: var(--stamp); color: var(--stamp); }
+
+/* ---------- Ticket grid / cards ---------- */
+.ticket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.ticket {
+  background: var(--card);
+  border: 2px solid var(--ink);
+  padding: 20px;
+}
+
+.ticket-stamp {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  transform: rotate(-3deg);
+  margin-bottom: 14px;
+}
+.stamp-todos_contra_todos { color: var(--slate); }
+.stamp-grupos_eliminacion { color: var(--stamp); }
+.stamp-cinco_vidas { color: var(--marker); }
+
+.ticket-nombre {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin: 0 0 16px;
+  line-height: 1.05;
+}
+
+.ticket-perf {
+  border-top: 2px dashed var(--line);
+  margin: 0 -20px 14px;
+}
+
+.ticket-fecha {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--graphite);
+  margin: 0 0 8px;
+}
+
+.ticket-estado {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.estado-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+}
+.estado-planificado { color: var(--graphite); }
+.estado-en_curso { color: var(--marker); }
+.estado-finalizado { color: var(--slate); }
+
+/* ---------- Empty state ---------- */
+.empty-state {
+  border: 2px dashed var(--line);
+  padding: 48px 32px;
+  text-align: center;
+  background: var(--card);
+}
+.empty-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+.empty-body {
+  color: var(--graphite);
+  margin: 0 0 20px;
+}
+
+/* ---------- Formulario ---------- */
+.form-ticket {
+  background: var(--card);
+  border: 2px solid var(--ink);
+  padding: 32px;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--graphite);
+}
+
+input[type="text"], input[type="date"], input[type="number"], select {
+  font-family: var(--font-body);
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+input:focus, select:focus, .btn:focus, a:focus {
+  outline: 3px solid var(--stamp);
+  outline-offset: 2px;
+}
+
+.roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 4px 12px;
+  border: 2px dashed var(--line);
+  padding: 14px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.roster-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--ink);
+  padding: 4px 0;
+  cursor: pointer;
+}
+.roster-item input { accent-color: var(--stamp); }
+
+/* ---------- Orden de cola (cinco_vidas) ---------- */
+.orden-toggle {
+  display: flex;
+  gap: 20px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+.orden-toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.orden-toggle-item input { accent-color: var(--stamp); }
+
+.orden-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 2px dashed var(--line);
+  background: var(--paper);
+}
+.orden-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-body);
+  font-size: 14px;
+  cursor: grab;
+  background: var(--card);
+}
+.orden-item:last-child { border-bottom: none; }
+.orden-item:active { cursor: grabbing; }
+.orden-handle {
+  color: var(--graphite);
+  user-select: none;
+}
+.orden-item-arrastrando { opacity: 0.4; }
+.orden-hint {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--graphite);
+  margin: 8px 0 0;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+[hidden] { display: none !important; }
+
+/* ---------- Menú principal (Inicio) ---------- */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+}
+
+.menu-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  padding: 28px 20px;
+  text-decoration: none;
+  color: var(--ink);
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.menu-tile:hover { transform: translateY(-3px); }
+.menu-tile-button {
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+.menu-tile-titulo {
+  font-size: 22px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.menu-tile-nota {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--stamp);
+}
+.menu-tile-disabled {
+  cursor: default;
+  opacity: 0.55;
+  border-style: dashed;
+}
+.menu-tile-disabled .menu-tile-nota { color: var(--graphite); }
+.menu-tile-disabled:hover { transform: none; }
+
+/* ---------- Diálogos ---------- */
+.dialog-ticket {
+  border: 2px solid var(--ink);
+  background: var(--card);
+  padding: 28px;
+  max-width: 420px;
+  font-family: var(--font-body);
+}
+.dialog-ticket::backdrop {
+  background: rgba(32, 31, 29, 0.55);
+}
+.dialog-texto {
+  margin: 0 0 20px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+.dialog-acciones {
+  display: flex;
+  gap: 12px;
+}
+.dialog-acciones form { margin: 0; }
+.dialog-acciones-columna {
+  flex-direction: column;
+  align-items: stretch;
+}
+.dialog-acciones-columna form { display: contents; }
+
+/* ---------- Partido actual (VS fullscreen) ---------- */
+.vs-screen {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 24px;
+  min-height: 55vh;
+}
+.vs-lado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  border: 2px solid var(--ink);
+  background: var(--card);
+}
+.vs-nombre {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-align: center;
+  margin: 0;
+}
+.vs-centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+.vs-letras {
+  font-family: var(--font-display);
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--stamp);
+  margin: 0;
+  transform: rotate(-4deg);
+}
+
+/* ---------- Decisión crítica ---------- */
+.decision-columnas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+.decision-columna {
+  background: var(--card);
+  border: 2px solid var(--ink);
+  padding: 24px;
+}
+.forzar-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.forzar-fila span {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  min-width: 90px;
+}
+.forzar-fila input[type="text"] {
+  flex: 1;
+  min-width: 140px;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-body);
+}
+
+/* ---------- Ticket como form (posponer) ---------- */
+.ticket-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+@media (max-width: 800px) {
+  .vs-screen { grid-template-columns: 1fr; }
+  .decision-columnas { grid-template-columns: 1fr; }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .field-row { grid-template-columns: 1fr; }
+  .display-title { font-size: 38px; }
+  .page { padding: 28px 18px 60px; }
+  .page-head { align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* ---------- Tablas / detalle ---------- */
+.detalle-seccion { margin-bottom: 40px; }
+.detalle-subtitulo {
+  font-family: var(--font-display);
+  font-size: 18px;
+  text-transform: uppercase;
+  margin: 20px 0 10px;
+  border-bottom: 2px dashed var(--line);
+  padding-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.detalle-grupo { margin-bottom: 28px; }
+
+.tabla-datos {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.tabla-datos th, .tabla-datos td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.tabla-datos th {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--graphite);
+  border-bottom: 2px solid var(--ink);
+}
+.tabla-datos tbody tr:hover { background: rgba(178, 58, 46, 0.06); }
+.tabla-datos-nota { color: var(--graphite); }
+.btn-chico { padding: 6px 12px; font-size: 12px; }
+.tabla-acciones { display: flex; gap: 8px; }
+
+.form-inline {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.form-inline input[type="text"] {
+  font-family: var(--font-body);
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink);
+  flex: 1;
+  min-width: 200px;
+}
+
+.lista-partidos {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+.lista-partidos li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.lista-partidos-numerada { list-style: decimal inside; }
+
+.stamp-grupo { color: var(--slate); }
+.stamp-repechaje { color: var(--stamp); }
+.stamp-desempate { color: var(--marker); }
+
+/* ---------- Jugadores: grid ---------- */
+.jugador-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 20px;
+}
+.jugador-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  padding: 16px;
+  transition: transform 0.12s ease;
+}
+.jugador-tile:hover { transform: translateY(-3px); }
+.jugador-icono {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+}
+.jugador-icono-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--graphite);
+}
+.jugador-tile-nombre {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.jugador-tile-nuevo { border-style: dashed; justify-content: center; }
+.jugador-tile-mas {
+  font-family: var(--font-display);
+  font-size: 48px;
+  color: var(--stamp);
+  line-height: 1;
+}
+
+/* ---------- Jugadores: perfil ---------- */
+.page-head-acciones { display: flex; gap: 12px; }
+.perfil-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.perfil-imagen-vertical {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border: 2px solid var(--ink);
+  background: var(--card);
+}
+.perfil-imagen-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 96px;
+  font-weight: 800;
+  color: var(--graphite);
+}
+.perfil-dato {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--graphite);
+  margin: 10px 0 0;
+}
+
+/* ---------- Jugadores: editar ---------- */
+.editar-preview-vertical {
+  width: 160px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border: 2px solid var(--ink);
+  display: block;
+  margin-bottom: 10px;
+}
+.editar-preview-icono {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border: 2px solid var(--ink);
+  display: block;
+  margin-bottom: 10px;
+}
+.form-imagen {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.zona-peligro {
+  border: 2px dashed var(--stamp);
+  padding: 20px;
+  background: var(--card);
+}
+
+@media (max-width: 700px) {
+  .perfil-layout { grid-template-columns: 1fr; }
+}

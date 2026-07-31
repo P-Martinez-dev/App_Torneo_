@@ -2,7 +2,7 @@ class Partido:
     def __init__(self, id=None, torneo_id=None, jugador1_id=None, jugador2_id=None,
                  ganador_id=None, fase=None, ronda=None, jornada=None, orden=None,
                  grupo_id=None, jugador1_peleador_id=None, jugador2_peleador_id=None,
-                 estado="pendiente", fecha_jugado=None):
+                 rondas_jugadas=None, estado="pendiente", fecha_jugado=None):
         self.id = id
         self.torneo_id = torneo_id
         self.jugador1_id = jugador1_id
@@ -15,6 +15,7 @@ class Partido:
         self.grupo_id = grupo_id
         self.jugador1_peleador_id = jugador1_peleador_id
         self.jugador2_peleador_id = jugador2_peleador_id
+        self.rondas_jugadas = rondas_jugadas
         self.estado = estado
         self.fecha_jugado = fecha_jugado
 
@@ -32,6 +33,7 @@ class Partido:
             "grupo_id": self.grupo_id,
             "jugador1_peleador_id": self.jugador1_peleador_id,
             "jugador2_peleador_id": self.jugador2_peleador_id,
+            "rondas_jugadas": self.rondas_jugadas,
             "estado": self.estado,
             "fecha_jugado": self.fecha_jugado.isoformat() if self.fecha_jugado else None,
         }
@@ -53,6 +55,7 @@ class Partido:
             grupo_id=row["grupo_id"],
             jugador1_peleador_id=row["jugador1_peleador_id"],
             jugador2_peleador_id=row["jugador2_peleador_id"],
+            rondas_jugadas=row.get("rondas_jugadas"),
             estado=row["estado"],
             fecha_jugado=row["fecha_jugado"],
         )

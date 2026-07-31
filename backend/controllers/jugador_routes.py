@@ -70,3 +70,47 @@ def eliminar(jugador_id):
         return jsonify({"error": str(e)}), 404
     except jugador_service.JugadorConHistorialError as e:
         return jsonify({"error": str(e)}), 409
+
+
+# =========================================================
+# Imágenes (multipart, no JSON -- por eso no pasan por obtener_json_body)
+# =========================================================
+
+@jugador_bp.route("/<int:jugador_id>/imagen-vertical", methods=["POST"])
+def subir_imagen_vertical(jugador_id):
+    try:
+        actualizado = jugador_service.subir_imagen_vertical(jugador_id, request.files.get("imagen"))
+        return jsonify(actualizado), 200
+    except jugador_service.JugadorNoEncontradoError as e:
+        return jsonify({"error": str(e)}), 404
+    except jugador_service.ImagenInvalidaError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@jugador_bp.route("/<int:jugador_id>/imagen-vertical", methods=["DELETE"])
+def eliminar_imagen_vertical(jugador_id):
+    try:
+        actualizado = jugador_service.eliminar_imagen_vertical(jugador_id)
+        return jsonify(actualizado), 200
+    except jugador_service.JugadorNoEncontradoError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+@jugador_bp.route("/<int:jugador_id>/icono", methods=["POST"])
+def subir_icono(jugador_id):
+    try:
+        actualizado = jugador_service.subir_icono(jugador_id, request.files.get("imagen"))
+        return jsonify(actualizado), 200
+    except jugador_service.JugadorNoEncontradoError as e:
+        return jsonify({"error": str(e)}), 404
+    except jugador_service.ImagenInvalidaError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@jugador_bp.route("/<int:jugador_id>/icono", methods=["DELETE"])
+def eliminar_icono(jugador_id):
+    try:
+        actualizado = jugador_service.eliminar_icono(jugador_id)
+        return jsonify(actualizado), 200
+    except jugador_service.JugadorNoEncontradoError as e:
+        return jsonify({"error": str(e)}), 404

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}{{ resumen.torneo.nombre }} · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">{{ resumen.torneo.modo.replace('_', ' ') }} · {{ resumen.torneo.fecha }}</p>
+    <h1 class="display-title">{{ resumen.torneo.nombre }}</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('torneo.listado') }}">Volver a tablas</a>
+</div>
+
+{% if resumen.podio %}
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Podio</h2>
+  <table class="tabla-datos">
+    <thead><tr><th>Puesto</th><th>Jugador</th></tr></thead>
+    <tbody>
+    {% for fila in resumen.podio %}
+      <tr><td>{{ fila.puesto }}</td><td>{{ fila.nombre }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if resumen.torneo.modo == 'todos_contra_todos' %}
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Tabla</h2>
+  <table class="tabla-datos">
+    <thead><tr><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Pts</th></tr></thead>
+    <tbody>
+    {% for f in resumen.tabla %}
+      <tr><td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td><td>{{ f.puntos }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Partidos por jornada</h2>
+  {% for jornada, partidos in resumen.partidos | groupby('jornada') %}
+  <h3 class="detalle-subtitulo">Jornada {{ jornada }}</h3>
+  <ul class="lista-partidos">
+    {% for p in partidos %}
+    <li>{{ p.jugador1_nombre }} vs {{ p.jugador2_nombre }}{% if p.ganador_nombre %} — gana {{ p.ganador_nombre }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if resumen.torneo.modo == 'grupos_eliminacion' %}
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Grupos</h2>
+  {% for g in resumen.grupos %}
+  <div class="detalle-grupo">
+    <h3 class="detalle-subtitulo">
+      {{ g.nombre }} <span class="ticket-stamp stamp-{{ g.tipo }}">{{ g.tipo }}</span>
+    </h3>
+    <table class="tabla-datos">
+      <thead><tr><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Pts</th></tr></thead>
+      <tbody>
+      {% for f in g.tabla %}
+        <tr><td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td><td>{{ f.puntos }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</section>
+
+{% if resumen.bracket %}
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Bracket</h2>
+  {% for ronda in resumen.bracket.rondas %}
+  <h3 class="detalle-subtitulo">{{ ronda.nombre }}</h3>
+  <ul class="lista-partidos">
+    {% for p in ronda.partidos %}
+    <li>{{ p.jugador1_nombre }} vs {{ p.jugador2_nombre }}{% if p.ganador_nombre %} — gana {{ p.ganador_nombre }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% endfor %}
+  {% if resumen.bracket.tercer_puesto %}
+  <h3 class="detalle-subtitulo">Tercer puesto</h3>
+  <ul class="lista-partidos">
+    <li>
+      {{ resumen.bracket.tercer_puesto.jugador1_nombre }} vs {{ resumen.bracket.tercer_puesto.jugador2_nombre }}
+      {% if resumen.bracket.tercer_puesto.ganador_nombre %} — gana {{ resumen.bracket.tercer_puesto.ganador_nombre }}{% endif %}
+    </li>
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+{% endif %}
+
+{% if resumen.torneo.modo == 'cinco_vidas' %}
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Orden cronológico</h2>
+  <ol class="lista-partidos lista-partidos-numerada">
+    {% for p in resumen.partidos %}
+    <li>{{ p.jugador1_nombre }} vs {{ p.jugador2_nombre }}{% if p.ganador_nombre %} — gana {{ p.ganador_nombre }}{% endif %}</li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+{% endblock %}

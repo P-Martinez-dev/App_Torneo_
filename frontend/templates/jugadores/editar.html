@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Editar {{ jugador.nombre }} · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Modificar</p>
+    <h1 class="display-title">{{ jugador.nombre }}</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('jugador.detalle', jugador_id=jugador.id) }}">Volver al perfil</a>
+</div>
+
+{% if error %}<p class="flash flash-error">{{ error }}</p>{% endif %}
+
+<form class="form-ticket" method="post" action="{{ url_for('jugador.editar', jugador_id=jugador.id) }}">
+  <div class="field">
+    <label for="nombre">Nombre</label>
+    <input type="text" id="nombre" name="nombre" required value="{{ jugador.nombre }}">
+  </div>
+  <div class="field">
+    <label for="fecha_nacimiento">Fecha de nacimiento</label>
+    <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" value="{{ jugador.fecha_nacimiento or '' }}">
+  </div>
+  <button type="submit" class="btn btn-stamp btn-submit">Guardar cambios</button>
+</form>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Imagen vertical (perfil)</h2>
+  {% if jugador.imagen_vertical %}
+  <img src="{{ imagen_url(jugador.imagen_vertical) }}" alt="" class="editar-preview-vertical">
+  <form method="post" action="{{ url_for('jugador.eliminar_imagen_vertical', jugador_id=jugador.id) }}">
+    <button type="submit" class="btn btn-ghost">Quitar imagen</button>
+  </form>
+  {% endif %}
+  <form method="post" action="{{ url_for('jugador.subir_imagen_vertical', jugador_id=jugador.id) }}"
+        enctype="multipart/form-data" class="form-imagen">
+    <input type="file" name="imagen" accept="image/png,image/jpeg,image/webp" required>
+    <button type="submit" class="btn btn-stamp">Subir</button>
+  </form>
+</section>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Ícono (grid)</h2>
+  {% if jugador.imagen_icono %}
+  <img src="{{ imagen_url(jugador.imagen_icono) }}" alt="" class="editar-preview-icono">
+  <form method="post" action="{{ url_for('jugador.eliminar_icono', jugador_id=jugador.id) }}">
+    <button type="submit" class="btn btn-ghost">Quitar ícono</button>
+  </form>
+  {% endif %}
+  <form method="post" action="{{ url_for('jugador.subir_icono', jugador_id=jugador.id) }}"
+        enctype="multipart/form-data" class="form-imagen">
+    <input type="file" name="imagen" accept="image/png,image/jpeg,image/webp" required>
+    <button type="submit" class="btn btn-stamp">Subir</button>
+  </form>
+</section>
+
+<section class="detalle-seccion zona-peligro">
+  <h2 class="ticket-nombre">Zona de peligro</h2>
+  <button type="button" id="btn-eliminar-jugador" class="btn btn-stamp">Eliminar jugador</button>
+</section>
+
+<dialog id="dialog-eliminar-jugador" class="dialog-ticket">
+  <p class="dialog-texto">¿Seguro que querés eliminar a {{ jugador.nombre }}? Esto no se puede deshacer.</p>
+  <div class="dialog-acciones">
+    <form method="post" action="{{ url_for('jugador.eliminar', jugador_id=jugador.id) }}">
+      <button type="submit" class="btn btn-stamp">Sí, eliminar</button>
+    </form>
+    <button type="button" id="btn-cancelar-eliminar" class="btn btn-ghost">Cancelar</button>
+  </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/jugador_editar.js') }}"></script>
+{% endblock %}

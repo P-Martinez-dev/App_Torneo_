@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ jugador.nombre }} · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Jugador</p>
+    <h1 class="display-title">{{ jugador.nombre }}</h1>
+  </div>
+  <div class="page-head-acciones">
+    <a class="btn btn-ghost" href="{{ url_for('jugador.editar', jugador_id=jugador.id) }}">Modificar</a>
+    <a class="btn btn-ghost" href="{{ url_for('jugador.grid') }}">Volver</a>
+  </div>
+</div>
+
+<div class="perfil-layout">
+  <div class="perfil-imagen">
+    {% if jugador.imagen_vertical %}
+    <img src="{{ imagen_url(jugador.imagen_vertical) }}" alt="{{ jugador.nombre }}" class="perfil-imagen-vertical">
+    {% else %}
+    <div class="perfil-imagen-vertical perfil-imagen-placeholder">{{ jugador.nombre[0] | upper }}</div>
+    {% endif %}
+    {% if jugador.fecha_nacimiento %}
+    <p class="perfil-dato">Nacimiento: {{ jugador.fecha_nacimiento }}</p>
+    {% endif %}
+  </div>
+
+  <div class="perfil-stats">
+    <h2 class="ticket-nombre">Estadísticas</h2>
+    <table class="tabla-datos">
+      <tbody>
+        <tr><td>Partidos jugados</td><td>{{ estadisticas.resumen_general.partidos_jugados }}</td></tr>
+        <tr><td>Ganados / Perdidos</td><td>{{ estadisticas.resumen_general.partidos_ganados }} / {{ estadisticas.resumen_general.partidos_perdidos }}</td></tr>
+        <tr><td>Win rate</td><td>{{ (estadisticas.resumen_general.win_rate * 100) | round(1) }}%</td></tr>
+        <tr><td>Últimos resultados</td><td>{{ estadisticas.ultimos_resultados | join(' ') }}</td></tr>
+        <tr><td>Racha actual</td><td>{{ estadisticas.rachas.racha_actual }} {{ estadisticas.rachas.racha_actual_tipo or '' }}</td></tr>
+        <tr><td>Mejor racha ganadora</td><td>{{ estadisticas.rachas.mejor_racha_ganadora_historica }}</td></tr>
+        {% if estadisticas.rivales.rival_mas_vencido %}
+        <tr><td>Rival más vencido</td><td>{{ estadisticas.rivales.rival_mas_vencido.nombre }} ({{ estadisticas.rivales.rival_mas_vencido.partidos_ganados }})</td></tr>
+        {% endif %}
+        {% if estadisticas.rivales.matchup_parejo %}
+        <tr><td>Matchup parejo</td><td>{{ estadisticas.rivales.matchup_parejo.nombre }}</td></tr>
+        {% endif %}
+        {% if estadisticas.rivales.nemesis %}
+        <tr><td>Némesis</td><td>{{ estadisticas.rivales.nemesis.nombre }}</td></tr>
+        {% endif %}
+        {% if estadisticas.peleadores.mas_frecuente %}
+        <tr><td>Peleador más usado</td><td>{{ estadisticas.peleadores.mas_frecuente.nombre }}</td></tr>
+        {% endif %}
+        <tr><td>Torneos jugados</td><td>{{ estadisticas.torneos.torneos_jugados_total }}</td></tr>
+        <tr><td>Veces campeón</td><td>{{ estadisticas.torneos.veces_campeon }}</td></tr>
+        {% if estadisticas.torneos.mejor_puesto_historico %}
+        <tr><td>Mejor puesto histórico</td><td>{{ estadisticas.torneos.mejor_puesto_historico.puesto }}° en {{ estadisticas.torneos.mejor_puesto_historico.nombre }}</td></tr>
+        {% endif %}
+        {% if estadisticas.torneos.promedio_puesto %}
+        <tr><td>Promedio de puesto</td><td>{{ estadisticas.torneos.promedio_puesto }}</td></tr>
+        {% endif %}
+        <tr><td>Veces en repechaje/desempate</td><td>{{ estadisticas.veces_en_repechaje_o_desempate }}</td></tr>
+        {% if estadisticas.cinco_vidas.quien_te_elimino_mas %}
+        <tr><td>Quién más te eliminó (5 vidas)</td><td>{{ estadisticas.cinco_vidas.quien_te_elimino_mas.nombre }}</td></tr>
+        {% endif %}
+        {% if estadisticas.cinco_vidas.a_quien_eliminaste_mas %}
+        <tr><td>A quién más eliminaste (5 vidas)</td><td>{{ estadisticas.cinco_vidas.a_quien_eliminaste_mas.nombre }}</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

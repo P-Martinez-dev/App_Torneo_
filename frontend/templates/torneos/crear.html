@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Nuevo torneo · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Nuevo torneo</p>
+    <h1 class="display-title">Completá&nbsp;la&nbsp;ficha</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('torneo.listado') }}">Cancelar</a>
+</div>
+
+{% if error %}
+  <p class="flash flash-error">{{ error }}</p>
+{% endif %}
+
+<form class="form-ticket" method="post" action="{{ url_for('torneo.crear') }}">
+  <div class="field">
+    <label for="nombre">Nombre del torneo</label>
+    <input type="text" id="nombre" name="nombre" required
+           value="{{ form.get('nombre') if form else '' }}" placeholder="Ej: Copa de invierno">
+  </div>
+
+  <div class="field-row">
+    <div class="field">
+      <label for="fecha">Fecha</label>
+      <input type="date" id="fecha" name="fecha" required
+             value="{{ form.get('fecha') if form else '' }}">
+    </div>
+
+    <div class="field">
+      <label for="modo">Modo</label>
+      <select id="modo" name="modo" required>
+        <option value="">Elegir...</option>
+        {% for valor, etiqueta in [('todos_contra_todos', 'Todos contra todos'), ('grupos_eliminacion', 'Grupos + eliminación'), ('cinco_vidas', 'Cinco vidas')] %}
+        <option value="{{ valor }}" {% if form and form.get('modo') == valor %}selected{% endif %}>{{ etiqueta }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="field-row modo-extra" data-modo="grupos_eliminacion">
+    <div class="field">
+      <label for="cupos_eliminacion">Cupos de eliminación</label>
+      <input type="number" id="cupos_eliminacion" name="cupos_eliminacion" min="2" step="1"
+             value="{{ form.get('cupos_eliminacion') if form else '' }}" placeholder="Potencia de 2: 4, 8, 16...">
+    </div>
+    <div class="field">
+      <label for="cantidad_grupos">Cantidad de grupos</label>
+      <input type="number" id="cantidad_grupos" name="cantidad_grupos" min="2" step="1"
+             value="{{ form.get('cantidad_grupos') if form else '' }}">
+    </div>
+  </div>
+
+  <div class="field modo-extra" data-modo="cinco_vidas">
+    <label for="vidas_iniciales">Vidas iniciales</label>
+    <input type="number" id="vidas_iniciales" name="vidas_iniciales" min="1" step="1"
+           value="{{ form.get('vidas_iniciales') if form else '' }}" placeholder="Ej: 3">
+  </div>
+
+  <div class="field modo-extra" data-modo="cinco_vidas">
+    <label>Orden inicial de la cola</label>
+    <div class="orden-toggle">
+      <label class="orden-toggle-item">
+        <input type="radio" name="orden_tipo" value="aleatorio" checked> Aleatorio
+      </label>
+      <label class="orden-toggle-item">
+        <input type="radio" name="orden_tipo" value="manual"> Elegir orden
+      </label>
+    </div>
+    <ol id="orden-lista" class="orden-lista" hidden></ol>
+    <p class="orden-hint" id="orden-hint" hidden>Arrastrá para reordenar. Se completa con los jugadores tildados arriba.</p>
+  </div>
+
+  <div class="field">
+    <label>Jugadores</label>
+    {% if jugadores %}
+    <div class="roster">
+      {% for j in jugadores %}
+      <label class="roster-item">
+        <input type="checkbox" name="jugadores_ids" value="{{ j.id }}" data-nombre="{{ j.nombre }}"
+               {% if form and form.getlist('jugadores_ids') and j.id|string in form.getlist('jugadores_ids') %}checked{% endif %}>
+        <span>{{ j.nombre }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-body">No hay jugadores cargados todavía. Creá jugadores antes de armar un torneo.</p>
+    {% endif %}
+  </div>
+
+  <button type="submit" class="btn btn-stamp btn-submit">Crear torneo</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/torneo_form.js') }}"></script>
+{% endblock %}

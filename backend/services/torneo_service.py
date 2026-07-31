@@ -36,9 +36,15 @@ def _es_potencia_de_dos(n):
 def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
                   cupos_eliminacion: int | None = None,
                   cantidad_grupos: int | None = None,
-                  vidas_iniciales: int | None = None) -> dict:
+                  vidas_iniciales: int | None = None,
+                  orden_jugadores_ids: list[int] | None = None) -> dict:
     if not nombre or not nombre.strip():
         raise DatosTorneoInvalidosError("El nombre del torneo es obligatorio")
+
+    if torneo_repository.existe_torneo_sin_finalizar():
+        raise DatosTorneoInvalidosError(
+            "Ya hay un torneo en curso. Terminalo antes de crear uno nuevo."
+        )
 
     if not fecha:
         raise DatosTorneoInvalidosError("La fecha del torneo es obligatoria")
@@ -90,6 +96,12 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
             raise DatosTorneoInvalidosError(
                 "El modo cinco_vidas requiere vidas_iniciales (un entero >= 1)"
             )
+        if orden_jugadores_ids is not None:
+            if set(orden_jugadores_ids) != set(jugadores_ids) or len(orden_jugadores_ids) != len(jugadores_ids):
+                raise DatosTorneoInvalidosError(
+                    "orden_jugadores_ids debe tener exactamente los mismos jugadores_ids, "
+                    "sin repetidos ni faltantes"
+                )
 
     torneo_id = torneo_repository.crear(
         nombre.strip(), modo, fecha,
@@ -100,7 +112,8 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
     torneo_repository.asignar_jugadores(torneo_id, jugadores_ids)
 
     partido_service.generar_fixture_inicial(
-        torneo_id, modo, jugadores_ids, cupos_eliminacion, cantidad_grupos, vidas_iniciales
+        torneo_id, modo, jugadores_ids, cupos_eliminacion, cantidad_grupos,
+        vidas_iniciales, orden_jugadores_ids
     )
     torneo_repository.marcar_en_curso(torneo_id)
 

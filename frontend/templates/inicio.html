@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Bracket Log</p>
+    <h1 class="display-title">¿Qué&nbsp;hacemos?</h1>
+  </div>
+</div>
+
+<div class="menu-grid">
+  {% if torneo_en_curso %}
+  <button type="button" id="btn-crear-torneo" class="menu-tile menu-tile-button">
+    <span class="menu-tile-titulo">Crear torneo</span>
+    <span class="menu-tile-nota">Hay un torneo en desarrollo</span>
+  </button>
+  {% else %}
+  <a href="{{ url_for('torneo.crear') }}" class="menu-tile">
+    <span class="menu-tile-titulo">Crear torneo</span>
+  </a>
+  {% endif %}
+
+  <a href="{{ url_for('torneo.listado') }}" class="menu-tile">
+    <span class="menu-tile-titulo">Tablas</span>
+  </a>
+
+  <a href="{{ url_for('jugador.grid') }}" class="menu-tile">
+    <span class="menu-tile-titulo">Jugadores</span>
+  </a>
+
+  <a href="{{ url_for('configuracion.index') }}" class="menu-tile">
+    <span class="menu-tile-titulo">Configuración</span>
+  </a>
+</div>
+
+{% if torneo_en_curso %}
+<dialog id="dialog-continuar" class="dialog-ticket" data-continuar-url="{{ url_for('partido.actual', torneo_id=torneo_en_curso.id) }}">
+  <p class="dialog-texto">Torneo en desarrollo: <strong>{{ torneo_en_curso.nombre }}</strong>. ¿Desea continuarlo?</p>
+  <div class="dialog-acciones">
+    <button type="button" id="btn-continuar-si" class="btn btn-stamp">Sí</button>
+    <button type="button" id="btn-continuar-no" class="btn btn-ghost">No</button>
+  </div>
+</dialog>
+
+<dialog id="dialog-descartar" class="dialog-ticket">
+  <p class="dialog-texto">¿Estás seguro? El torneo en desarrollo se perderá.</p>
+  <div class="dialog-acciones">
+    <form method="post" action="{{ url_for('torneo.eliminar', torneo_id=torneo_en_curso.id) }}">
+      <button type="submit" class="btn btn-stamp">Sí, eliminar</button>
+    </form>
+    <button type="button" id="btn-descartar-no" class="btn btn-ghost">No</button>
+  </div>
+</dialog>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/inicio.js') }}"></script>
+{% endblock %}

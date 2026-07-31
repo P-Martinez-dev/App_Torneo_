@@ -29,6 +29,7 @@ def crear():
             cupos_eliminacion=datos.get("cupos_eliminacion"),
             cantidad_grupos=datos.get("cantidad_grupos"),
             vidas_iniciales=datos.get("vidas_iniciales"),
+            orden_jugadores_ids=datos.get("orden_jugadores_ids"),
         )
         return jsonify(nuevo), 201
     except torneo_service.DatosTorneoInvalidosError as e:
@@ -101,6 +102,32 @@ def tabla_general():
     torneos_excluidos = request.args.getlist("excluir", type=int)
     tabla = tabla_general_service.calcular_tabla_general(torneos_excluidos)
     return jsonify(tabla), 200
+
+
+# =========================================================
+# Clasificación (empates sin resolver -> reintentar o forzar)
+# =========================================================
+
+# =========================================================
+# Bracket de eliminación (grupos_eliminacion): resembrado manual, para
+# reconstruir torneos que ya se jugaron en la vida real
+# =========================================================
+
+@torneo_bp.route("/<int:torneo_id>/bracket", methods=["GET"])
+def obtener_bracket(torneo_id):
+    return jsonify(partido_service.obtener_bracket_ronda1(torneo_id)), 200
+
+
+@torneo_bp.route("/<int:torneo_id>/bracket", methods=["PUT"])
+def resembrar_bracket(torneo_id):
+    datos, error = obtener_json_body()
+    if error:
+        return error
+    try:
+        partido_service.resembrar_bracket_manual(torneo_id, datos.get("emparejamientos", []))
+        return jsonify(partido_service.obtener_bracket_ronda1(torneo_id)), 200
+    except partido_service.BracketInvalidoError as e:
+        return jsonify({"error": str(e)}), 400
 
 
 # =========================================================

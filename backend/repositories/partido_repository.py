@@ -158,6 +158,28 @@ def obtener_finalizados_por_grupo(grupo_id, excluidos_ids):
     return [Partido.from_row(f) for f in filas]
 
 
+def obtener_por_fase_y_ronda(torneo_id, fase, ronda):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT * FROM partido WHERE torneo_id = %s AND fase = %s AND ronda = %s ORDER BY orden",
+        (torneo_id, fase, ronda),
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [Partido.from_row(f) for f in filas]
+
+
+def eliminar(partido_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM partido WHERE id = %s", (partido_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
 def obtener_finalizados_por_torneo(torneo_id, fase, excluidos_ids):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -321,14 +343,15 @@ def marcar_pospuesto(partido_id):
     conn.close()
 
 
-def marcar_finalizado(partido_id, ganador_id, peleador1_id=None, peleador2_id=None):
+def marcar_finalizado(partido_id, ganador_id, peleador1_id=None, peleador2_id=None, rondas_jugadas=None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         """UPDATE partido SET estado = 'finalizado', ganador_id = %s,
-           jugador1_peleador_id = %s, jugador2_peleador_id = %s, fecha_jugado = NOW()
+           jugador1_peleador_id = %s, jugador2_peleador_id = %s, rondas_jugadas = %s,
+           fecha_jugado = NOW()
            WHERE id = %s""",
-        (ganador_id, peleador1_id, peleador2_id, partido_id),
+        (ganador_id, peleador1_id, peleador2_id, rondas_jugadas, partido_id),
     )
     conn.commit()
     cursor.close()

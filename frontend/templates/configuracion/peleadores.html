@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Peleadores · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Configuración</p>
+    <h1 class="display-title">Peleadores</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('configuracion.index') }}">Volver</a>
+</div>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Nuevo peleador</h2>
+  <form method="post" action="{{ url_for('configuracion.crear_peleador') }}" class="form-inline">
+    <input type="text" name="nombre" placeholder="Nombre del peleador" required>
+    <button type="submit" class="btn btn-stamp">Agregar</button>
+  </form>
+</section>
+
+<section class="detalle-seccion">
+  {% if peleadores %}
+  <table class="tabla-datos">
+    <thead><tr><th>Nombre</th><th></th></tr></thead>
+    <tbody>
+    {% for p in peleadores %}
+      <tr>
+        <td>{{ p.nombre }}</td>
+        <td class="tabla-acciones">
+          <button type="button" class="btn btn-ghost btn-chico btn-abrir-dialog" data-dialog="dialog-editar-{{ p.id }}">Editar</button>
+          <button type="button" class="btn btn-ghost btn-chico btn-abrir-dialog" data-dialog="dialog-eliminar-{{ p.id }}">Eliminar</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-body">Todavía no hay peleadores cargados.</p>
+  {% endif %}
+</section>
+
+{% for p in peleadores %}
+<dialog id="dialog-editar-{{ p.id }}" class="dialog-ticket">
+  <p class="dialog-texto">Editar peleador</p>
+  <form method="post" action="{{ url_for('configuracion.editar_peleador', peleador_id=p.id) }}" class="field">
+    <input type="text" name="nombre" value="{{ p.nombre }}" required>
+    <div class="dialog-acciones">
+      <button type="submit" class="btn btn-stamp">Guardar</button>
+      <button type="button" class="btn btn-ghost btn-cerrar-dialog" data-dialog="dialog-editar-{{ p.id }}">Cancelar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dialog-eliminar-{{ p.id }}" class="dialog-ticket">
+  <p class="dialog-texto">¿Eliminar a <strong>{{ p.nombre }}</strong>? Esto no se puede deshacer.</p>
+  <div class="dialog-acciones">
+    <form method="post" action="{{ url_for('configuracion.eliminar_peleador', peleador_id=p.id) }}">
+      <button type="submit" class="btn btn-stamp">Sí, eliminar</button>
+    </form>
+    <button type="button" class="btn btn-ghost btn-cerrar-dialog" data-dialog="dialog-eliminar-{{ p.id }}">Cancelar</button>
+  </div>
+</dialog>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/peleadores.js') }}"></script>
+{% endblock %}

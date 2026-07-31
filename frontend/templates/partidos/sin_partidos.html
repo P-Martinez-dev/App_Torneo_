@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Sin partidos · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="empty-state">
+  <p class="empty-title">No hay ningún partido para mostrar.</p>
+  <p class="empty-body">Esto no debería pasar con el torneo en curso -- si lo ves, avisale a Pascual.</p>
+  <a class="btn btn-stamp" href="{{ url_for('inicio.inicio') }}">Volver al inicio</a>
+</div>
+{% endblock %}

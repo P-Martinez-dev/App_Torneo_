@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Nuevo jugador · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Nuevo jugador</p>
+    <h1 class="display-title">Alta&nbsp;de&nbsp;jugador</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('jugador.grid') }}">Cancelar</a>
+</div>
+
+{% if error %}<p class="flash flash-error">{{ error }}</p>{% endif %}
+
+<form class="form-ticket" method="post" action="{{ url_for('jugador.crear') }}">
+  <div class="field">
+    <label for="nombre">Nombre</label>
+    <input type="text" id="nombre" name="nombre" required value="{{ form.get('nombre') if form else '' }}">
+  </div>
+  <div class="field">
+    <label for="fecha_nacimiento">Fecha de nacimiento (opcional)</label>
+    <input type="date" id="fecha_nacimiento" name="fecha_nacimiento"
+           value="{{ form.get('fecha_nacimiento') if form else '' }}">
+  </div>
+  <p class="empty-body">Las imágenes se agregan después, desde el perfil del jugador.</p>
+  <button type="submit" class="btn btn-stamp btn-submit">Crear jugador</button>
+</form>
+{% endblock %}

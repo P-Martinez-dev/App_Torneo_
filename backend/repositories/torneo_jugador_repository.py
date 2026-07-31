@@ -60,6 +60,23 @@ def hay_pendientes(torneo_id):
     return total > 0
 
 
+def hay_pendientes_en_grupo(grupo_id):
+    """Igual que hay_pendientes pero scopeado a un grupo puntual -- se usa
+    para detectar el grupo específico que quedó trabado en un empate sin
+    resolver (todos sus partidos terminados, pero nadie quedó marcado
+    clasificado True/False)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT COUNT(*) FROM torneo_jugador_grupo WHERE grupo_id = %s AND clasificado IS NULL",
+        (grupo_id,),
+    )
+    total = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+    return total > 0
+
+
 def hay_desempates_internos_pendientes(torneo_id):
     """Igual que hay_pendientes, pero scopeado solo a los mini-grupos de
     desempate interno de grupo (grupo_padre_id IS NOT NULL). Se usa para

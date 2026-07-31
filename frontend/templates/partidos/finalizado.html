@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Torneo finalizado · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="empty-state">
+  <p class="empty-title">Este torneo ya terminó.</p>
+  <p class="empty-body">Todavía no armamos la pantalla de resumen -- por ahora, volvé a Tablas.</p>
+  <a class="btn btn-stamp" href="{{ url_for('torneo.listado') }}">Ir a tablas</a>
+</div>
+{% endblock %}

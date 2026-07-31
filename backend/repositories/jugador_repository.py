@@ -66,6 +66,21 @@ def actualizar(jugador_id, nombre, fecha_nacimiento):
     return filas_afectadas > 0
 
 
+def actualizar_imagen(jugador_id, campo, path):
+    """campo es 'imagen_vertical_path' o 'imagen_icono_path'. path puede
+    ser None para borrar (volver al placeholder)."""
+    if campo not in ("imagen_vertical_path", "imagen_icono_path"):
+        raise ValueError(f"Campo de imagen inválido: {campo}")
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(f"UPDATE jugador SET {campo} = %s WHERE id = %s", (path, jugador_id))
+    conn.commit()
+    filas_afectadas = cursor.rowcount
+    cursor.close()
+    conn.close()
+    return filas_afectadas > 0
+
+
 def eliminar(jugador_id):
     conn = get_connection()
     cursor = conn.cursor()
