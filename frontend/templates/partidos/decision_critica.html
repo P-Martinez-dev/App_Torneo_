@@ -18,6 +18,7 @@
   <div class="decision-columna">
     <h2 class="ticket-nombre">Rejugar</h2>
     <form method="post" action="{{ url_for('partido.reintentar', torneo_id=torneo_id) }}">
+      <input type="hidden" name="grupo_id" value="{{ grupo_id }}">
       {% for j in empatados %}
       <input type="hidden" name="jugadores_empatados_ids" value="{{ j.id }}">
       {% endfor %}

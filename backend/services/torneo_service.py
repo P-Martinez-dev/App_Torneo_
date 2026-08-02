@@ -37,7 +37,8 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
                   cupos_eliminacion: int | None = None,
                   cantidad_grupos: int | None = None,
                   vidas_iniciales: int | None = None,
-                  orden_jugadores_ids: list[int] | None = None) -> dict:
+                  orden_jugadores_ids: list[int] | None = None,
+                  grupos_manual: list[list[int]] | None = None) -> dict:
     if not nombre or not nombre.strip():
         raise DatosTorneoInvalidosError("El nombre del torneo es obligatorio")
 
@@ -90,6 +91,21 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
                 f"Con {len(jugadores_ids)} jugadores y {cantidad_grupos} grupos, "
                 f"algún grupo quedaría con menos de 3 jugadores. Reducí cantidad_grupos."
             )
+        if grupos_manual is not None:
+            if len(grupos_manual) != cantidad_grupos:
+                raise DatosTorneoInvalidosError(
+                    f"grupos_manual debe tener {cantidad_grupos} grupos, llegaron {len(grupos_manual)}"
+                )
+            ids_en_grupos_manual = [jid for grupo in grupos_manual for jid in grupo]
+            if len(set(ids_en_grupos_manual)) != len(ids_en_grupos_manual):
+                raise DatosTorneoInvalidosError("Un jugador no puede estar en más de un grupo")
+            if set(ids_en_grupos_manual) != set(jugadores_ids):
+                raise DatosTorneoInvalidosError(
+                    "grupos_manual debe incluir exactamente a jugadores_ids, sin repetidos ni faltantes"
+                )
+            grupo_chico = min(len(g) for g in grupos_manual)
+            if grupo_chico < 3:
+                raise DatosTorneoInvalidosError("Ningún grupo puede quedar con menos de 3 jugadores")
 
     if modo == "cinco_vidas":
         if not isinstance(vidas_iniciales, int) or isinstance(vidas_iniciales, bool) or vidas_iniciales < 1:
@@ -113,7 +129,7 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
 
     partido_service.generar_fixture_inicial(
         torneo_id, modo, jugadores_ids, cupos_eliminacion, cantidad_grupos,
-        vidas_iniciales, orden_jugadores_ids
+        vidas_iniciales, orden_jugadores_ids, grupos_manual
     )
     torneo_repository.marcar_en_curso(torneo_id)
 

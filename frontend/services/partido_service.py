@@ -50,6 +50,25 @@ def cargar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=Non
     resp.raise_for_status()
 
 
+def editar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=None, rondas_jugadas=None):
+    resp = requests.put(
+        f"{Config.API_BASE_URL}/partidos/{partido_id}/resultado",
+        json={
+            "ganador_id": ganador_id, "peleador1_id": peleador1_id,
+            "peleador2_id": peleador2_id, "rondas_jugadas": rondas_jugadas,
+        },
+    )
+    if resp.status_code == 400:
+        raise PartidoInvalidoError(resp.json().get("error", "Resultado inválido"))
+    resp.raise_for_status()
+
+
+def listar_todos(torneo_id):
+    resp = requests.get(f"{Config.API_BASE_URL}/torneos/{torneo_id}/partidos")
+    resp.raise_for_status()
+    return resp.json()
+
+
 def obtener_bracket(torneo_id):
     resp = requests.get(f"{Config.API_BASE_URL}/torneos/{torneo_id}/bracket")
     resp.raise_for_status()
@@ -83,10 +102,13 @@ def forzar_clasificado(torneo_id, jugador_id, clasificado, observacion=None):
     resp.raise_for_status()
 
 
-def reintentar_desempate(torneo_id, jugadores_empatados_ids, slots):
+def reintentar_desempate(torneo_id, grupo_bloqueado_id, jugadores_empatados_ids, slots):
     resp = requests.post(
         f"{Config.API_BASE_URL}/torneos/{torneo_id}/reintentar-desempate",
-        json={"jugadores_empatados_ids": jugadores_empatados_ids, "slots": slots},
+        json={
+            "grupo_id": grupo_bloqueado_id,
+            "jugadores_empatados_ids": jugadores_empatados_ids, "slots": slots,
+        },
     )
     if resp.status_code == 400:
         raise ClasificacionInvalidaError(resp.json().get("error", "Datos inválidos"))

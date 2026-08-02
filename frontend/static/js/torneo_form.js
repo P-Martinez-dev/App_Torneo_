@@ -8,6 +8,8 @@
   const rosterCheckboxes = document.querySelectorAll('.roster-item input[type="checkbox"]');
   const ordenLista = document.getElementById("orden-lista");
   const ordenHint = document.getElementById("orden-hint");
+  const cantidadGruposInput = document.getElementById("cantidad_grupos");
+  const gruposHint = document.getElementById("grupos-hint");
 
   function actualizarSeccionesPorModo() {
     const modo = modoSelect.value;
@@ -15,11 +17,31 @@
       const visible = seccion.dataset.modo === modo;
       seccion.hidden = !visible;
       seccion.querySelectorAll("input").forEach((input) => {
-        if (input.closest("#orden-lista")) return; // esos se manejan aparte
+        if (input.closest("#orden-lista") || input.classList.contains("roster-grupo-input")) return;
         input.disabled = !visible;
       });
     });
     sincronizarOrdenLista();
+    sincronizarGrupoInputs();
+  }
+
+  function gruposEsManual() {
+    const activo = document.querySelector('input[name="grupos_tipo"]:checked');
+    return modoSelect.value === "grupos_eliminacion" && !!activo && activo.value === "manual";
+  }
+
+  function sincronizarGrupoInputs() {
+    const manual = gruposEsManual();
+    if (gruposHint) gruposHint.hidden = !manual;
+    const maxGrupos = cantidadGruposInput ? parseInt(cantidadGruposInput.value, 10) || 99 : 99;
+    rosterCheckboxes.forEach((cb) => {
+      const input = cb.closest(".roster-item").querySelector(".roster-grupo-input");
+      if (!input) return;
+      const visible = manual && cb.checked;
+      input.hidden = !visible;
+      input.disabled = !visible;
+      input.max = maxGrupos;
+    });
   }
 
   function ordenEsManual() {
@@ -106,5 +128,14 @@
   document.querySelectorAll('input[name="orden_tipo"]').forEach((radio) =>
     radio.addEventListener("change", sincronizarOrdenLista)
   );
-  rosterCheckboxes.forEach((cb) => cb.addEventListener("change", sincronizarOrdenLista));
+  document.querySelectorAll('input[name="grupos_tipo"]').forEach((radio) =>
+    radio.addEventListener("change", sincronizarGrupoInputs)
+  );
+  if (cantidadGruposInput) {
+    cantidadGruposInput.addEventListener("input", sincronizarGrupoInputs);
+  }
+  rosterCheckboxes.forEach((cb) => {
+    cb.addEventListener("change", sincronizarOrdenLista);
+    cb.addEventListener("change", sincronizarGrupoInputs);
+  });
 })();

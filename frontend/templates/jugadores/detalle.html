@@ -56,6 +56,12 @@
         <tr><td>Promedio de puesto</td><td>{{ estadisticas.torneos.promedio_puesto }}</td></tr>
         {% endif %}
         <tr><td>Veces en repechaje/desempate</td><td>{{ estadisticas.veces_en_repechaje_o_desempate }}</td></tr>
+        {% if estadisticas.rounds.partidos_con_datos_de_rondas %}
+        <tr><td>Rounds ganados / perdidos</td><td>{{ estadisticas.rounds.rounds_ganados }} / {{ estadisticas.rounds.rounds_perdidos }}</td></tr>
+        <tr><td>Round win rate</td><td>{{ (estadisticas.rounds.round_win_rate * 100) | round(1) }}%</td></tr>
+        <tr><td>Barridas (2-0) hechas / recibidas</td><td>{{ estadisticas.rounds.barridas_hechas }} / {{ estadisticas.rounds.barridas_recibidas }}</td></tr>
+        <tr><td>Cerrados (2-1) ganados / perdidos</td><td>{{ estadisticas.rounds.cerrados_ganados }} / {{ estadisticas.rounds.cerrados_perdidos }}</td></tr>
+        {% endif %}
         {% if estadisticas.cinco_vidas.quien_te_elimino_mas %}
         <tr><td>Quién más te eliminó (5 vidas)</td><td>{{ estadisticas.cinco_vidas.quien_te_elimino_mas.nombre }}</td></tr>
         {% endif %}

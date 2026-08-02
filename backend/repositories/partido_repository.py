@@ -55,12 +55,19 @@ def obtener_en_curso(torneo_id):
 
 
 def obtener_proximo_pendiente(torneo_id):
+    """
+    Prioriza 'pendiente' sobre 'pospuesto' (para eso existe posponer: bajarle
+    la prioridad a un partido puntual) -- pero si no queda NINGÚN pendiente
+    normal, sí hay que volver a ofrecer los pospuestos, o el torneo se queda
+    trabado con un partido que nadie vuelve a ver.
+    """
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
         """SELECT * FROM partido
-           WHERE torneo_id = %s AND estado = 'pendiente'
-           ORDER BY orden ASC LIMIT 1""",
+           WHERE torneo_id = %s AND estado IN ('pendiente', 'pospuesto')
+           ORDER BY (estado = 'pendiente') DESC, orden ASC
+           LIMIT 1""",
         (torneo_id,),
     )
     fila = cursor.fetchone()
@@ -169,6 +176,37 @@ def obtener_por_fase_y_ronda(torneo_id, fase, ronda):
     cursor.close()
     conn.close()
     return [Partido.from_row(f) for f in filas]
+
+
+def reemplazar_partidos(ids_a_eliminar, nuevos_partidos):
+    """
+    Borra ids_a_eliminar y crea nuevos_partidos en UNA sola transacción --
+    si algo falla en el medio (se cae la conexión, etc.), hace rollback y
+    no queda a mitad de camino (ni los viejos borrados sin los nuevos
+    puestos, ni duplicados). Pensado para resembrar_bracket_manual.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        if ids_a_eliminar:
+            placeholders = ",".join(["%s"] * len(ids_a_eliminar))
+            cursor.execute(f"DELETE FROM partido WHERE id IN ({placeholders})", ids_a_eliminar)
+
+        if nuevos_partidos:
+            cursor.executemany(
+                """INSERT INTO partido
+                   (torneo_id, jugador1_id, jugador2_id, fase, ronda, jornada, orden, grupo_id, estado)
+                   VALUES (%(torneo_id)s, %(jugador1_id)s, %(jugador2_id)s, %(fase)s,
+                           %(ronda)s, %(jornada)s, %(orden)s, %(grupo_id)s, 'pendiente')""",
+                nuevos_partidos,
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def eliminar(partido_id):
@@ -350,6 +388,23 @@ def marcar_finalizado(partido_id, ganador_id, peleador1_id=None, peleador2_id=No
         """UPDATE partido SET estado = 'finalizado', ganador_id = %s,
            jugador1_peleador_id = %s, jugador2_peleador_id = %s, rondas_jugadas = %s,
            fecha_jugado = NOW()
+           WHERE id = %s""",
+        (ganador_id, peleador1_id, peleador2_id, rondas_jugadas, partido_id),
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def actualizar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=None, rondas_jugadas=None):
+    """A diferencia de marcar_finalizado, esto es para CORREGIR un partido
+    que ya estaba finalizado -- no toca estado ni fecha_jugado (no es un
+    'se jugó ahora', es 'se corrigió lo que ya se había cargado')."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """UPDATE partido SET ganador_id = %s, jugador1_peleador_id = %s,
+           jugador2_peleador_id = %s, rondas_jugadas = %s
            WHERE id = %s""",
         (ganador_id, peleador1_id, peleador2_id, rondas_jugadas, partido_id),
     )

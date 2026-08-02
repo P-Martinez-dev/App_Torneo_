@@ -19,12 +19,13 @@ def crear(torneo_id, nombre, tipo="grupo", slots_a_clasificar=None, grupo_padre_
 
 def obtener_desempate_interno(grupo_padre_id):
     """Devuelve el mini-grupo de desempate interno de un grupo (si existe).
-    Un grupo original tiene a lo sumo uno: si vuelve a empatar, se fuerza o
-    se rejuega ese mismo mini-grupo, no se crea uno nuevo."""
+    Puede haber más de uno si se reintentó varias veces (cada 'Reintentar'
+    arma uno nuevo apuntando al mismo padre) -- por eso se toma el más
+    reciente, que es el que tiene la resolución vigente."""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
-        "SELECT * FROM grupo WHERE grupo_padre_id = %s AND tipo = 'desempate'",
+        "SELECT * FROM grupo WHERE grupo_padre_id = %s AND tipo = 'desempate' ORDER BY id DESC LIMIT 1",
         (grupo_padre_id,),
     )
     fila = cursor.fetchone()

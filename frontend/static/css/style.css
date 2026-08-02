@@ -273,7 +273,16 @@ input:focus, select:focus, .btn:focus, a:focus {
   padding: 4px 0;
   cursor: pointer;
 }
-.roster-item input { accent-color: var(--stamp); }
+.roster-item input[type="checkbox"] { accent-color: var(--stamp); }
+.roster-grupo-input {
+  width: 56px;
+  padding: 4px 6px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  margin-left: auto;
+}
 
 /* ---------- Orden de cola (cinco_vidas) ---------- */
 .orden-toggle {
@@ -404,6 +413,45 @@ input:focus, select:focus, .btn:focus, a:focus {
 .dialog-acciones-columna form { display: contents; }
 
 /* ---------- Partido actual (VS fullscreen) ---------- */
+.fase-banner {
+  text-align: center;
+  margin-bottom: 18px;
+}
+.stamp-fase {
+  color: var(--marker);
+  font-size: 13px;
+  transform: rotate(-2deg);
+}
+.fase-banner-alerta {
+  background: var(--stamp);
+  padding: 10px;
+  margin: 0 0 18px;
+}
+.stamp-fase-alerta {
+  color: var(--card);
+  border-color: var(--card);
+  font-size: 15px;
+  transform: none;
+}
+
+.alerta-bracket {
+  border: 2px solid var(--stamp);
+  background: var(--card);
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.alerta-bracket-texto {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink);
+  max-width: 640px;
+}
+
 .vs-screen {
   display: grid;
   grid-template-columns: 1fr auto 1fr;

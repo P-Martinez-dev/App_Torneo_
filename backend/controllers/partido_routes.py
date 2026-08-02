@@ -45,6 +45,26 @@ def listar_todos(torneo_id):
     return jsonify(partido_service.listar_partidos(torneo_id)), 200
 
 
+@partido_bp.route("/partidos/<int:partido_id>/resultado", methods=["PUT"])
+def editar_resultado(partido_id):
+    datos, error = obtener_json_body()
+    if error:
+        return error
+    try:
+        partido = partido_service.editar_resultado(
+            partido_id,
+            datos.get("ganador_id"),
+            peleador1_id=datos.get("peleador1_id"),
+            peleador2_id=datos.get("peleador2_id"),
+            rondas_jugadas=datos.get("rondas_jugadas"),
+        )
+        return jsonify(partido), 200
+    except partido_service.PartidoInvalidoError as e:
+        return jsonify({"error": str(e)}), 400
+    except partido_service.ResultadoInvalidoError as e:
+        return jsonify({"error": str(e)}), 400
+
+
 @partido_bp.route("/partidos/<int:partido_id>/resultado", methods=["POST"])
 def cargar_resultado(partido_id):
     datos, error = obtener_json_body()
@@ -60,6 +80,8 @@ def cargar_resultado(partido_id):
         )
         return jsonify(partido), 200
     except partido_service.ResultadoInvalidoError as e:
+        return jsonify({"error": str(e)}), 400
+    except partido_service.ClasificacionInvalidaError as e:
         return jsonify({"error": str(e)}), 400
 
 

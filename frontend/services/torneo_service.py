@@ -71,6 +71,14 @@ def armar_payload_creacion(form):
     if modo == "grupos_eliminacion":
         payload["cupos_eliminacion"] = _a_entero(form.get("cupos_eliminacion"))
         payload["cantidad_grupos"] = _a_entero(form.get("cantidad_grupos"))
+        if form.get("grupos_tipo") == "manual":
+            grupos_dict = {}
+            for jid in payload["jugadores_ids"]:
+                num_grupo = _a_entero(form.get(f"grupo_de_{jid}"))
+                if num_grupo:
+                    grupos_dict.setdefault(num_grupo, []).append(jid)
+            if grupos_dict:
+                payload["grupos_manual"] = [grupos_dict[k] for k in sorted(grupos_dict)]
     elif modo == "cinco_vidas":
         payload["vidas_iniciales"] = _a_entero(form.get("vidas_iniciales"))
         orden = form.getlist("orden_jugadores_ids")

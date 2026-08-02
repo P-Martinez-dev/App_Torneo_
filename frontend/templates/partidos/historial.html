@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Historial de partidos · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Historial</p>
+    <h1 class="display-title">Partidos&nbsp;cargados</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('partido.actual', torneo_id=torneo_id) }}">Volver</a>
+</div>
+
+{% if partidos %}
+<table class="tabla-datos">
+  <thead>
+    <tr><th>Fase</th><th>Enfrentamiento</th><th>Ganador</th><th>Estado</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for p in partidos %}
+    <tr>
+      <td>{{ p.fase.replace('_', ' ') }}{% if p.jornada %} · J{{ p.jornada }}{% endif %}{% if p.ronda %} · R{{ p.ronda }}{% endif %}</td>
+      <td>{{ p.nombre1 }} vs {{ p.nombre2 }}</td>
+      <td>{{ p.nombre_ganador or '--' }}</td>
+      <td class="ticket-estado estado-{{ p.estado }}"><span class="estado-dot"></span>{{ p.estado.replace('_', ' ') }}</td>
+      <td>
+        {% if p.estado == 'finalizado' %}
+        <a class="btn btn-ghost btn-chico" href="{{ url_for('partido.editar_resultado', torneo_id=torneo_id, partido_id=p.id) }}">Editar</a>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+  <p class="empty-title">Todavía no hay partidos cargados.</p>
+</div>
+{% endif %}
+{% endblock %}

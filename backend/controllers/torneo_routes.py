@@ -30,6 +30,7 @@ def crear():
             cantidad_grupos=datos.get("cantidad_grupos"),
             vidas_iniciales=datos.get("vidas_iniciales"),
             orden_jugadores_ids=datos.get("orden_jugadores_ids"),
+            grupos_manual=datos.get("grupos_manual"),
         )
         return jsonify(nuevo), 201
     except torneo_service.DatosTorneoInvalidosError as e:
@@ -142,6 +143,7 @@ def reintentar_desempate(torneo_id):
     try:
         grupo_id = partido_service.reintentar_desempate(
             torneo_id,
+            datos.get("grupo_id"),
             datos.get("jugadores_empatados_ids", []),
             datos.get("slots"),
         )

@@ -2,6 +2,21 @@
 {% block title %}Partido actual · Bracket Log{% endblock %}
 
 {% block content %}
+<div class="fase-banner {% if partido.fase in ('desempate', 'repechaje') %}fase-banner-alerta{% endif %}">
+  <span class="ticket-stamp stamp-fase {% if partido.fase in ('desempate', 'repechaje') %}stamp-fase-alerta{% endif %}">{{ fase_descripcion }}</span>
+</div>
+
+{% if bracket_resembrable %}
+<div class="alerta-bracket">
+  <p class="alerta-bracket-texto">
+    El bracket de eliminación se armó al azar. Si necesitás elegir vos los cruces
+    (para reconstruir un torneo real, por ejemplo), hacelo <strong>antes</strong> de
+    cargar el primer resultado de esta ronda — después ya no se puede.
+  </p>
+  <a href="{{ url_for('partido.bracket', torneo_id=torneo_id) }}" class="btn btn-stamp">Resembrar bracket</a>
+</div>
+{% endif %}
+
 <div class="vs-screen">
   <div class="vs-lado vs-izq">
     <p class="vs-nombre">{{ nombre1 }}</p>
@@ -20,7 +35,8 @@
   <div class="dialog-acciones dialog-acciones-columna">
     <button type="button" id="btn-abrir-cargar-datos" class="btn btn-stamp">Cargar datos</button>
     <a href="{{ url_for('partido.pendientes', torneo_id=torneo_id) }}" class="btn btn-ghost">Posponer partido</a>
-    {% if partido.fase == 'eliminacion' and partido.ronda == 1 %}
+    <a href="{{ url_for('partido.historial', torneo_id=torneo_id) }}" class="btn btn-ghost">Editar un partido anterior</a>
+    {% if bracket_resembrable %}
     <a href="{{ url_for('partido.bracket', torneo_id=torneo_id) }}" class="btn btn-ghost">Resembrar bracket</a>
     {% endif %}
     {% if partido.fase == 'todos_contra_todos' %}

@@ -36,7 +36,7 @@ def crear():
     payload = torneo_service.armar_payload_creacion(request.form)
     try:
         nuevo = torneo_service.crear_torneo(payload)
-        return redirect(url_for("torneo.listado", creado=nuevo["id"]))
+        return redirect(url_for("partido.actual", torneo_id=nuevo["id"]))
     except torneo_service.TorneoInvalidoError as e:
         jugadores = jugador_service.listar_jugadores()
         return render_template(
