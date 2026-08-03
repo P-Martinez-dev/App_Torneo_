@@ -15,6 +15,25 @@ class JugadorNoEncontradoError(Exception):
 PELEADOR_MIN_PARTIDOS_PARA_WIN_RATE = 3
 
 
+def _todos_los_maximos(lista, key):
+    """Devuelve TODOS los que empatan en el valor máximo, no solo uno --
+    max()/lista[0] de Python solo devuelven un elemento aunque haya
+    varios empatados, y para estas estadísticas eso esconde información
+    real (ej: si le ganaste 3 veces a 3 rivales distintos, los 3 son
+    'el rival más vencido', no solo el primero que aparezca)."""
+    if not lista:
+        return []
+    m = max(key(f) for f in lista)
+    return [f for f in lista if key(f) == m]
+
+
+def _todos_los_minimos(lista, key):
+    if not lista:
+        return []
+    m = min(key(f) for f in lista)
+    return [f for f in lista if key(f) == m]
+
+
 def obtener_estadisticas_jugador(jugador_id: int) -> dict:
     jugador = jugador_repository.obtener_por_id(jugador_id)
     if jugador is None:
@@ -88,16 +107,14 @@ def _stats_rivales(jugador_id, partidos):
     lista.sort(key=lambda f: -f["partidos_jugados"])
 
     candidatos_matchup = [f for f in lista if f["partidos_jugados"] >= RIVAL_MIN_PARTIDOS_PARA_MATCHUP]
-    matchup_parejo = min(
-        candidatos_matchup,
-        key=lambda f: (abs(f["partidos_ganados"] - f["partidos_perdidos"]), -f["partidos_jugados"]),
-        default=None,
+    matchup_parejo = _todos_los_minimos(
+        candidatos_matchup, key=lambda f: abs(f["partidos_ganados"] - f["partidos_perdidos"])
     )
-    nemesis = min(candidatos_matchup, key=lambda f: f["win_rate"], default=None)
+    nemesis = _todos_los_minimos(candidatos_matchup, key=lambda f: f["win_rate"])
 
     return {
-        "rival_mas_vencido": max(lista, key=lambda f: f["partidos_ganados"], default=None),
-        "rival_mas_frecuente": lista[0] if lista else None,
+        "rival_mas_vencido": _todos_los_maximos(lista, key=lambda f: f["partidos_ganados"]),
+        "rival_mas_frecuente": _todos_los_maximos(lista, key=lambda f: f["partidos_jugados"]),
         "matchup_parejo": matchup_parejo,
         "nemesis": nemesis,
         "min_partidos_para_matchup": RIVAL_MIN_PARTIDOS_PARA_MATCHUP,
@@ -132,9 +149,9 @@ def _stats_peleadores(jugador_id, partidos):
     candidatos_win_rate = [f for f in lista if f["partidos_jugados"] >= PELEADOR_MIN_PARTIDOS_PARA_WIN_RATE]
 
     return {
-        "mas_frecuente": lista[0] if lista else None,
-        "mejor_win_rate": max(candidatos_win_rate, key=lambda f: f["win_rate"], default=None),
-        "peor_win_rate": min(candidatos_win_rate, key=lambda f: f["win_rate"], default=None),
+        "mas_frecuente": _todos_los_maximos(lista, key=lambda f: f["partidos_jugados"]),
+        "mejor_win_rate": _todos_los_maximos(candidatos_win_rate, key=lambda f: f["win_rate"]),
+        "peor_win_rate": _todos_los_minimos(candidatos_win_rate, key=lambda f: f["win_rate"]),
         "min_partidos_para_win_rate": PELEADOR_MIN_PARTIDOS_PARA_WIN_RATE,
         "todos": lista,
     }
@@ -169,9 +186,9 @@ def _stats_peleadores_rivales(jugador_id, partidos):
     lista.sort(key=lambda f: -f["partidos_jugados"])
 
     return {
-        "mas_frecuente": lista[0] if lista else None,
-        "que_te_gana_mas": max(lista, key=lambda f: f["partidos_perdidos"], default=None),
-        "que_le_ganas_mas": max(lista, key=lambda f: f["partidos_ganados"], default=None),
+        "mas_frecuente": _todos_los_maximos(lista, key=lambda f: f["partidos_jugados"]),
+        "que_te_gana_mas": _todos_los_maximos(lista, key=lambda f: f["partidos_perdidos"]),
+        "que_le_ganas_mas": _todos_los_maximos(lista, key=lambda f: f["partidos_ganados"]),
         "todos": lista,
     }
 
@@ -318,8 +335,8 @@ def _stats_cinco_vidas(jugador_id, torneos_finalizados):
         d["nombre"] = nombres.get(d["jugador_id"])
 
     return {
-        "quien_te_elimino_mas": lista_eliminado_por[0] if lista_eliminado_por else None,
-        "a_quien_eliminaste_mas": lista_eliminaste[0] if lista_eliminaste else None,
+        "quien_te_elimino_mas": _todos_los_maximos(lista_eliminado_por, key=lambda f: f["veces"]),
+        "a_quien_eliminaste_mas": _todos_los_maximos(lista_eliminaste, key=lambda f: f["veces"]),
         "eliminado_por_detalle": lista_eliminado_por,
         "eliminaste_detalle": lista_eliminaste,
     }

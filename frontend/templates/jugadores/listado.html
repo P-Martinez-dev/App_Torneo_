@@ -9,13 +9,15 @@
   </div>
 </div>
 
-<div class="jugador-grid">
+<input type="text" id="buscador-jugadores" class="buscador" placeholder="Buscar jugador..." autocomplete="off">
+
+<div class="jugador-grid" id="jugador-grid">
   <a href="{{ url_for('jugador.crear') }}" class="jugador-tile jugador-tile-nuevo">
     <span class="jugador-tile-mas">+</span>
     <span class="jugador-tile-nombre">Nuevo jugador</span>
   </a>
   {% for j in jugadores %}
-  <a href="{{ url_for('jugador.detalle', jugador_id=j.id) }}" class="jugador-tile">
+  <a href="{{ url_for('jugador.detalle', jugador_id=j.id) }}" class="jugador-tile" data-nombre="{{ j.nombre | lower }}">
     {% if j.imagen_icono %}
     <img class="jugador-icono" src="{{ imagen_url(j.imagen_icono) }}" alt="">
     {% else %}
@@ -25,4 +27,9 @@
   </a>
   {% endfor %}
 </div>
+<p class="empty-body" id="buscador-sin-resultados" hidden>Ningún jugador coincide con la búsqueda.</p>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/buscador_jugadores.js') }}"></script>
 {% endblock %}

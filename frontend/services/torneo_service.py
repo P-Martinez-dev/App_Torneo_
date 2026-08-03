@@ -22,6 +22,14 @@ def eliminar_torneo(torneo_id):
     resp.raise_for_status()
 
 
+def actualizar_torneo(torneo_id, nombre, fecha):
+    resp = requests.put(f"{Config.API_BASE_URL}/torneos/{torneo_id}", json={"nombre": nombre, "fecha": fecha})
+    if resp.status_code == 400:
+        raise TorneoInvalidoError(resp.json().get("error", "Datos inválidos"))
+    resp.raise_for_status()
+    return resp.json()
+
+
 def obtener_torneo(torneo_id):
     resp = requests.get(f"{Config.API_BASE_URL}/torneos/{torneo_id}")
     if resp.status_code == 404:
@@ -32,6 +40,12 @@ def obtener_torneo(torneo_id):
 
 def obtener_resumen(torneo_id):
     resp = requests.get(f"{Config.API_BASE_URL}/torneos/{torneo_id}/resumen")
+    resp.raise_for_status()
+    return resp.json()
+
+
+def obtener_estadisticas(torneo_id):
+    resp = requests.get(f"{Config.API_BASE_URL}/torneos/{torneo_id}/estadisticas")
     resp.raise_for_status()
     return resp.json()
 

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Editar {{ torneo.nombre }} · Bracket Log{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Editar torneo</p>
+    <h1 class="display-title">{{ torneo.nombre }}</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('torneo.detalle', torneo_id=torneo.id) }}">Volver al detalle</a>
+</div>
+
+{% if error %}<p class="flash flash-error">{{ error }}</p>{% endif %}
+
+<form class="form-ticket" method="post" action="{{ url_for('torneo.editar', torneo_id=torneo.id) }}">
+  <div class="field">
+    <label for="nombre">Nombre</label>
+    <input type="text" id="nombre" name="nombre" required value="{{ torneo.nombre }}">
+  </div>
+  <div class="field">
+    <label for="fecha">Fecha</label>
+    <input type="date" id="fecha" name="fecha" required value="{{ torneo.fecha }}">
+  </div>
+  <p class="empty-body">
+    El modo, los cupos de eliminación y las vidas iniciales no se pueden cambiar acá --
+    ya hay resultados calculados en base a esos valores.
+  </p>
+  <button type="submit" class="btn btn-stamp btn-submit">Guardar cambios</button>
+</form>
+
+<section class="detalle-seccion zona-peligro">
+  <h2 class="ticket-nombre">Zona de peligro</h2>
+  <button type="button" id="btn-eliminar-torneo" class="btn btn-stamp">Eliminar torneo</button>
+</section>
+
+<dialog id="dialog-eliminar-torneo" class="dialog-ticket">
+  <p class="dialog-texto">¿Seguro que querés eliminar "{{ torneo.nombre }}"? Esto borra todos sus partidos y no se puede deshacer.</p>
+  <div class="dialog-acciones">
+    <form method="post" action="{{ url_for('torneo.eliminar_definitivo', torneo_id=torneo.id) }}">
+      <button type="submit" class="btn btn-stamp">Sí, eliminar</button>
+    </form>
+    <button type="button" id="btn-cancelar-eliminar-torneo" class="btn btn-ghost">Cancelar</button>
+  </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/torneo_editar.js') }}"></script>
+{% endblock %}

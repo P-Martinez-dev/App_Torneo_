@@ -17,6 +17,24 @@ def crear(nombre, modo, fecha, cupos_eliminacion=None, vidas_iniciales=None):
     return nuevo_id
 
 
+def actualizar(torneo_id, nombre, fecha):
+    """Solo nombre y fecha -- son datos descriptivos. modo/cupos_eliminacion/
+    vidas_iniciales NO se editan acá a propósito: cambiarlos después de que
+    ya hay partidos/clasificación/bracket calculados dejaría el torneo
+    inconsistente con lo que ya se jugó."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE torneo SET nombre = %s, fecha = %s WHERE id = %s",
+        (nombre, fecha, torneo_id),
+    )
+    conn.commit()
+    filas_afectadas = cursor.rowcount
+    cursor.close()
+    conn.close()
+    return filas_afectadas > 0
+
+
 def obtener_por_id(torneo_id):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)

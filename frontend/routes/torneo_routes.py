@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from services import torneo_service, jugador_service
 
 torneo_bp = Blueprint("torneo", __name__, url_prefix="/torneos")
@@ -17,7 +17,36 @@ def listado():
 @torneo_bp.route("/<int:torneo_id>")
 def detalle(torneo_id):
     resumen = torneo_service.obtener_resumen(torneo_id)
-    return render_template("torneos/detalle.html", torneo_id=torneo_id, resumen=resumen)
+    estadisticas = torneo_service.obtener_estadisticas(torneo_id)
+    return render_template(
+        "torneos/detalle.html", torneo_id=torneo_id, resumen=resumen, estadisticas=estadisticas
+    )
+
+
+@torneo_bp.route("/<int:torneo_id>/editar", methods=["GET", "POST"])
+def editar(torneo_id):
+    torneo = torneo_service.obtener_torneo(torneo_id)
+    if torneo is None:
+        flash("Ese torneo no existe.")
+        return redirect(url_for("torneo.listado"))
+
+    if request.method == "GET":
+        return render_template("torneos/editar.html", torneo=torneo, error=None)
+
+    try:
+        torneo_service.actualizar_torneo(torneo_id, request.form.get("nombre"), request.form.get("fecha"))
+        return redirect(url_for("torneo.detalle", torneo_id=torneo_id))
+    except torneo_service.TorneoInvalidoError as e:
+        return render_template("torneos/editar.html", torneo=torneo, error=str(e)), 400
+
+
+@torneo_bp.route("/<int:torneo_id>/eliminar-definitivo", methods=["POST"])
+def eliminar_definitivo(torneo_id):
+    """Eliminar desde la pantalla de detalle (cualquier estado) -- distinto
+    del /eliminar que usa Inicio para descartar un torneo en desarrollo,
+    porque el destino después de borrar es otro (acá vuelve a Tablas)."""
+    torneo_service.eliminar_torneo(torneo_id)
+    return redirect(url_for("torneo.listado"))
 
 
 @torneo_bp.route("/<int:torneo_id>/eliminar", methods=["POST"])

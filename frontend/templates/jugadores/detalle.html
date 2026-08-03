@@ -36,16 +36,34 @@
         <tr><td>Racha actual</td><td>{{ estadisticas.rachas.racha_actual }} {{ estadisticas.rachas.racha_actual_tipo or '' }}</td></tr>
         <tr><td>Mejor racha ganadora</td><td>{{ estadisticas.rachas.mejor_racha_ganadora_historica }}</td></tr>
         {% if estadisticas.rivales.rival_mas_vencido %}
-        <tr><td>Rival más vencido</td><td>{{ estadisticas.rivales.rival_mas_vencido.nombre }} ({{ estadisticas.rivales.rival_mas_vencido.partidos_ganados }})</td></tr>
+        <tr><td>Rival más vencido</td><td>{{ estadisticas.rivales.rival_mas_vencido | map(attribute='nombre') | join(', ') }} ({{ estadisticas.rivales.rival_mas_vencido[0].partidos_ganados }})</td></tr>
+        {% endif %}
+        {% if estadisticas.rivales.rival_mas_frecuente %}
+        <tr><td>Rival más frecuente</td><td>{{ estadisticas.rivales.rival_mas_frecuente | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
         {% if estadisticas.rivales.matchup_parejo %}
-        <tr><td>Matchup parejo</td><td>{{ estadisticas.rivales.matchup_parejo.nombre }}</td></tr>
+        <tr><td>Matchup parejo</td><td>{{ estadisticas.rivales.matchup_parejo | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
         {% if estadisticas.rivales.nemesis %}
-        <tr><td>Némesis</td><td>{{ estadisticas.rivales.nemesis.nombre }}</td></tr>
+        <tr><td>Némesis</td><td>{{ estadisticas.rivales.nemesis | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
         {% if estadisticas.peleadores.mas_frecuente %}
-        <tr><td>Peleador más usado</td><td>{{ estadisticas.peleadores.mas_frecuente.nombre }}</td></tr>
+        <tr><td>Peleador más usado</td><td>{{ estadisticas.peleadores.mas_frecuente | map(attribute='nombre') | join(', ') }}</td></tr>
+        {% endif %}
+        {% if estadisticas.peleadores.mejor_win_rate %}
+        <tr><td>Peleador con mejor win rate</td><td>{{ estadisticas.peleadores.mejor_win_rate | map(attribute='nombre') | join(', ') }}</td></tr>
+        {% endif %}
+        {% if estadisticas.peleadores.peor_win_rate %}
+        <tr><td>Peleador con peor win rate</td><td>{{ estadisticas.peleadores.peor_win_rate | map(attribute='nombre') | join(', ') }}</td></tr>
+        {% endif %}
+        {% if estadisticas.peleadores_rivales.mas_frecuente %}
+        <tr><td>Peleador rival más frecuente</td><td>{{ estadisticas.peleadores_rivales.mas_frecuente | map(attribute='nombre') | join(', ') }}</td></tr>
+        {% endif %}
+        {% if estadisticas.peleadores_rivales.que_te_gana_mas %}
+        <tr><td>Peleador que te gana más</td><td>{{ estadisticas.peleadores_rivales.que_te_gana_mas | map(attribute='nombre') | join(', ') }}</td></tr>
+        {% endif %}
+        {% if estadisticas.peleadores_rivales.que_le_ganas_mas %}
+        <tr><td>Peleador que le ganás más</td><td>{{ estadisticas.peleadores_rivales.que_le_ganas_mas | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
         <tr><td>Torneos jugados</td><td>{{ estadisticas.torneos.torneos_jugados_total }}</td></tr>
         <tr><td>Veces campeón</td><td>{{ estadisticas.torneos.veces_campeon }}</td></tr>
@@ -63,10 +81,10 @@
         <tr><td>Cerrados (2-1) ganados / perdidos</td><td>{{ estadisticas.rounds.cerrados_ganados }} / {{ estadisticas.rounds.cerrados_perdidos }}</td></tr>
         {% endif %}
         {% if estadisticas.cinco_vidas.quien_te_elimino_mas %}
-        <tr><td>Quién más te eliminó (5 vidas)</td><td>{{ estadisticas.cinco_vidas.quien_te_elimino_mas.nombre }}</td></tr>
+        <tr><td>Quién más te eliminó (5 vidas)</td><td>{{ estadisticas.cinco_vidas.quien_te_elimino_mas | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
         {% if estadisticas.cinco_vidas.a_quien_eliminaste_mas %}
-        <tr><td>A quién más eliminaste (5 vidas)</td><td>{{ estadisticas.cinco_vidas.a_quien_eliminaste_mas.nombre }}</td></tr>
+        <tr><td>A quién más eliminaste (5 vidas)</td><td>{{ estadisticas.cinco_vidas.a_quien_eliminaste_mas | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
       </tbody>
     </table>

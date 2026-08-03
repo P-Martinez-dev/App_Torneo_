@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services import torneo_service, partido_service, tabla_service, tabla_general_service
+from services import torneo_service, partido_service, tabla_service, tabla_general_service, torneo_estadisticas_service
 from repositories import grupo_repository
 from controllers.utils import obtener_json_body
 
@@ -45,6 +45,14 @@ def obtener(torneo_id):
         return jsonify({"error": str(e)}), 404
 
 
+@torneo_bp.route("/<int:torneo_id>/estadisticas", methods=["GET"])
+def estadisticas(torneo_id):
+    try:
+        return jsonify(torneo_estadisticas_service.obtener_estadisticas_torneo(torneo_id)), 200
+    except torneo_estadisticas_service.TorneoNoEncontradoError as e:
+        return jsonify({"error": str(e)}), 404
+
+
 @torneo_bp.route("/<int:torneo_id>/resumen", methods=["GET"])
 def resumen(torneo_id):
     """Todo el desarrollo del torneo en un solo llamado: tablas de cada
@@ -54,6 +62,20 @@ def resumen(torneo_id):
         return jsonify(torneo_service.obtener_resumen(torneo_id)), 200
     except torneo_service.TorneoNoEncontradoError as e:
         return jsonify({"error": str(e)}), 404
+
+
+@torneo_bp.route("/<int:torneo_id>", methods=["PUT"])
+def actualizar(torneo_id):
+    datos, error = obtener_json_body()
+    if error:
+        return error
+    try:
+        actualizado = torneo_service.actualizar_torneo(torneo_id, datos.get("nombre"), datos.get("fecha"))
+        return jsonify(actualizado), 200
+    except torneo_service.TorneoNoEncontradoError as e:
+        return jsonify({"error": str(e)}), 404
+    except torneo_service.DatosTorneoInvalidosError as e:
+        return jsonify({"error": str(e)}), 400
 
 
 @torneo_bp.route("/<int:torneo_id>", methods=["DELETE"])

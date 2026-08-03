@@ -7,7 +7,10 @@
     <p class="eyebrow">{{ resumen.torneo.modo.replace('_', ' ') }} · {{ resumen.torneo.fecha }}</p>
     <h1 class="display-title">{{ resumen.torneo.nombre }}</h1>
   </div>
-  <a class="btn btn-ghost" href="{{ url_for('torneo.listado') }}">Volver a tablas</a>
+  <div class="page-head-acciones">
+    <a class="btn btn-ghost" href="{{ url_for('torneo.editar', torneo_id=torneo_id) }}">Editar torneo</a>
+    <a class="btn btn-ghost" href="{{ url_for('torneo.listado') }}">Volver a tablas</a>
+  </div>
 </div>
 
 {% if resumen.podio %}
@@ -23,6 +26,43 @@
   </table>
 </section>
 {% endif %}
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Estadísticas del torneo</h2>
+  <table class="tabla-datos">
+    <tbody>
+      <tr><td>Jugadores participantes</td><td>{{ estadisticas.cantidad_jugadores }}</td></tr>
+      <tr><td>Partidos jugados</td><td>{{ estadisticas.partidos_jugados }}</td></tr>
+      <tr><td>Barridas (2-0) / Cerrados (2-1)</td><td>{{ estadisticas.rounds.barridas }} / {{ estadisticas.rounds.cerrados }}</td></tr>
+      {% if estadisticas.instancias_especiales %}
+      <tr><td>Desempates internos</td><td>{{ estadisticas.instancias_especiales.desempates_internos }}</td></tr>
+      <tr><td>Repechajes cruzados</td><td>{{ estadisticas.instancias_especiales.repechajes_cruzados }}</td></tr>
+      {% endif %}
+      <tr>
+        <td>Partido más reñido</td>
+        <td>
+          {% if estadisticas.partido_mas_renido.hubo %}
+          {% for par in estadisticas.partido_mas_renido.parejas %}{{ par.jugadores | join(' vs ') }} ({{ par.veces }} veces){% if not loop.last %}, {% endif %}{% endfor %}
+          {% else %}
+          No hubo (todos se cruzaron una sola vez)
+          {% endif %}
+        </td>
+      </tr>
+      {% if estadisticas.mas_tiempo_en_cancha %}
+      <tr><td>Más tiempo en cancha (racha)</td><td>{{ estadisticas.mas_tiempo_en_cancha.jugadores | join(', ') }} ({{ estadisticas.mas_tiempo_en_cancha.racha }} seguidos)</td></tr>
+      {% endif %}
+      {% if estadisticas.mas_victorias %}
+      <tr><td>Más victorias en el torneo</td><td>{{ estadisticas.mas_victorias | map(attribute='nombre') | join(', ') }} ({{ estadisticas.mas_victorias[0].victorias }})</td></tr>
+      {% endif %}
+      {% if estadisticas.peleador_mas_usado %}
+      <tr><td>Peleador más usado</td><td>{{ estadisticas.peleador_mas_usado | map(attribute='nombre') | join(', ') }}</td></tr>
+      {% endif %}
+      {% if estadisticas.rival_mas_diverso %}
+      <tr><td>Rival más diverso</td><td>{{ estadisticas.rival_mas_diverso | map(attribute='nombre') | join(', ') }} ({{ estadisticas.rival_mas_diverso[0].rivales_distintos }} rivales distintos)</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</section>
 
 {% if resumen.torneo.modo == 'todos_contra_todos' %}
 <section class="detalle-seccion">

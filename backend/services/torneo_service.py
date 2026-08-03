@@ -29,6 +29,17 @@ def eliminar_torneo(torneo_id: int) -> None:
         raise TorneoNoEncontradoError(f"No existe el torneo {torneo_id}")
 
 
+def actualizar_torneo(torneo_id: int, nombre: str, fecha: date) -> dict:
+    if not nombre or not nombre.strip():
+        raise DatosTorneoInvalidosError("El nombre del torneo es obligatorio")
+    if not fecha:
+        raise DatosTorneoInvalidosError("La fecha del torneo es obligatoria")
+    actualizado = torneo_repository.actualizar(torneo_id, nombre.strip(), fecha)
+    if not actualizado:
+        raise TorneoNoEncontradoError(f"No existe el torneo {torneo_id}")
+    return torneo_repository.obtener_por_id(torneo_id).to_dict()
+
+
 def _es_potencia_de_dos(n):
     return n > 0 and (n & (n - 1)) == 0
 

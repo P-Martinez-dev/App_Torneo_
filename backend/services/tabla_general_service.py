@@ -142,4 +142,17 @@ def calcular_tabla_general(torneos_excluidos_ids=None):
         })
 
     resultado.sort(key=lambda f: (-f["puntos"], -f["puntos_victoria"], -f["win_rate"]))
+
+    # Puesto denso sobre la terna completa: comparten puesto solo si
+    # empatan en puntos, puntos_victoria Y win_rate a la vez -- no alcanza
+    # con empatar en uno para compartir posición.
+    puesto_actual = 0
+    clave_anterior = None
+    for fila in resultado:
+        clave = (fila["puntos"], fila["puntos_victoria"], fila["win_rate"])
+        if clave != clave_anterior:
+            puesto_actual += 1
+            clave_anterior = clave
+        fila["puesto"] = puesto_actual
+
     return resultado
