@@ -29,12 +29,12 @@ def eliminar_torneo(torneo_id: int) -> None:
         raise TorneoNoEncontradoError(f"No existe el torneo {torneo_id}")
 
 
-def actualizar_torneo(torneo_id: int, nombre: str, fecha: date) -> dict:
+def actualizar_torneo(torneo_id: int, nombre: str, fecha: date, descripcion: str | None = None) -> dict:
     if not nombre or not nombre.strip():
         raise DatosTorneoInvalidosError("El nombre del torneo es obligatorio")
     if not fecha:
         raise DatosTorneoInvalidosError("La fecha del torneo es obligatoria")
-    actualizado = torneo_repository.actualizar(torneo_id, nombre.strip(), fecha)
+    actualizado = torneo_repository.actualizar(torneo_id, nombre.strip(), fecha, descripcion)
     if not actualizado:
         raise TorneoNoEncontradoError(f"No existe el torneo {torneo_id}")
     return torneo_repository.obtener_por_id(torneo_id).to_dict()
@@ -49,7 +49,8 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
                   cantidad_grupos: int | None = None,
                   vidas_iniciales: int | None = None,
                   orden_jugadores_ids: list[int] | None = None,
-                  grupos_manual: list[list[int]] | None = None) -> dict:
+                  grupos_manual: list[list[int]] | None = None,
+                  descripcion: str | None = None) -> dict:
     if not nombre or not nombre.strip():
         raise DatosTorneoInvalidosError("El nombre del torneo es obligatorio")
 
@@ -134,6 +135,7 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
         nombre.strip(), modo, fecha,
         cupos_eliminacion if modo == "grupos_eliminacion" else None,
         vidas_iniciales if modo == "cinco_vidas" else None,
+        descripcion.strip() if descripcion else None,
     )
 
     torneo_repository.asignar_jugadores(torneo_id, jugadores_ids)
@@ -153,6 +155,22 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
 # =========================================================
 
 NOMBRES_RONDA = {1: "Final", 2: "Semifinal", 4: "Cuartos de final", 8: "Octavos de final"}
+
+
+def obtener_navegacion(torneo_id: int) -> dict:
+    """IDs del torneo anterior y siguiente, en el mismo orden que se
+    listan en Tablas (fecha DESC) -- para las flechas de 'anterior/
+    siguiente' del detalle, sin tener que volver al listado y elegir a
+    mano."""
+    todos = torneo_repository.obtener_todos()
+    ids = [t.id for t in todos]
+    if torneo_id not in ids:
+        return {"anterior_id": None, "siguiente_id": None}
+    idx = ids.index(torneo_id)
+    return {
+        "anterior_id": ids[idx - 1] if idx > 0 else None,
+        "siguiente_id": ids[idx + 1] if idx < len(ids) - 1 else None,
+    }
 
 
 def obtener_resumen(torneo_id: int) -> dict:
@@ -177,6 +195,7 @@ def obtener_resumen(torneo_id: int) -> dict:
         resumen["partidos"] = [con_nombres(p) for p in partidos]
 
     elif torneo.modo == "cinco_vidas":
+        resumen["tabla"] = tabla_service.calcular_tabla_cinco_vidas(torneo_id)
         resumen["partidos"] = [con_nombres(p) for p in partidos]
 
     elif torneo.modo == "grupos_eliminacion":

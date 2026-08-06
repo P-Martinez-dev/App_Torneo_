@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Partidos pendientes · Bracket Log{% endblock %}
+{% block title %}Partidos pendientes · {{ nombre_club }}{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -14,6 +14,7 @@
 <div class="ticket-grid">
   {% for p in pendientes %}
   <form method="post" action="{{ url_for('partido.posponer', torneo_id=torneo_id) }}" class="ticket ticket-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="partido_id" value="{{ p.id }}">
     <p class="ticket-fecha">{{ p.fase.replace('_', ' ') }}{% if p.estado == 'pospuesto' %} · pospuesto{% endif %}</p>
     <h2 class="ticket-nombre">{{ p.nombre1 }} vs {{ p.nombre2 }}</h2>

@@ -1,12 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Partido actual · Bracket Log{% endblock %}
+{% import "_macros.html" as macros %}
+{% block title %}Partido actual · {{ nombre_club }}{% endblock %}
 
 {% block content %}
 <div class="fase-banner {% if partido.fase in ('desempate', 'repechaje') %}fase-banner-alerta{% endif %}">
   <span class="ticket-stamp stamp-fase {% if partido.fase in ('desempate', 'repechaje') %}stamp-fase-alerta{% endif %}">{{ fase_descripcion }}</span>
 </div>
 
-{% if bracket_resembrable %}
+{% if es_admin() and bracket_resembrable %}
 <div class="alerta-bracket">
   <p class="alerta-bracket-texto">
     El bracket de eliminación se armó al azar. Si necesitás elegir vos los cruces
@@ -23,13 +24,14 @@
   </div>
   <div class="vs-centro">
     <p class="vs-letras">VS</p>
-    <button type="button" id="btn-opciones" class="btn btn-stamp">Opciones</button>
+    {% if es_admin() %}<button type="button" id="btn-opciones" class="btn btn-stamp">Opciones</button>{% endif %}
   </div>
   <div class="vs-lado vs-der">
     <p class="vs-nombre">{{ nombre2 }}</p>
   </div>
 </div>
 
+{% if es_admin() %}
 <dialog id="dialog-opciones" class="dialog-ticket">
   <p class="dialog-texto">Opciones</p>
   <div class="dialog-acciones dialog-acciones-columna">
@@ -41,6 +43,7 @@
     {% endif %}
     {% if partido.fase == 'todos_contra_todos' %}
     <form method="post" action="{{ url_for('partido.descartar', torneo_id=torneo_id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="partido_id" value="{{ partido.id }}">
       <button type="submit" class="btn btn-ghost">Descartar (no se realizó)</button>
     </form>
@@ -52,6 +55,7 @@
 <dialog id="dialog-cargar-datos" class="dialog-ticket">
   <p class="dialog-texto">Cargar resultado</p>
   <form method="post" action="{{ url_for('partido.cargar_datos', torneo_id=torneo_id) }}" class="form-ticket">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="partido_id" value="{{ partido.id }}">
     <div class="field">
       <label>Ganador</label>
@@ -63,20 +67,8 @@
       </label>
     </div>
     <div class="field-row">
-      <div class="field">
-        <label for="peleador1_id">Peleador de {{ nombre1 }}</label>
-        <select id="peleador1_id" name="peleador1_id">
-          <option value="">-- ninguno --</option>
-          {% for p in peleadores %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="field">
-        <label for="peleador2_id">Peleador de {{ nombre2 }}</label>
-        <select id="peleador2_id" name="peleador2_id">
-          <option value="">-- ninguno --</option>
-          {% for p in peleadores %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}
-        </select>
-      </div>
+      {{ macros.selector_peleador('peleador1_id', 'Peleador de ' + nombre1, peleadores) }}
+      {{ macros.selector_peleador('peleador2_id', 'Peleador de ' + nombre2, peleadores) }}
     </div>
     <div class="field">
       <label for="rondas_jugadas">Rondas jugadas (opcional)</label>
@@ -89,8 +81,10 @@
     <button type="submit" class="btn btn-stamp btn-submit">Confirmar</button>
   </form>
 </dialog>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/partido_actual.js') }}"></script>
+<script src="{{ url_for('static', filename='js/peleador_grid.js') }}"></script>
 {% endblock %}

@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from services import partido_service, jugador_service, peleador_service
+from auth import requiere_admin
 
 partido_bp = Blueprint("partido", __name__, url_prefix="/torneos/<int:torneo_id>/partido-actual")
 
@@ -63,6 +64,7 @@ def historial(torneo_id):
 
 
 @partido_bp.route("/editar/<int:partido_id>", methods=["GET", "POST"])
+@requiere_admin
 def editar_resultado(torneo_id, partido_id):
     lista = partido_service.listar_todos(torneo_id)
     partido = next((p for p in lista if p["id"] == partido_id), None)
@@ -95,6 +97,7 @@ def editar_resultado(torneo_id, partido_id):
 
 
 @partido_bp.route("/posponer", methods=["POST"])
+@requiere_admin
 def posponer(torneo_id):
     partido_id = request.form.get("partido_id", type=int)
     try:
@@ -105,6 +108,7 @@ def posponer(torneo_id):
 
 
 @partido_bp.route("/cargar-datos", methods=["POST"])
+@requiere_admin
 def cargar_datos(torneo_id):
     partido_id = request.form.get("partido_id", type=int)
     ganador_id = request.form.get("ganador_id", type=int)
@@ -121,6 +125,7 @@ def cargar_datos(torneo_id):
 
 
 @partido_bp.route("/bracket", methods=["GET", "POST"])
+@requiere_admin
 def bracket(torneo_id):
     bracket_actual = partido_service.obtener_bracket(torneo_id)
     nombres = _nombres_jugadores()
@@ -154,6 +159,7 @@ def bracket(torneo_id):
 
 
 @partido_bp.route("/descartar", methods=["POST"])
+@requiere_admin
 def descartar(torneo_id):
     partido_id = request.form.get("partido_id", type=int)
     try:
@@ -164,6 +170,7 @@ def descartar(torneo_id):
 
 
 @partido_bp.route("/forzar", methods=["POST"])
+@requiere_admin
 def forzar(torneo_id):
     jugador_id = request.form.get("jugador_id", type=int)
     clasificado = request.form.get("clasificado") == "si"
@@ -176,6 +183,7 @@ def forzar(torneo_id):
 
 
 @partido_bp.route("/reintentar", methods=["POST"])
+@requiere_admin
 def reintentar(torneo_id):
     grupo_bloqueado_id = request.form.get("grupo_id", type=int)
     empatados_ids = [int(j) for j in request.form.getlist("jugadores_empatados_ids")]

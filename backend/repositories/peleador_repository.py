@@ -53,3 +53,12 @@ def eliminar(peleador_id):
     cursor.close()
     conn.close()
     return filas_afectadas > 0
+
+
+def actualizar_imagen(peleador_id, path):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE peleador SET imagen_icono_path = %s WHERE id = %s", (path, peleador_id))
+    conn.commit()
+    cursor.close()
+    conn.close()

@@ -1,4 +1,81 @@
-from repositories import partido_repository, torneo_jugador_repository, grupo_repository
+from repositories import partido_repository, torneo_jugador_repository, grupo_repository, jugador_repository
+
+
+def calcular_tabla_cinco_vidas(torneo_id):
+    """
+    Tabla de posiciones de un torneo cinco_vidas: puesto (80% puntos de
+    racha + 20% posición final -- ver el diseño largo que se charló para
+    este criterio), puntos de racha, y momento de eliminación de cada
+    jugador. El campeón siempre es puesto 1.
+    """
+    PESO_RACHA = 0.8
+    PESO_POSICION = 0.2
+
+    filas = torneo_jugador_repository.obtener_vidas_de_torneo(torneo_id)
+    partidos = sorted(
+        partido_repository.obtener_finalizados_por_torneo(torneo_id, "cinco_vidas", []),
+        key=lambda p: p.orden,
+    )
+    nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+
+    racha_actual = {}
+    puntos_racha = {}
+
+    def _cerrar_racha(jugador_id):
+        largo = racha_actual.get(jugador_id, 0)
+        if largo > 0:
+            puntos_racha[jugador_id] = puntos_racha.get(jugador_id, 0) + largo ** 2
+        racha_actual[jugador_id] = 0
+
+    for p in partidos:
+        perdedor_id = p.jugador2_id if p.ganador_id == p.jugador1_id else p.jugador1_id
+        racha_actual[p.ganador_id] = racha_actual.get(p.ganador_id, 0) + 1
+        _cerrar_racha(perdedor_id)
+
+    campeon_id = next((f["jugador_id"] for f in filas if not f["eliminado"]), None)
+    if campeon_id is not None:
+        _cerrar_racha(campeon_id)  # la racha activa del campeón también cuenta
+
+    eliminados = [f for f in filas if f["eliminado"]]
+    puestos = {campeon_id: 1} if campeon_id is not None else {}
+
+    if eliminados:
+        r_valores = [puntos_racha.get(f["jugador_id"], 0) for f in eliminados]
+        t_valores = [f["orden_eliminacion"] for f in eliminados]
+        r_min, r_max = min(r_valores), max(r_valores)
+        t_min, t_max = min(t_valores), max(t_valores)
+
+        def _normalizar(valor, minimo, maximo):
+            return (valor - minimo) / (maximo - minimo) if maximo > minimo else 0.5
+
+        def _score(f):
+            r = _normalizar(puntos_racha.get(f["jugador_id"], 0), r_min, r_max)
+            t = _normalizar(f["orden_eliminacion"], t_min, t_max)
+            return PESO_RACHA * r + PESO_POSICION * t
+
+        eliminados_ordenados = sorted(eliminados, key=lambda f: -_score(f))
+        puesto_actual = 1  # arranca en 1 porque el campeón ya ocupó el puesto 1
+        score_anterior = None
+        for f in eliminados_ordenados:
+            score = round(_score(f), 9)
+            if score != score_anterior:
+                puesto_actual += 1
+                score_anterior = score
+            puestos[f["jugador_id"]] = puesto_actual
+
+    tabla = [
+        {
+            "jugador_id": f["jugador_id"],
+            "nombre": nombres.get(f["jugador_id"]),
+            "puesto": puestos.get(f["jugador_id"]),
+            "puntos_racha": puntos_racha.get(f["jugador_id"], 0),
+            "orden_eliminacion": f["orden_eliminacion"],
+            "eliminado": f["eliminado"],
+        }
+        for f in filas
+    ]
+    tabla.sort(key=lambda f: f["puesto"])
+    return tabla
 
 
 def detectar_bloque_en_riesgo(tabla, n_directos):

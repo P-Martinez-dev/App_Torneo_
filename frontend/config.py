@@ -16,3 +16,5 @@ class Config:
     PORT = int(os.getenv("FLASK_PORT", 3000))
     SECRET_KEY = os.getenv("SECRET_KEY", "dev")
     API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:5000")
+    # Misma clave que el backend -- ver INTERNAL_API_KEY en backend/config.py
+    INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "dev-key-cambiar-en-produccion")

@@ -2,7 +2,7 @@ from repositories import (
     torneo_repository, partido_repository, jugador_repository,
     peleador_repository, torneo_jugador_repository,
 )
-from services import tabla_general_service
+from services import tabla_general_service, rating_service, estadisticas_config_service
 
 
 class JugadorNoEncontradoError(Exception):
@@ -43,7 +43,7 @@ def obtener_estadisticas_jugador(jugador_id: int) -> dict:
     torneos_finalizados = torneo_repository.obtener_finalizados_de_jugador(jugador_id)
     torneos_todos = torneo_repository.obtener_todos_de_jugador(jugador_id)
 
-    return {
+    resultado = {
         "jugador_id": jugador_id,
         "nombre": jugador.nombre,
         "resumen_general": _resumen_general(jugador_id, partidos),
@@ -56,7 +56,92 @@ def obtener_estadisticas_jugador(jugador_id: int) -> dict:
         "torneos": _stats_torneos(jugador_id, torneos_finalizados, torneos_todos),
         "cinco_vidas": _stats_cinco_vidas(jugador_id, torneos_finalizados),
         "veces_en_repechaje_o_desempate": torneo_jugador_repository.contar_repechajes_y_desempates(jugador_id),
+        "mejores_victorias": _mejores_victorias(jugador_id),
+        "peores_caidas": _peores_caidas(jugador_id),
     }
+
+    # Los campos de nivel superior primero...
+    resultado = estadisticas_config_service.filtrar_visibles(
+        resultado, "jugador",
+        campos_lista=("ultimos_resultados", "mejores_victorias", "peores_caidas"),
+    )
+    # ...y después cada sub-diccionario anidado, con su propio prefijo --
+    # 'mas_frecuente' existe en 'peleadores' Y en 'peleadores_rivales', así
+    # que no alcanza con un solo prefijo 'jugador' para todo.
+    if resultado["rivales"]:
+        resultado["rivales"] = estadisticas_config_service.filtrar_visibles(
+            resultado["rivales"], "jugador.rivales",
+            campos_lista=("rival_mas_vencido", "rival_mas_frecuente", "matchup_parejo", "nemesis"),
+        )
+    if resultado["peleadores"]:
+        resultado["peleadores"] = estadisticas_config_service.filtrar_visibles(
+            resultado["peleadores"], "jugador.peleadores",
+            campos_lista=("mas_frecuente", "mejor_win_rate", "peor_win_rate"),
+        )
+    if resultado["peleadores_rivales"]:
+        resultado["peleadores_rivales"] = estadisticas_config_service.filtrar_visibles(
+            resultado["peleadores_rivales"], "jugador.peleadores_rivales",
+            campos_lista=("mas_frecuente", "que_te_gana_mas", "que_le_ganas_mas"),
+        )
+    if resultado["torneos"]:
+        resultado["torneos"] = estadisticas_config_service.filtrar_visibles(
+            resultado["torneos"], "jugador.torneos",
+            campos_lista=("mejor_puesto_historico",),
+        )
+    if resultado["cinco_vidas"]:
+        resultado["cinco_vidas"] = estadisticas_config_service.filtrar_visibles(
+            resultado["cinco_vidas"], "jugador.cinco_vidas",
+            campos_lista=("quien_te_elimino_mas", "a_quien_eliminaste_mas"),
+        )
+
+    return resultado
+
+
+def _mejores_victorias(jugador_id, top_n=5):
+    """Tus victorias más sorpresivas -- ganaste con menor probabilidad
+    según el rating (Bradley-Terry) del rival en ese momento del
+    historial completo. Top 5 con empates (no se decide arbitrariamente
+    cuál va antes si dan exactamente igual de sorpresivo)."""
+    probabilidades = _probabilidades_con_nombres()
+    propias = [f for f in probabilidades if f["ganador_id"] == jugador_id]
+    return _top_n_con_empates(propias, key=lambda f: -f["probabilidad_ganador"], n=top_n)
+
+
+def _peores_caidas(jugador_id, top_n=5):
+    """Tus derrotas más sorpresivas -- perdiste siendo favorito según el
+    rating (probabilidad baja de que gane el rival, y aun así ganó)."""
+    probabilidades = _probabilidades_con_nombres()
+    propias = [f for f in probabilidades if f["perdedor_id"] == jugador_id]
+    return _top_n_con_empates(propias, key=lambda f: -f["probabilidad_ganador"], n=top_n)
+
+
+def _probabilidades_con_nombres():
+    """calcular_probabilidades_resultados() solo trae ids -- acá se le
+    pegan los nombres, para no tener que hacerlo en cada función que la
+    usa (y para no repetir el bug de mostrar el % sin decir contra
+    quién)."""
+    probabilidades = rating_service.calcular_probabilidades_resultados()
+    nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+    for f in probabilidades:
+        f["ganador_nombre"] = nombres.get(f["ganador_id"])
+        f["perdedor_nombre"] = nombres.get(f["perdedor_id"])
+    return probabilidades
+
+
+def _top_n_con_empates(lista, key, n=5):
+    """Mismo criterio que en estadisticas_generales_service: primeros N
+    valores DISTINTOS de key, con todos los empates incluidos."""
+    ordenados = sorted(lista, key=lambda item: -key(item))
+    valores_vistos = []
+    resultado = []
+    for item in ordenados:
+        v = key(item)
+        if v not in valores_vistos:
+            if len(valores_vistos) >= n:
+                break
+            valores_vistos.append(v)
+        resultado.append(item)
+    return resultado
 
 
 def _ultimos_resultados(jugador_id, partidos, cantidad=5):
@@ -227,7 +312,8 @@ def _stats_torneos(jugador_id, torneos_finalizados, torneos_todos):
     for t in torneos_todos:
         por_modo[t.modo] = por_modo.get(t.modo, 0) + 1
 
-    mejor_puesto = None
+    mejor_puesto_valor = None
+    mejor_puesto_torneos = []
     veces_campeon = 0
     suma_puestos = 0
     cantidad_puestos = 0
@@ -239,14 +325,17 @@ def _stats_torneos(jugador_id, torneos_finalizados, torneos_todos):
         cantidad_puestos += 1
         if puesto == 1:
             veces_campeon += 1
-        if mejor_puesto is None or puesto < mejor_puesto["puesto"]:
-            mejor_puesto = {"torneo_id": t.id, "nombre": t.nombre, "puesto": puesto}
+        if mejor_puesto_valor is None or puesto < mejor_puesto_valor:
+            mejor_puesto_valor = puesto
+            mejor_puesto_torneos = [{"torneo_id": t.id, "nombre": t.nombre, "puesto": puesto}]
+        elif puesto == mejor_puesto_valor:
+            mejor_puesto_torneos.append({"torneo_id": t.id, "nombre": t.nombre, "puesto": puesto})
 
     return {
         "torneos_jugados_por_modo": por_modo,
         "torneos_jugados_total": len(torneos_todos),
         "veces_campeon": veces_campeon,
-        "mejor_puesto_historico": mejor_puesto,
+        "mejor_puesto_historico": mejor_puesto_torneos,
         "promedio_puesto": round(suma_puestos / cantidad_puestos, 2) if cantidad_puestos else None,
     }
 

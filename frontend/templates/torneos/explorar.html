@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Torneos · {{ nombre_club }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Historial</p>
+    <h1 class="display-title">Torneos</h1>
+  </div>
+  <div class="page-head-acciones">
+    <a class="btn btn-ghost" href="{{ url_for('torneo.info') }}">Info</a>
+    {% if es_admin() %}<a class="btn btn-stamp" href="{{ url_for('torneo.crear') }}">+ Nuevo torneo</a>{% endif %}
+  </div>
+</div>
+
+<input type="text" class="buscador" data-buscador="torneos-lista" data-buscador-vacio="buscador-sin-resultados" placeholder="Buscar torneo..." autocomplete="off">
+
+{% if torneos %}
+<div class="torneo-card-lista" id="torneos-lista">
+  {% for t in torneos %}
+  <a href="{{ url_for('torneo.detalle', torneo_id=t.id) }}" class="torneo-card" data-nombre="{{ t.nombre | lower }}">
+    <div>
+      <p class="eyebrow">{{ t.modo.replace('_', ' ') }} · {{ t.fecha }}</p>
+      <p class="torneo-card-nombre">{{ t.nombre }}</p>
+    </div>
+    <span class="ticket-estado estado-{{ t.estado }}"><span class="estado-dot"></span>{{ t.estado.replace('_', ' ') }}</span>
+  </a>
+  {% endfor %}
+</div>
+<p class="empty-body" id="buscador-sin-resultados" hidden>Ningún torneo coincide con la búsqueda.</p>
+{% else %}
+<p class="empty-body">Todavía no hay torneos cargados.</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/buscador.js') }}"></script>
+{% endblock %}

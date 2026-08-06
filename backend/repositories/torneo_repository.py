@@ -2,13 +2,13 @@ from database.db import get_connection
 from models.torneo import Torneo
 
 
-def crear(nombre, modo, fecha, cupos_eliminacion=None, vidas_iniciales=None):
+def crear(nombre, modo, fecha, cupos_eliminacion=None, vidas_iniciales=None, descripcion=None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """INSERT INTO torneo (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales, estado)
-           VALUES (%s, %s, %s, %s, %s, 'planificado')""",
-        (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales),
+        """INSERT INTO torneo (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales, descripcion, estado)
+           VALUES (%s, %s, %s, %s, %s, %s, 'planificado')""",
+        (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales, descripcion),
     )
     conn.commit()
     nuevo_id = cursor.lastrowid
@@ -17,16 +17,16 @@ def crear(nombre, modo, fecha, cupos_eliminacion=None, vidas_iniciales=None):
     return nuevo_id
 
 
-def actualizar(torneo_id, nombre, fecha):
-    """Solo nombre y fecha -- son datos descriptivos. modo/cupos_eliminacion/
-    vidas_iniciales NO se editan acá a propósito: cambiarlos después de que
-    ya hay partidos/clasificación/bracket calculados dejaría el torneo
-    inconsistente con lo que ya se jugó."""
+def actualizar(torneo_id, nombre, fecha, descripcion=None):
+    """Solo nombre, fecha y descripción -- son datos descriptivos. modo/
+    cupos_eliminacion/vidas_iniciales NO se editan acá a propósito: cambiarlos
+    después de que ya hay partidos/clasificación/bracket calculados dejaría
+    el torneo inconsistente con lo que ya se jugó."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE torneo SET nombre = %s, fecha = %s WHERE id = %s",
-        (nombre, fecha, torneo_id),
+        "UPDATE torneo SET nombre = %s, fecha = %s, descripcion = %s WHERE id = %s",
+        (nombre, fecha, descripcion, torneo_id),
     )
     conn.commit()
     filas_afectadas = cursor.rowcount
@@ -43,6 +43,19 @@ def obtener_por_id(torneo_id):
     cursor.close()
     conn.close()
     return Torneo.from_row(fila)
+
+
+def obtener_fecha_ultimo_torneo():
+    """La fecha (del evento, no de cuándo se cargó) del torneo más
+    reciente que haya, sea cual sea su estado -- para el 'días desde el
+    último torneo' del inicio."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT MAX(fecha) FROM torneo")
+    fila = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return fila[0] if fila else None
 
 
 def obtener_todos():

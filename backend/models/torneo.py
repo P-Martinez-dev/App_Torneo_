@@ -1,6 +1,7 @@
 class Torneo:
     def __init__(self, id=None, nombre=None, modo=None, fecha=None,
-                 estado="planificado", cupos_eliminacion=None, vidas_iniciales=None):
+                 estado="planificado", cupos_eliminacion=None, vidas_iniciales=None,
+                 descripcion=None):
         self.id = id
         self.nombre = nombre
         self.modo = modo
@@ -8,6 +9,7 @@ class Torneo:
         self.estado = estado
         self.cupos_eliminacion = cupos_eliminacion
         self.vidas_iniciales = vidas_iniciales
+        self.descripcion = descripcion
 
     def to_dict(self):
         return {
@@ -18,6 +20,7 @@ class Torneo:
             "estado": self.estado,
             "cupos_eliminacion": self.cupos_eliminacion,
             "vidas_iniciales": self.vidas_iniciales,
+            "descripcion": self.descripcion,
         }
 
     @staticmethod
@@ -32,4 +35,5 @@ class Torneo:
             estado=row["estado"],
             cupos_eliminacion=row["cupos_eliminacion"],
             vidas_iniciales=row.get("vidas_iniciales"),
+            descripcion=row.get("descripcion"),
         )

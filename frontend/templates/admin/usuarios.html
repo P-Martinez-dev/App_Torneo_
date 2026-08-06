@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Admins · {{ nombre_club }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Admin</p>
+    <h1 class="display-title">Usuarios</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('configuracion.index') }}">Volver</a>
+</div>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Nuevo admin</h2>
+  <form method="post" action="{{ url_for('admin.crear') }}" class="form-ticket">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="usuario">Usuario</label>
+      <input type="text" id="usuario" name="usuario" required>
+    </div>
+    <div class="field">
+      <label for="password">Contraseña (mínimo 8 caracteres)</label>
+      <input type="password" id="password" name="password" required minlength="8">
+    </div>
+    <button type="submit" class="btn btn-stamp btn-submit">Crear</button>
+  </form>
+</section>
+
+<section class="detalle-seccion">
+  <table class="tabla-datos">
+    <thead><tr><th>Usuario</th><th></th></tr></thead>
+    <tbody>
+    {% for a in admins %}
+      <tr>
+        <td>{{ a.usuario }}</td>
+        <td>
+          <form method="post" action="{{ url_for('admin.eliminar', admin_id=a.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-ghost btn-chico">Eliminar</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="empty-body">No se puede eliminar el último admin que quede -- te dejaría afuera de la app.</p>
+</section>
+{% endblock %}

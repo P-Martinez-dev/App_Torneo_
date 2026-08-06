@@ -1,0 +1,50 @@
+{% macro selector_peleador(campo, etiqueta, peleadores, valor_actual=none) %}
+<div class="field">
+  <label>{{ etiqueta }}</label>
+  <input type="hidden" name="{{ campo }}" id="{{ campo }}" value="{{ valor_actual or '' }}">
+  <div class="peleador-grid" data-campo="{{ campo }}">
+    <button type="button" class="peleador-grid-item peleador-grid-ninguno {{ 'peleador-grid-item-activo' if not valor_actual }}" data-valor="">
+      <span class="peleador-grid-icono peleador-grid-icono-vacio"></span>
+      <span class="peleador-grid-nombre">Ninguno</span>
+    </button>
+    {% for p in peleadores %}
+    <button type="button" class="peleador-grid-item {{ 'peleador-grid-item-activo' if valor_actual|string == p.id|string }}" data-valor="{{ p.id }}">
+      {% if p.imagen_icono %}
+      <img src="{{ imagen_url(p.imagen_icono) }}" alt="" class="peleador-grid-icono">
+      {% else %}
+      <span class="peleador-grid-icono peleador-grid-icono-vacio">{{ p.nombre[0] }}</span>
+      {% endif %}
+      <span class="peleador-grid-nombre">{{ p.nombre }}</span>
+    </button>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro editor_descripcion(texto_actual, accion_url, prefijo) %}
+{% if texto_actual %}
+<p class="empty-body">{{ texto_actual }}</p>
+{% endif %}
+<button type="button" class="btn btn-ghost btn-chico" id="btn-editar-{{ prefijo }}">
+  {{ 'Editar descripción' if texto_actual else '+ Agregar descripción' }}
+</button>
+<dialog id="dialog-editar-{{ prefijo }}" class="dialog-ticket">
+  <p class="dialog-texto">Descripción</p>
+  <form method="post" action="{{ accion_url }}" class="field">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <textarea name="descripcion" rows="4" placeholder="Texto libre, se muestra arriba de todo en esta pantalla.">{{ texto_actual or '' }}</textarea>
+    <div class="dialog-acciones">
+      <button type="submit" class="btn btn-stamp">Guardar</button>
+      <button type="button" class="btn btn-ghost" id="btn-cancelar-{{ prefijo }}">Cancelar</button>
+    </div>
+  </form>
+</dialog>
+<script>
+  document.getElementById("btn-editar-{{ prefijo }}").addEventListener("click", () => {
+    document.getElementById("dialog-editar-{{ prefijo }}").showModal();
+  });
+  document.getElementById("btn-cancelar-{{ prefijo }}").addEventListener("click", () => {
+    document.getElementById("dialog-editar-{{ prefijo }}").close();
+  });
+</script>
+{% endmacro %}

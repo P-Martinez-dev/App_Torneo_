@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Peleadores · {{ nombre_club }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Peleadores</p>
+    <h1 class="display-title">Roster</h1>
+  </div>
+</div>
+
+<input type="text" class="buscador" data-buscador="peleador-grid" data-buscador-vacio="buscador-sin-resultados" placeholder="Buscar peleador..." autocomplete="off">
+
+<div class="jugador-grid" id="peleador-grid">
+  {% if es_admin() %}
+  <button type="button" class="jugador-tile jugador-tile-nuevo" id="btn-nuevo-peleador">
+    <span class="jugador-tile-mas">+</span>
+    <span class="jugador-tile-nombre">Nuevo peleador</span>
+  </button>
+  {% endif %}
+  {% for p in peleadores %}
+  <a href="{{ url_for('peleador_frontend.detalle', peleador_id=p.id) }}" class="jugador-tile" data-nombre="{{ p.nombre | lower }}">
+    {% if p.imagen_icono %}
+    <img class="jugador-icono" src="{{ imagen_url(p.imagen_icono) }}" alt="">
+    {% else %}
+    <span class="jugador-icono jugador-icono-placeholder">{{ p.nombre[0] | upper }}</span>
+    {% endif %}
+    <span class="jugador-tile-nombre">{{ p.nombre }}</span>
+  </a>
+  {% endfor %}
+</div>
+<p class="empty-body" id="buscador-sin-resultados" hidden>Ningún peleador coincide con la búsqueda.</p>
+
+<dialog id="dialog-nuevo-peleador" class="dialog-ticket">
+  <p class="dialog-texto">Nuevo peleador</p>
+  <form method="post" action="{{ url_for('peleador_frontend.crear') }}" class="field">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" name="nombre" placeholder="Nombre del peleador" required>
+    <div class="dialog-acciones">
+      <button type="submit" class="btn btn-stamp">Agregar</button>
+      <button type="button" id="btn-cancelar-nuevo-peleador" class="btn btn-ghost">Cancelar</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/buscador.js') }}"></script>
+<script>
+  const btnNuevoPeleador = document.getElementById("btn-nuevo-peleador");
+  if (btnNuevoPeleador) {
+    btnNuevoPeleador.addEventListener("click", () => {
+      document.getElementById("dialog-nuevo-peleador").showModal();
+    });
+    document.getElementById("btn-cancelar-nuevo-peleador").addEventListener("click", () => {
+      document.getElementById("dialog-nuevo-peleador").close();
+    });
+  }
+</script>
+{% endblock %}

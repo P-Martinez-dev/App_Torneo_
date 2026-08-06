@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Rating · {{ nombre_club }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Todo el historial</p>
+    <h1 class="display-title">Rating</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('jugador.grid') }}">Volver a jugadores</a>
+</div>
+
+<p class="empty-body">
+  Calculado con Bradley-Terry sobre todos los partidos reales del historial (no cuentan
+  desempates ni repechajes) -- a diferencia de un Elo tradicional, no le da más peso a lo
+  reciente: busca un solo número por jugador que mejor explique todos los resultados a la vez.
+  1500 es el punto de referencia promedio.
+</p>
+
+{% if ranking %}
+<table class="tabla-datos">
+  <thead>
+    <tr><th>#</th><th>Jugador</th><th>Rating</th><th>Partidos jugados</th></tr>
+  </thead>
+  <tbody>
+  {% for f in ranking %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ f.nombre }}</td>
+      <td>{{ f.rating }}</td>
+      <td>{{ f.partidos_jugados }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+  <p class="empty-title">Todavía no hay partidos suficientes para calcular un rating.</p>
+</div>
+{% endif %}
+{% endblock %}

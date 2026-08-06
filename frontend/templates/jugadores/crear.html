@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Nuevo jugador · Bracket Log{% endblock %}
+{% block title %}Nuevo jugador · {{ nombre_club }}{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -13,6 +13,7 @@
 {% if error %}<p class="flash flash-error">{{ error }}</p>{% endif %}
 
 <form class="form-ticket" method="post" action="{{ url_for('jugador.crear') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="field">
     <label for="nombre">Nombre</label>
     <input type="text" id="nombre" name="nombre" required value="{{ form.get('nombre') if form else '' }}">

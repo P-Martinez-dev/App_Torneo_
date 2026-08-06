@@ -1,4 +1,4 @@
-import requests
+from services.api_client import session as requests
 from config import Config
 
 

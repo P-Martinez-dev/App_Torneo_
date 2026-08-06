@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Peleadores · Bracket Log{% endblock %}
+{% block title %}Peleadores · App del Torneo{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -21,14 +21,23 @@
 <section class="detalle-seccion">
   {% if peleadores %}
   <table class="tabla-datos">
-    <thead><tr><th>Nombre</th><th></th></tr></thead>
+    <thead><tr><th></th><th>Nombre</th><th></th></tr></thead>
     <tbody>
     {% for p in peleadores %}
       <tr>
+        <td>
+          {% if p.imagen_icono %}
+          <img src="{{ imagen_url(p.imagen_icono) }}" alt="" class="peleador-icono-mini">
+          {% else %}
+          <span class="peleador-icono-mini peleador-icono-mini-vacio"></span>
+          {% endif %}
+        </td>
         <td>{{ p.nombre }}</td>
-        <td class="tabla-acciones">
-          <button type="button" class="btn btn-ghost btn-chico btn-abrir-dialog" data-dialog="dialog-editar-{{ p.id }}">Editar</button>
-          <button type="button" class="btn btn-ghost btn-chico btn-abrir-dialog" data-dialog="dialog-eliminar-{{ p.id }}">Eliminar</button>
+        <td>
+          <span class="tabla-acciones">
+            <button type="button" class="btn btn-ghost btn-chico btn-abrir-dialog" data-dialog="dialog-editar-{{ p.id }}">Editar</button>
+            <button type="button" class="btn btn-ghost btn-chico btn-abrir-dialog" data-dialog="dialog-eliminar-{{ p.id }}">Eliminar</button>
+          </span>
         </td>
       </tr>
     {% endfor %}
@@ -49,6 +58,19 @@
       <button type="button" class="btn btn-ghost btn-cerrar-dialog" data-dialog="dialog-editar-{{ p.id }}">Cancelar</button>
     </div>
   </form>
+
+  <p class="dialog-texto">Ícono</p>
+  {% if p.imagen_icono %}
+  <img src="{{ imagen_url(p.imagen_icono) }}" alt="" class="editar-preview-icono">
+  <form method="post" action="{{ url_for('configuracion.eliminar_icono_peleador', peleador_id=p.id) }}">
+    <button type="submit" class="btn btn-ghost">Quitar ícono</button>
+  </form>
+  {% endif %}
+  <form method="post" action="{{ url_for('configuracion.subir_icono_peleador', peleador_id=p.id) }}"
+        enctype="multipart/form-data" class="form-imagen">
+    <input type="file" name="imagen" accept="image/png,image/jpeg,image/webp" required data-recorte="1">
+    <button type="submit" class="btn btn-stamp">Subir</button>
+  </form>
 </dialog>
 
 <dialog id="dialog-eliminar-{{ p.id }}" class="dialog-ticket">
@@ -64,5 +86,8 @@
 {% endblock %}
 
 {% block scripts %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="{{ url_for('static', filename='js/peleadores.js') }}"></script>
+<script src="{{ url_for('static', filename='js/recorte_imagen.js') }}"></script>
 {% endblock %}

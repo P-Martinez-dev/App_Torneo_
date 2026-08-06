@@ -1,17 +1,19 @@
 /* =========================================================
-   Bracket Log -- design tokens
-   Inspirado en hojas de bracket de papel y fichas de torneo de
-   eventos locales, no en un dashboard SaaS genérico.
+   App del Torneo -- design tokens
+   Inspirado en menús de juegos de lucha (fondo oscuro, rojo
+   agresivo, tipografía condensada en mayúsculas) -- no en el
+   arte/branding de ningún juego puntual, sino en el lenguaje
+   visual del género.
    ========================================================= */
 :root {
-  --paper: #E9E4D6;      /* fondo de página, papel de anotador */
-  --card: #F5F1E4;       /* superficie de tarjeta/ficha */
-  --ink: #201F1D;        /* texto principal, líneas */
-  --graphite: #6B6558;   /* texto secundario */
-  --stamp: #B23A2E;      /* sello rojo -- acciones, alertas */
-  --marker: #1F5C4A;     /* verde de anotador -- en curso */
-  --slate: #3C4A52;      /* finalizado / archivado */
-  --line: #C9C0A8;       /* líneas guía / perforado */
+  --paper: #0C0C0E;      /* fondo de página, casi negro */
+  --card: #17171A;       /* superficie de tarjeta/panel, un escalón más clara */
+  --ink: #F2F1ED;        /* texto principal (blanco hueso, no blanco puro) */
+  --graphite: #8B8A87;   /* texto secundario */
+  --stamp: #E31E24;      /* rojo -- acciones, alertas, acento principal */
+  --marker: #29D3C6;     /* cian -- en curso / éxito, contraste contra el rojo */
+  --slate: #4A4A4E;       /* finalizado / archivado */
+  --line: #2A2A2E;       /* líneas guía, divisores */
 
   --font-display: "Big Shoulders Display", sans-serif;
   --font-body: "IBM Plex Sans", sans-serif;
@@ -35,6 +37,9 @@ a { color: inherit; }
 .site-header {
   border-bottom: 3px solid var(--ink);
   padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .wordmark {
   font-family: var(--font-display);
@@ -86,19 +91,22 @@ a { color: inherit; }
   font-size: 14px;
   text-decoration: none;
   padding: 12px 22px;
-  border-radius: 2px;
   border: 2px solid var(--ink);
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  transition: transform 0.12s ease, background 0.12s ease;
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
 }
 .btn-stamp {
   background: var(--stamp);
-  color: var(--card);
+  color: var(--ink);
   border-color: var(--stamp);
 }
-.btn-stamp:hover { transform: translateY(-2px); }
+.btn-stamp:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 18px rgba(227, 30, 36, 0.45);
+}
 .btn-ghost {
   background: transparent;
   color: var(--ink);
@@ -127,6 +135,7 @@ a { color: inherit; }
 .ticket {
   background: var(--card);
   border: 2px solid var(--ink);
+  border-top: 4px solid var(--stamp);
   padding: 20px;
 }
 
@@ -173,9 +182,6 @@ a { color: inherit; }
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
   margin: 0;
 }
 .estado-dot {
@@ -184,6 +190,9 @@ a { color: inherit; }
   border-radius: 50%;
   background: currentColor;
   display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+  margin-bottom: 2px;
 }
 .estado-planificado { color: var(--graphite); }
 .estado-en_curso { color: var(--marker); }
@@ -211,6 +220,7 @@ a { color: inherit; }
 .form-ticket {
   background: var(--card);
   border: 2px solid var(--ink);
+  border-top: 4px solid var(--stamp);
   padding: 32px;
   max-width: 640px;
   display: flex;
@@ -237,7 +247,7 @@ label {
   color: var(--graphite);
 }
 
-input[type="text"], input[type="date"], input[type="number"], select {
+input[type="text"], input[type="date"], input[type="number"], input[type="password"], select, textarea {
   font-family: var(--font-body);
   font-size: 15px;
   padding: 10px 12px;
@@ -245,6 +255,10 @@ input[type="text"], input[type="date"], input[type="number"], select {
   border-radius: 2px;
   background: var(--paper);
   color: var(--ink);
+}
+textarea {
+  resize: vertical;
+  min-height: 70px;
 }
 
 input:focus, select:focus, .btn:focus, a:focus {
@@ -340,6 +354,44 @@ input:focus, select:focus, .btn:focus, a:focus {
 [hidden] { display: none !important; }
 
 /* ---------- Menú principal (Inicio) ---------- */
+.badge-dias-unico {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-left: 6px solid var(--stamp);
+  padding: 14px 24px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.badge-dias-unico:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(227, 30, 36, 0.35);
+}
+.badge-dias-unico-proximo { border-left-color: var(--marker); }
+.badge-dias-unico-proximo .badge-dias-numero { color: var(--marker); }
+.badge-dias-unico-proximo:hover { box-shadow: 0 6px 22px rgba(41, 211, 198, 0.35); }
+.badge-dias-numero {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--stamp);
+}
+.badge-dias-texto {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--graphite);
+  line-height: 1.5;
+}
+
+.page-head-solo-badge { justify-content: flex-end; }
+
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -352,14 +404,18 @@ input:focus, select:focus, .btn:focus, a:focus {
   gap: 6px;
   background: var(--card);
   border: 2px solid var(--ink);
+  border-top: 4px solid var(--stamp);
   padding: 28px 20px;
   text-decoration: none;
   color: var(--ink);
   font-family: var(--font-display);
   cursor: pointer;
-  transition: transform 0.12s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
-.menu-tile:hover { transform: translateY(-3px); }
+.menu-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 22px rgba(227, 30, 36, 0.35);
+}
 .menu-tile-button {
   font: inherit;
   text-align: left;
@@ -388,13 +444,28 @@ input:focus, select:focus, .btn:focus, a:focus {
 /* ---------- Diálogos ---------- */
 .dialog-ticket {
   border: 2px solid var(--ink);
+  border-top: 4px solid var(--stamp);
   background: var(--card);
   padding: 28px;
   max-width: 420px;
   font-family: var(--font-body);
 }
 .dialog-ticket::backdrop {
-  background: rgba(32, 31, 29, 0.55);
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.dialog-recorte {
+  max-width: 640px;
+  width: 90vw;
+}
+.recorte-contenedor {
+  max-height: 55vh;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.recorte-contenedor img {
+  display: block;
+  max-width: 100%;
 }
 .dialog-texto {
   margin: 0 0 20px;
@@ -428,8 +499,8 @@ input:focus, select:focus, .btn:focus, a:focus {
   margin: 0 0 18px;
 }
 .stamp-fase-alerta {
-  color: var(--card);
-  border-color: var(--card);
+  color: var(--ink);
+  border-color: var(--ink);
   font-size: 15px;
   transform: none;
 }
@@ -465,6 +536,7 @@ input:focus, select:focus, .btn:focus, a:focus {
   justify-content: center;
   padding: 40px;
   border: 2px solid var(--ink);
+  border-top: 4px solid var(--stamp);
   background: var(--card);
 }
 .vs-nombre {
@@ -501,6 +573,7 @@ input:focus, select:focus, .btn:focus, a:focus {
 .decision-columna {
   background: var(--card);
   border: 2px solid var(--ink);
+  border-top: 4px solid var(--stamp);
   padding: 24px;
 }
 .forzar-fila {
@@ -551,6 +624,14 @@ input:focus, select:focus, .btn:focus, a:focus {
 
 /* ---------- Tablas / detalle ---------- */
 .detalle-seccion { margin-bottom: 40px; }
+.detalle-subtitulo-con-accion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.detalle-subtitulo-con-accion .ticket-nombre { margin-bottom: 0; }
 .detalle-subtitulo {
   font-family: var(--font-display);
   font-size: 18px;
@@ -575,6 +656,7 @@ input:focus, select:focus, .btn:focus, a:focus {
   text-align: left;
   padding: 8px 10px;
   border-bottom: 1px solid var(--line);
+  vertical-align: middle;
 }
 .tabla-datos th {
   text-transform: uppercase;
@@ -583,10 +665,87 @@ input:focus, select:focus, .btn:focus, a:focus {
   color: var(--graphite);
   border-bottom: 2px solid var(--ink);
 }
-.tabla-datos tbody tr:hover { background: rgba(178, 58, 46, 0.06); }
+.tabla-datos tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.03); }
+.tabla-datos tbody tr:hover { background: rgba(227, 30, 36, 0.10); }
 .tabla-datos-nota { color: var(--graphite); }
+
+.movimiento { font-family: var(--font-mono); font-weight: 600; font-size: 13px; white-space: nowrap; }
+.movimiento-subio { color: var(--marker); }
+.movimiento-bajo { color: var(--stamp); }
+.movimiento-nuevo { color: var(--graphite); font-size: 11px; letter-spacing: 0.04em; }
+.movimiento-igual { color: var(--line); }
+.historial-insignias {
+  white-space: nowrap;
+  font-size: 16px;
+  letter-spacing: 2px;
+}
 .btn-chico { padding: 6px 12px; font-size: 12px; }
-.tabla-acciones { display: flex; gap: 8px; }
+.flecha-navegacion {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 800;
+  text-decoration: none;
+  z-index: 20;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+.flecha-navegacion:hover {
+  background: var(--stamp);
+  box-shadow: 0 4px 18px rgba(227, 30, 36, 0.45);
+}
+.flecha-navegacion-izq {
+  left: 16px;
+  clip-path: polygon(14px 0, 100% 0, 100% 100%, 14px 100%, 0 50%);
+}
+.flecha-navegacion-der {
+  right: 16px;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+}
+@media (max-width: 900px) {
+  .flecha-navegacion { display: none; }
+}
+
+.tabla-acciones { display: inline-flex; gap: 8px; }
+
+.torneo-card-lista { display: flex; flex-direction: column; gap: 14px; }
+.toggle-estadisticas-grupo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.torneo-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-top: 4px solid var(--stamp);
+  padding: 18px 22px;
+  text-decoration: none;
+  color: var(--ink);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.torneo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(227, 30, 36, 0.3);
+}
+.torneo-card-nombre {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  margin: 4px 0 0;
+}
 
 .form-inline {
   display: flex;
@@ -655,10 +814,14 @@ input:focus, select:focus, .btn:focus, a:focus {
   color: var(--ink);
   background: var(--card);
   border: 2px solid var(--ink);
+  border-top: 4px solid var(--stamp);
   padding: 16px;
-  transition: transform 0.12s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
-.jugador-tile:hover { transform: translateY(-3px); }
+.jugador-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 22px rgba(227, 30, 36, 0.35);
+}
 .jugador-icono {
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -738,12 +901,99 @@ input:focus, select:focus, .btn:focus, a:focus {
   display: block;
   margin-bottom: 10px;
 }
+.peleador-icono-mini {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border: 2px solid var(--ink);
+  display: block;
+}
+.peleador-icono-mini-vacio {
+  background: var(--card);
+  border-style: dashed;
+  border-color: var(--line);
+}
+
+.peleador-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+.peleador-grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  padding: 8px 4px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  color: var(--graphite);
+  transition: border-color 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
+}
+.peleador-grid-item:hover {
+  border-color: var(--ink);
+  transform: translateY(-2px);
+}
+.peleador-grid-item-activo {
+  border-color: var(--stamp);
+  color: var(--ink);
+  box-shadow: 0 0 0 2px var(--stamp) inset, 0 4px 14px rgba(227, 30, 36, 0.3);
+}
+.peleador-grid-icono {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border: 2px solid var(--ink);
+}
+.peleador-grid-icono-vacio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--graphite);
+}
+.peleador-grid-nombre {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-align: center;
+  line-height: 1.2;
+}
 .form-imagen {
   display: flex;
   gap: 12px;
   align-items: center;
   margin-top: 10px;
   flex-wrap: wrap;
+}
+input[type="file"] {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--graphite);
+}
+input[type="file"]::file-selector-button {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 8px 14px;
+  margin-right: 12px;
+  background: var(--card);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+input[type="file"]::file-selector-button:hover {
+  background: var(--stamp);
+  border-color: var(--stamp);
 }
 .zona-peligro {
   border: 2px dashed var(--stamp);

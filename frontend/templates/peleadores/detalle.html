@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ peleador.nombre }} · {{ nombre_club }}{% endblock %}
+
+{% block content %}
+{% if navegacion.anterior_id %}
+<a href="{{ url_for('peleador_frontend.detalle', peleador_id=navegacion.anterior_id) }}" class="flecha-navegacion flecha-navegacion-izq" title="Peleador anterior">‹</a>
+{% endif %}
+{% if navegacion.siguiente_id %}
+<a href="{{ url_for('peleador_frontend.detalle', peleador_id=navegacion.siguiente_id) }}" class="flecha-navegacion flecha-navegacion-der" title="Peleador siguiente">›</a>
+{% endif %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Peleador</p>
+    <h1 class="display-title">{{ peleador.nombre }}</h1>
+  </div>
+  <div class="page-head-acciones">
+    {% if es_admin() %}<a class="btn btn-ghost" href="{{ url_for('peleador_frontend.editar', peleador_id=peleador.id) }}">Modificar</a>{% endif %}
+    <a class="btn btn-ghost" href="{{ url_for('peleador_frontend.listado') }}">Volver</a>
+  </div>
+</div>
+
+<div class="perfil-layout">
+  <div>
+    {% if peleador.imagen_icono %}
+    <img src="{{ imagen_url(peleador.imagen_icono) }}" alt="" class="editar-preview-icono" style="width:160px;height:160px;">
+    {% else %}
+    <span class="peleador-icono-mini peleador-icono-mini-vacio" style="width:160px;height:160px;"></span>
+    {% endif %}
+  </div>
+
+  <div>
+    <table class="tabla-datos">
+      <tbody>
+        <tr><td>Veces usado</td><td>{{ estadisticas.veces_usado }}</td></tr>
+        <tr><td>Win rate</td><td>{{ (estadisticas.win_rate * 100) | round(1) }}%</td></tr>
+        {% if estadisticas.mas_usado_por %}
+        <tr><td>Más usado por</td><td>{{ estadisticas.mas_usado_por | map(attribute='nombre') | join(', ') }}</td></tr>
+        {% endif %}
+        {% if estadisticas.a_quien_le_gano_mas %}
+        <tr><td>A quién le ganó más</td><td>{{ estadisticas.a_quien_le_gano_mas | map(attribute='nombre') | join(', ') }}</td></tr>
+        {% endif %}
+        {% if estadisticas.con_quien_perdio_mas %}
+        <tr><td>Con quién perdió más</td><td>{{ estadisticas.con_quien_perdio_mas | map(attribute='nombre') | join(', ') }}</td></tr>
+        {% endif %}
+        {% if estadisticas.contra_quien_perdio_mas %}
+        <tr><td>Contra qué jugador perdió más</td><td>{{ estadisticas.contra_quien_perdio_mas | map(attribute='nombre') | join(', ') }}</td></tr>
+        {% endif %}
+        {% if estadisticas.contra_quien_jugo_mas %}
+        <tr><td>Contra qué jugador jugó más</td><td>{{ estadisticas.contra_quien_jugo_mas | map(attribute='nombre') | join(', ') }}</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

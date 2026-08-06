@@ -1,5 +1,5 @@
-from flask import Blueprint, request, jsonify
-from services import torneo_service, partido_service, tabla_service, tabla_general_service, torneo_estadisticas_service
+from flask import Blueprint, request, jsonify, send_file
+from services import torneo_service, partido_service, tabla_service, tabla_general_service, torneo_estadisticas_service, estadisticas_generales_service, exportar_service
 from repositories import grupo_repository
 from controllers.utils import obtener_json_body
 
@@ -9,6 +9,64 @@ torneo_bp = Blueprint("torneo", __name__, url_prefix="/torneos")
 # =========================================================
 # Creación / consulta de torneo
 # =========================================================
+
+@torneo_bp.route("/descripcion-inicio", methods=["PUT"])
+def actualizar_descripcion_inicio():
+    datos, error = obtener_json_body()
+    if error:
+        return error
+    estadisticas_generales_service.actualizar_descripcion_inicio(datos.get("descripcion"))
+    return jsonify({"ok": True}), 200
+
+
+@torneo_bp.route("/descripcion-tablas", methods=["PUT"])
+def actualizar_descripcion_tablas():
+    datos, error = obtener_json_body()
+    if error:
+        return error
+    estadisticas_generales_service.actualizar_descripcion_tablas(datos.get("descripcion"))
+    return jsonify({"ok": True}), 200
+
+
+@torneo_bp.route("/nombre-club", methods=["GET"])
+def obtener_nombre_club():
+    return jsonify({"nombre_club": estadisticas_generales_service.obtener_nombre_club()}), 200
+
+
+@torneo_bp.route("/nombre-club", methods=["PUT"])
+def actualizar_nombre_club():
+    datos, error = obtener_json_body()
+    if error:
+        return error
+    estadisticas_generales_service.actualizar_nombre_club(datos.get("nombre"))
+    return jsonify({"ok": True}), 200
+
+
+@torneo_bp.route("/tiles/<string:nombre_tile>", methods=["PUT"])
+def actualizar_tile(nombre_tile):
+    datos, error = obtener_json_body()
+    if error:
+        return error
+    try:
+        estadisticas_generales_service.actualizar_tile(nombre_tile, bool(datos.get("visible")))
+        return jsonify({"ok": True}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@torneo_bp.route("/proximo-torneo", methods=["PUT"])
+def actualizar_proximo_torneo():
+    datos, error = obtener_json_body()
+    if error:
+        return error
+    estadisticas_generales_service.actualizar_proximo_torneo(datos.get("fecha"))
+    return jsonify({"ok": True}), 200
+
+
+@torneo_bp.route("/estadisticas-generales", methods=["GET"])
+def estadisticas_generales():
+    return jsonify(estadisticas_generales_service.obtener_estadisticas_generales()), 200
+
 
 @torneo_bp.route("", methods=["GET"])
 def listar():
@@ -31,6 +89,7 @@ def crear():
             vidas_iniciales=datos.get("vidas_iniciales"),
             orden_jugadores_ids=datos.get("orden_jugadores_ids"),
             grupos_manual=datos.get("grupos_manual"),
+            descripcion=datos.get("descripcion"),
         )
         return jsonify(nuevo), 201
     except torneo_service.DatosTorneoInvalidosError as e:
@@ -53,6 +112,20 @@ def estadisticas(torneo_id):
         return jsonify({"error": str(e)}), 404
 
 
+@torneo_bp.route("/<int:torneo_id>/exportar-imagen", methods=["GET"])
+def exportar_imagen(torneo_id):
+    try:
+        buffer = exportar_service.generar_imagen_resumen(torneo_id)
+        return send_file(buffer, mimetype="image/png", download_name=f"torneo_{torneo_id}.png")
+    except torneo_service.TorneoNoEncontradoError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+@torneo_bp.route("/<int:torneo_id>/navegacion", methods=["GET"])
+def navegacion(torneo_id):
+    return jsonify(torneo_service.obtener_navegacion(torneo_id)), 200
+
+
 @torneo_bp.route("/<int:torneo_id>/resumen", methods=["GET"])
 def resumen(torneo_id):
     """Todo el desarrollo del torneo en un solo llamado: tablas de cada
@@ -70,7 +143,9 @@ def actualizar(torneo_id):
     if error:
         return error
     try:
-        actualizado = torneo_service.actualizar_torneo(torneo_id, datos.get("nombre"), datos.get("fecha"))
+        actualizado = torneo_service.actualizar_torneo(
+            torneo_id, datos.get("nombre"), datos.get("fecha"), datos.get("descripcion")
+        )
         return jsonify(actualizado), 200
     except torneo_service.TorneoNoEncontradoError as e:
         return jsonify({"error": str(e)}), 404
@@ -117,6 +192,13 @@ def tabla_grupo(torneo_id, grupo_id):
 def contexto_repechaje(torneo_id, grupo_id):
     """Resumen justificativo para la pantalla de forzado de clasificados."""
     return jsonify(tabla_service.contexto_repechaje(torneo_id, grupo_id)), 200
+
+
+@torneo_bp.route("/tabla-general/exportar-imagen", methods=["GET"])
+def exportar_imagen_tabla_general():
+    excluidos_ids = request.args.getlist("excluir", type=int)
+    buffer = exportar_service.generar_imagen_tabla_general(excluidos_ids)
+    return send_file(buffer, mimetype="image/png", download_name="ranking_general.png")
 
 
 @torneo_bp.route("/tabla-general", methods=["GET"])

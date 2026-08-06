@@ -1,14 +1,20 @@
 {% extends "base.html" %}
-{% block title %}{{ jugador.nombre }} · Bracket Log{% endblock %}
+{% block title %}{{ jugador.nombre }} · {{ nombre_club }}{% endblock %}
 
 {% block content %}
+{% if navegacion.anterior_id %}
+<a href="{{ url_for('jugador.detalle', jugador_id=navegacion.anterior_id) }}" class="flecha-navegacion flecha-navegacion-izq" title="Jugador anterior">‹</a>
+{% endif %}
+{% if navegacion.siguiente_id %}
+<a href="{{ url_for('jugador.detalle', jugador_id=navegacion.siguiente_id) }}" class="flecha-navegacion flecha-navegacion-der" title="Jugador siguiente">›</a>
+{% endif %}
 <div class="page-head">
   <div>
     <p class="eyebrow">Jugador</p>
     <h1 class="display-title">{{ jugador.nombre }}</h1>
   </div>
   <div class="page-head-acciones">
-    <a class="btn btn-ghost" href="{{ url_for('jugador.editar', jugador_id=jugador.id) }}">Modificar</a>
+    {% if es_admin() %}<a class="btn btn-ghost" href="{{ url_for('jugador.editar', jugador_id=jugador.id) }}">Modificar</a>{% endif %}
     <a class="btn btn-ghost" href="{{ url_for('jugador.grid') }}">Volver</a>
   </div>
 </div>
@@ -42,7 +48,7 @@
         <tr><td>Rival más frecuente</td><td>{{ estadisticas.rivales.rival_mas_frecuente | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
         {% if estadisticas.rivales.matchup_parejo %}
-        <tr><td>Matchup parejo</td><td>{{ estadisticas.rivales.matchup_parejo | map(attribute='nombre') | join(', ') }}</td></tr>
+        <tr><td>Matchup parejo</td><td>{% for r in estadisticas.rivales.matchup_parejo %}{{ r.nombre }} ({{ r.partidos_ganados }}-{{ r.partidos_perdidos }}){% if not loop.last %}, {% endif %}{% endfor %}</td></tr>
         {% endif %}
         {% if estadisticas.rivales.nemesis %}
         <tr><td>Némesis</td><td>{{ estadisticas.rivales.nemesis | map(attribute='nombre') | join(', ') }}</td></tr>
@@ -68,7 +74,7 @@
         <tr><td>Torneos jugados</td><td>{{ estadisticas.torneos.torneos_jugados_total }}</td></tr>
         <tr><td>Veces campeón</td><td>{{ estadisticas.torneos.veces_campeon }}</td></tr>
         {% if estadisticas.torneos.mejor_puesto_historico %}
-        <tr><td>Mejor puesto histórico</td><td>{{ estadisticas.torneos.mejor_puesto_historico.puesto }}° en {{ estadisticas.torneos.mejor_puesto_historico.nombre }}</td></tr>
+        <tr><td>Mejor puesto histórico</td><td>{{ estadisticas.torneos.mejor_puesto_historico[0].puesto }}° en {{ estadisticas.torneos.mejor_puesto_historico | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
         {% if estadisticas.torneos.promedio_puesto %}
         <tr><td>Promedio de puesto</td><td>{{ estadisticas.torneos.promedio_puesto }}</td></tr>
@@ -88,6 +94,24 @@
         {% endif %}
       </tbody>
     </table>
+
+    {% if estadisticas.mejores_victorias %}
+    <h2 class="ticket-nombre">Mejores victorias</h2>
+    <ol class="lista-partidos lista-partidos-numerada">
+      {% for f in estadisticas.mejores_victorias %}
+      <li>vs. {{ f.perdedor_nombre }} en {{ f.torneo_nombre }} (probabilidad de ganar: {{ (f.probabilidad_ganador * 100) | round(1) }}%)</li>
+      {% endfor %}
+    </ol>
+    {% endif %}
+
+    {% if estadisticas.peores_caidas %}
+    <h2 class="ticket-nombre">Peores caídas</h2>
+    <ol class="lista-partidos lista-partidos-numerada">
+      {% for f in estadisticas.peores_caidas %}
+      <li>vs. {{ f.ganador_nombre }} en {{ f.torneo_nombre }} (el rival tenía {{ (f.probabilidad_ganador * 100) | round(1) }}% de probabilidad)</li>
+      {% endfor %}
+    </ol>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

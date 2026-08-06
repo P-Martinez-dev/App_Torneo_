@@ -271,14 +271,22 @@ def obtener_finalizados_por_jugador(jugador_id):
     """Todos los partidos finalizados de un jugador en cualquier torneo,
     ordenados cronológicamente. Excluye repechaje/desempate a propósito
     (mismo criterio que las estadísticas de la tabla general: no son
-    partidos 'de verdad' del torneo)."""
+    partidos 'de verdad' del torneo).
+
+    Importante: se ordena por la FECHA DEL TORNEO (torneo.fecha) + el
+    'orden' interno del partido, no por partido.fecha_jugado -- esa
+    columna guarda el momento en que se CARGÓ el resultado, no cuándo
+    pasó de verdad. Si reconstruís un torneo viejo, fecha_jugado queda en
+    'ahora', y ordenar por eso invierte la cronología real entre torneos
+    reconstruidos en distinto orden al que pasaron en la vida real."""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
-        """SELECT * FROM partido
-           WHERE (jugador1_id = %s OR jugador2_id = %s)
-             AND estado = 'finalizado' AND fase NOT IN ('repechaje', 'desempate')
-           ORDER BY fecha_jugado ASC""",
+        """SELECT p.* FROM partido p
+           JOIN torneo t ON t.id = p.torneo_id
+           WHERE (p.jugador1_id = %s OR p.jugador2_id = %s)
+             AND p.estado = 'finalizado' AND p.fase NOT IN ('repechaje', 'desempate')
+           ORDER BY t.fecha ASC, p.orden ASC""",
         (jugador_id, jugador_id),
     )
     filas = cursor.fetchall()

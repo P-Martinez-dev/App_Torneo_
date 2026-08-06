@@ -1,14 +1,24 @@
 {% extends "base.html" %}
-{% block title %}{{ resumen.torneo.nombre }} · Bracket Log{% endblock %}
+{% block title %}{{ resumen.torneo.nombre }} · {{ nombre_club }}{% endblock %}
 
 {% block content %}
+{% if navegacion.anterior_id %}
+<a href="{{ url_for('torneo.detalle', torneo_id=navegacion.anterior_id) }}" class="flecha-navegacion flecha-navegacion-izq" title="Torneo anterior">‹</a>
+{% endif %}
+{% if navegacion.siguiente_id %}
+<a href="{{ url_for('torneo.detalle', torneo_id=navegacion.siguiente_id) }}" class="flecha-navegacion flecha-navegacion-der" title="Torneo siguiente">›</a>
+{% endif %}
 <div class="page-head">
   <div>
     <p class="eyebrow">{{ resumen.torneo.modo.replace('_', ' ') }} · {{ resumen.torneo.fecha }}</p>
     <h1 class="display-title">{{ resumen.torneo.nombre }}</h1>
+    {% if resumen.torneo.descripcion %}
+    <p class="empty-body">{{ resumen.torneo.descripcion }}</p>
+    {% endif %}
   </div>
   <div class="page-head-acciones">
-    <a class="btn btn-ghost" href="{{ url_for('torneo.editar', torneo_id=torneo_id) }}">Editar torneo</a>
+    <a class="btn btn-stamp" href="{{ url_for('torneo.exportar_imagen', torneo_id=torneo_id) }}">Exportar imagen</a>
+    {% if es_admin() %}<a class="btn btn-ghost" href="{{ url_for('torneo.editar', torneo_id=torneo_id) }}">Editar torneo</a>{% endif %}
     <a class="btn btn-ghost" href="{{ url_for('torneo.listado') }}">Volver a tablas</a>
   </div>
 </div>
@@ -33,11 +43,14 @@
     <tbody>
       <tr><td>Jugadores participantes</td><td>{{ estadisticas.cantidad_jugadores }}</td></tr>
       <tr><td>Partidos jugados</td><td>{{ estadisticas.partidos_jugados }}</td></tr>
+      {% if estadisticas.rounds %}
       <tr><td>Barridas (2-0) / Cerrados (2-1)</td><td>{{ estadisticas.rounds.barridas }} / {{ estadisticas.rounds.cerrados }}</td></tr>
+      {% endif %}
       {% if estadisticas.instancias_especiales %}
       <tr><td>Desempates internos</td><td>{{ estadisticas.instancias_especiales.desempates_internos }}</td></tr>
       <tr><td>Repechajes cruzados</td><td>{{ estadisticas.instancias_especiales.repechajes_cruzados }}</td></tr>
       {% endif %}
+      {% if estadisticas.partido_mas_renido is not none %}
       <tr>
         <td>Partido más reñido</td>
         <td>
@@ -48,6 +61,7 @@
           {% endif %}
         </td>
       </tr>
+      {% endif %}
       {% if estadisticas.mas_tiempo_en_cancha %}
       <tr><td>Más tiempo en cancha (racha)</td><td>{{ estadisticas.mas_tiempo_en_cancha.jugadores | join(', ') }} ({{ estadisticas.mas_tiempo_en_cancha.racha }} seguidos)</td></tr>
       {% endif %}
@@ -135,6 +149,25 @@
 {% endif %}
 
 {% if resumen.torneo.modo == 'cinco_vidas' %}
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Tabla</h2>
+  <table class="tabla-datos">
+    <thead>
+      <tr><th>Puesto</th><th>Jugador</th><th>Puntos racha</th><th>Momento de eliminación</th></tr>
+    </thead>
+    <tbody>
+    {% for f in resumen.tabla %}
+      <tr>
+        <td>{{ f.puesto }}</td>
+        <td>{{ f.nombre }}</td>
+        <td>{{ f.puntos_racha }}</td>
+        <td>{% if f.eliminado %}{{ f.orden_eliminacion }}° en caer{% else %}Nunca eliminado (campeón){% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
 <section class="detalle-seccion">
   <h2 class="ticket-nombre">Orden cronológico</h2>
   <ol class="lista-partidos lista-partidos-numerada">

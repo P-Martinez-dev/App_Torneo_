@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Configuración · Bracket Log{% endblock %}
+{% block title %}Configuración · {{ nombre_club }}{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -7,11 +7,67 @@
     <p class="eyebrow">Configuración</p>
     <h1 class="display-title">Herramientas</h1>
   </div>
+  <div class="page-head-acciones">
+    <a class="btn btn-ghost" href="{{ url_for('admin.usuarios') }}">Usuarios</a>
+    <a class="btn btn-ghost" href="{{ url_for('admin.estadisticas_config') }}">Estadísticas</a>
+  </div>
 </div>
 
-<div class="menu-grid">
-  <a href="{{ url_for('configuracion.peleadores') }}" class="menu-tile">
-    <span class="menu-tile-titulo">Peleadores</span>
-  </a>
-</div>
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Nombre del club</h2>
+  <form method="post" action="{{ url_for('configuracion.actualizar_nombre_club') }}" class="form-inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" name="nombre" value="{{ generales.nombre_club }}" maxlength="100">
+    <button type="submit" class="btn btn-stamp">Guardar</button>
+  </form>
+  <p class="empty-body">Aparece en el encabezado de cada pantalla y en las imágenes que se exportan.</p>
+</section>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Tiles del Inicio</h2>
+  <div class="toggle-estadisticas-grupo">
+    {% for tile, etiqueta in [('tablas','Tablas'), ('torneos','Torneos'), ('jugadores','Jugadores'), ('peleadores','Peleadores')] %}
+    <form method="post" action="{{ url_for('configuracion.toggle_tile', nombre_tile=tile) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="visible" value="{{ 'false' if generales['mostrar_tile_' + tile] else 'true' }}">
+      <button type="submit" class="btn btn-chico {{ 'btn-stamp' if generales['mostrar_tile_' + tile] else 'btn-ghost' }}">
+        {{ etiqueta }}
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+  <p class="empty-body">Rojo = visible en Inicio, gris = oculto.</p>
+</section>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Próximo torneo</h2>
+  <form method="post" action="{{ url_for('configuracion.actualizar_proximo_torneo') }}" class="form-inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="date" name="fecha" value="{{ generales.fecha_proximo_torneo or '' }}">
+    <button type="submit" class="btn btn-stamp">Guardar</button>
+  </form>
+  <p class="empty-body">
+    Mientras esta fecha no haya pasado, el círculo del Inicio muestra la cuenta regresiva hasta
+    ahí en vez de los días desde el último torneo. Dejá el campo vacío y guardá para borrarla.
+  </p>
+</section>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Backup</h2>
+  <a class="btn btn-ghost" href="{{ url_for('configuracion.backup') }}">Descargar backup completo</a>
+  <p class="empty-body">Un .zip con todos los datos (torneos, jugadores, peleadores) y todas las imágenes subidas.</p>
+</section>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Mantenimiento</h2>
+  <form method="post" action="{{ url_for('configuracion.limpiar_imagenes_rotas') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-ghost">Limpiar referencias a imágenes rotas</button>
+  </form>
+  <p class="empty-body">
+    Revisa a todos los jugadores y peleadores, y borra (vuelve al placeholder) cualquier imagen
+    que la base diga que existe pero que ya no esté en el disco -- pasa si en algún momento se
+    reemplazó la carpeta static/ entera al actualizar el proyecto.
+  </p>
+</section>
 {% endblock %}

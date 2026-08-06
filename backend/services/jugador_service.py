@@ -20,11 +20,51 @@ class ImagenInvalidaError(Exception):
 EXTENSIONES_PERMITIDAS = {"jpg", "jpeg", "png", "webp"}
 TAMAÑO_MAXIMO_BYTES = 5 * 1024 * 1024  # 5MB
 CARPETA_UPLOADS = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "uploads", "jugadores")
+CARPETA_STATIC = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+
+
+def limpiar_imagenes_rotas():
+    """
+    Recorre todos los jugadores y limpia (pone en NULL) las referencias a
+    imagen_vertical/imagen_icono que apuntan a un archivo que ya no
+    existe en disco -- pasa si en algún momento se reemplazó la carpeta
+    static/ entera al actualizar el proyecto, perdiendo los archivos
+    subidos pero no las referencias que quedaron en la base. Sin esto,
+    el jugador queda mostrando el ícono de imagen rota para siempre.
+    Devuelve cuántas referencias se limpiaron.
+    """
+    jugadores = jugador_repository.obtener_todos()
+    limpiadas = 0
+    for j in jugadores:
+        for campo, path in (
+            ("imagen_vertical_path", j.imagen_vertical_path),
+            ("imagen_icono_path", j.imagen_icono_path),
+        ):
+            if path and not os.path.isfile(os.path.join(CARPETA_STATIC, path)):
+                jugador_repository.actualizar_imagen(j.id, campo, None)
+                limpiadas += 1
+    return limpiadas
 
 
 def listar_jugadores():
     jugadores = jugador_repository.obtener_todos()
     return [j.to_dict() for j in jugadores]
+
+
+def obtener_navegacion(jugador_id):
+    """IDs del jugador anterior y siguiente, en el mismo orden que se
+    listan en el roster (alfabético) -- para las flechas de 'anterior/
+    siguiente' del perfil, sin tener que volver al listado y elegir a
+    mano."""
+    todos = jugador_repository.obtener_todos()
+    ids = [j.id for j in todos]
+    if jugador_id not in ids:
+        return {"anterior_id": None, "siguiente_id": None}
+    idx = ids.index(jugador_id)
+    return {
+        "anterior_id": ids[idx - 1] if idx > 0 else None,
+        "siguiente_id": ids[idx + 1] if idx < len(ids) - 1 else None,
+    }
 
 
 def obtener_jugador(jugador_id):

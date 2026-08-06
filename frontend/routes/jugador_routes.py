@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from services import jugador_service, estadisticas_service
+from auth import requiere_admin
 
 jugador_bp = Blueprint("jugador", __name__, url_prefix="/jugadores")
 
@@ -10,7 +11,14 @@ def grid():
     return render_template("jugadores/listado.html", jugadores=jugadores)
 
 
+@jugador_bp.route("/rating")
+def rating():
+    ranking = jugador_service.obtener_rating()
+    return render_template("jugadores/rating.html", ranking=ranking)
+
+
 @jugador_bp.route("/nuevo", methods=["GET", "POST"])
+@requiere_admin
 def crear():
     if request.method == "GET":
         return render_template("jugadores/crear.html", error=None, form=None)
@@ -32,10 +40,12 @@ def detalle(jugador_id):
         flash("Ese jugador no existe.")
         return redirect(url_for("jugador.grid"))
     estadisticas = estadisticas_service.obtener_estadisticas(jugador_id)
-    return render_template("jugadores/detalle.html", jugador=jugador, estadisticas=estadisticas)
+    navegacion = jugador_service.obtener_navegacion(jugador_id)
+    return render_template("jugadores/detalle.html", jugador=jugador, estadisticas=estadisticas, navegacion=navegacion)
 
 
 @jugador_bp.route("/<int:jugador_id>/editar", methods=["GET", "POST"])
+@requiere_admin
 def editar(jugador_id):
     jugador = jugador_service.obtener_jugador(jugador_id)
     if jugador is None:
@@ -57,6 +67,7 @@ def editar(jugador_id):
 
 
 @jugador_bp.route("/<int:jugador_id>/eliminar", methods=["POST"])
+@requiere_admin
 def eliminar(jugador_id):
     try:
         jugador_service.eliminar_jugador(jugador_id)
@@ -67,6 +78,7 @@ def eliminar(jugador_id):
 
 
 @jugador_bp.route("/<int:jugador_id>/imagen-vertical", methods=["POST"])
+@requiere_admin
 def subir_imagen_vertical(jugador_id):
     archivo = request.files.get("imagen")
     try:
@@ -78,12 +90,14 @@ def subir_imagen_vertical(jugador_id):
 
 
 @jugador_bp.route("/<int:jugador_id>/imagen-vertical/eliminar", methods=["POST"])
+@requiere_admin
 def eliminar_imagen_vertical(jugador_id):
     jugador_service.eliminar_imagen_vertical(jugador_id)
     return redirect(url_for("jugador.editar", jugador_id=jugador_id))
 
 
 @jugador_bp.route("/<int:jugador_id>/icono", methods=["POST"])
+@requiere_admin
 def subir_icono(jugador_id):
     archivo = request.files.get("imagen")
     try:
@@ -95,6 +109,7 @@ def subir_icono(jugador_id):
 
 
 @jugador_bp.route("/<int:jugador_id>/icono/eliminar", methods=["POST"])
+@requiere_admin
 def eliminar_icono(jugador_id):
     jugador_service.eliminar_icono(jugador_id)
     return redirect(url_for("jugador.editar", jugador_id=jugador_id))

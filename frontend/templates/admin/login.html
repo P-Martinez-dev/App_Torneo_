@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión · {{ nombre_club }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Admin</p>
+    <h1 class="display-title">Iniciar&nbsp;sesión</h1>
+  </div>
+</div>
+
+{% if error %}<p class="flash flash-error">{{ error }}</p>{% endif %}
+
+<form class="form-ticket" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="field">
+    <label for="usuario">Usuario</label>
+    <input type="text" id="usuario" name="usuario" required autofocus>
+  </div>
+  <div class="field">
+    <label for="password">Contraseña</label>
+    <input type="password" id="password" name="password" required>
+  </div>
+  <button type="submit" class="btn btn-stamp btn-submit">Entrar</button>
+</form>
+{% endblock %}

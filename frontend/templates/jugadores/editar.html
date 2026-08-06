@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Editar {{ jugador.nombre }} · Bracket Log{% endblock %}
+{% block title %}Editar {{ jugador.nombre }} · {{ nombre_club }}{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -13,6 +13,7 @@
 {% if error %}<p class="flash flash-error">{{ error }}</p>{% endif %}
 
 <form class="form-ticket" method="post" action="{{ url_for('jugador.editar', jugador_id=jugador.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="field">
     <label for="nombre">Nombre</label>
     <input type="text" id="nombre" name="nombre" required value="{{ jugador.nombre }}">
@@ -29,12 +30,14 @@
   {% if jugador.imagen_vertical %}
   <img src="{{ imagen_url(jugador.imagen_vertical) }}" alt="" class="editar-preview-vertical">
   <form method="post" action="{{ url_for('jugador.eliminar_imagen_vertical', jugador_id=jugador.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="btn btn-ghost">Quitar imagen</button>
   </form>
   {% endif %}
   <form method="post" action="{{ url_for('jugador.subir_imagen_vertical', jugador_id=jugador.id) }}"
         enctype="multipart/form-data" class="form-imagen">
-    <input type="file" name="imagen" accept="image/png,image/jpeg,image/webp" required>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="file" name="imagen" accept="image/png,image/jpeg,image/webp" required data-recorte="0.75">
     <button type="submit" class="btn btn-stamp">Subir</button>
   </form>
 </section>
@@ -44,12 +47,14 @@
   {% if jugador.imagen_icono %}
   <img src="{{ imagen_url(jugador.imagen_icono) }}" alt="" class="editar-preview-icono">
   <form method="post" action="{{ url_for('jugador.eliminar_icono', jugador_id=jugador.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="btn btn-ghost">Quitar ícono</button>
   </form>
   {% endif %}
   <form method="post" action="{{ url_for('jugador.subir_icono', jugador_id=jugador.id) }}"
         enctype="multipart/form-data" class="form-imagen">
-    <input type="file" name="imagen" accept="image/png,image/jpeg,image/webp" required>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="file" name="imagen" accept="image/png,image/jpeg,image/webp" required data-recorte="1">
     <button type="submit" class="btn btn-stamp">Subir</button>
   </form>
 </section>
@@ -63,6 +68,7 @@
   <p class="dialog-texto">¿Seguro que querés eliminar a {{ jugador.nombre }}? Esto no se puede deshacer.</p>
   <div class="dialog-acciones">
     <form method="post" action="{{ url_for('jugador.eliminar', jugador_id=jugador.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-stamp">Sí, eliminar</button>
     </form>
     <button type="button" id="btn-cancelar-eliminar" class="btn btn-ghost">Cancelar</button>
@@ -71,5 +77,8 @@
 {% endblock %}
 
 {% block scripts %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="{{ url_for('static', filename='js/jugador_editar.js') }}"></script>
+<script src="{{ url_for('static', filename='js/recorte_imagen.js') }}"></script>
 {% endblock %}

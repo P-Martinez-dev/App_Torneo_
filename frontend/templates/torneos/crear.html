@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Nuevo torneo · Bracket Log{% endblock %}
+{% block title %}Nuevo torneo · {{ nombre_club }}{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -7,7 +7,7 @@
     <p class="eyebrow">Nuevo torneo</p>
     <h1 class="display-title">Completá&nbsp;la&nbsp;ficha</h1>
   </div>
-  <a class="btn btn-ghost" href="{{ url_for('torneo.listado') }}">Cancelar</a>
+  <a class="btn btn-ghost" href="{{ url_for('inicio.inicio') }}">Cancelar</a>
 </div>
 
 {% if error %}
@@ -15,10 +15,17 @@
 {% endif %}
 
 <form class="form-ticket" method="post" action="{{ url_for('torneo.crear') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="field">
     <label for="nombre">Nombre del torneo</label>
     <input type="text" id="nombre" name="nombre" required
            value="{{ form.get('nombre') if form else '' }}" placeholder="Ej: Copa de invierno">
+  </div>
+
+  <div class="field">
+    <label for="descripcion">Descripción (opcional)</label>
+    <textarea id="descripcion" name="descripcion" rows="3"
+              placeholder="Notas sobre el torneo, contexto, lo que quieras dejar anotado...">{{ form.get('descripcion') if form else '' }}</textarea>
   </div>
 
   <div class="field-row">

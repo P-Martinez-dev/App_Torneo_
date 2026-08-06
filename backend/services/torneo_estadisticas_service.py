@@ -1,4 +1,5 @@
 from repositories import partido_repository, jugador_repository, peleador_repository, torneo_repository
+from services import estadisticas_config_service
 
 
 class TorneoNoEncontradoError(Exception):
@@ -30,7 +31,7 @@ def obtener_estadisticas_torneo(torneo_id: int) -> dict:
         jugadores_ids.add(p.jugador1_id)
         jugadores_ids.add(p.jugador2_id)
 
-    return {
+    resultado = {
         "torneo_id": torneo_id,
         "cantidad_jugadores": len(jugadores_ids),
         "partidos_jugados": len(finalizados),
@@ -40,8 +41,11 @@ def obtener_estadisticas_torneo(torneo_id: int) -> dict:
         "mas_tiempo_en_cancha": _mas_tiempo_en_cancha(torneo, finalizados, nombres),
         "mas_victorias": _mas_victorias(finalizados, nombres),
         "peleador_mas_usado": _peleador_mas_usado(torneo, finalizados, nombres_peleador),
-        "rival_mas_diverso": _rival_mas_diverso(finalizados, nombres),
+        "rival_mas_diverso": _rival_mas_diverso(torneo, finalizados, nombres),
     }
+    return estadisticas_config_service.filtrar_visibles(
+        resultado, "torneo", campos_lista=("mas_victorias", "peleador_mas_usado", "rival_mas_diverso")
+    )
 
 
 def _stats_rounds(partidos):
@@ -66,11 +70,14 @@ def _instancias_especiales(torneo, partidos):
 
 def _partido_mas_renido(partidos, nombres):
     """El criterio es cuántas veces se enfrentó el mismo par de jugadores
-    en TODO el torneo (puede pasar por un repechaje/desempate, o en
-    cinco_vidas por la cola). Si el máximo es 1 (todos se cruzaron una
+    en TODO el torneo (puede pasar por la cola de cinco_vidas, o por un
+    repechaje/desempate en grupos_eliminacion -- pero esos dos últimos no
+    cuentan, porque no fueron partidos 'de verdad' del torneo, fueron
+    para resolver un empate). Si el máximo es 1 (todos se cruzaron una
     sola vez), no hay 'más reñido' que marcar."""
+    partidos_reales = [p for p in partidos if p.fase not in ("repechaje", "desempate")]
     conteo = {}
-    for p in partidos:
+    for p in partidos_reales:
         clave = frozenset({p.jugador1_id, p.jugador2_id})
         conteo[clave] = conteo.get(clave, 0) + 1
 
@@ -133,10 +140,16 @@ def _peleador_mas_usado(torneo, partidos, nombres_peleador):
     return _todos_los_maximos(lista, key=lambda f: f["veces"])
 
 
-def _rival_mas_diverso(partidos, nombres):
+def _rival_mas_diverso(torneo, partidos, nombres):
     """Cantidad de rivales DISTINTOS enfrentados, no cantidad de partidos
     -- el espejo de 'partido más reñido' (que mide repetición, esto mide
-    variedad)."""
+    variedad). No aplica a todos_contra_todos: ahí cada jugador se
+    enfrenta exactamente una vez con cada rival por diseño (round-robin),
+    así que 'quién enfrentó más rivales distintos' siempre da un empate
+    trivial entre todos -- no dice nada de ese torneo puntual."""
+    if torneo.modo == "todos_contra_todos":
+        return None
+
     rivales_por_jugador = {}
     for p in partidos:
         rivales_por_jugador.setdefault(p.jugador1_id, set()).add(p.jugador2_id)

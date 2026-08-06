@@ -13,7 +13,8 @@ CREATE TABLE torneo (
     fecha DATE NOT NULL,
     estado ENUM('planificado', 'en_curso', 'finalizado') DEFAULT 'planificado',
     cupos_eliminacion INT NULL,
-    vidas_iniciales INT NULL
+    vidas_iniciales INT NULL,
+    descripcion TEXT NULL
 );
 
 CREATE TABLE grupo (
@@ -57,9 +58,35 @@ CREATE TABLE torneo_jugador_vidas (
     FOREIGN KEY (torneo_jugador_id) REFERENCES torneo_jugador(id)
 );
 
+CREATE TABLE config_estadistica (
+    clave VARCHAR(100) PRIMARY KEY,
+    visible BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE admin_usuario (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario VARCHAR(50) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE configuracion_general (
+    id INT PRIMARY KEY DEFAULT 1,
+    fecha_proximo_torneo DATE NULL,
+    descripcion_inicio TEXT NULL,
+    descripcion_tablas TEXT NULL,
+    nombre_club VARCHAR(100) NULL,
+    mostrar_tile_tablas BOOLEAN NOT NULL DEFAULT TRUE,
+    mostrar_tile_torneos BOOLEAN NOT NULL DEFAULT TRUE,
+    mostrar_tile_jugadores BOOLEAN NOT NULL DEFAULT TRUE,
+    mostrar_tile_peleadores BOOLEAN NOT NULL DEFAULT TRUE
+);
+INSERT INTO configuracion_general (id) VALUES (1);
+
 CREATE TABLE peleador (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL
+    nombre VARCHAR(100) NOT NULL,
+    imagen_icono_path VARCHAR(255) NULL
 );
 
 CREATE TABLE partido (

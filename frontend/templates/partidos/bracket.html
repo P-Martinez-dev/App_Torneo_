@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Resembrar bracket · Bracket Log{% endblock %}
+{% block title %}Resembrar bracket · {{ nombre_club }}{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -16,6 +16,7 @@
 </p>
 
 <form method="post" action="{{ url_for('partido.bracket', torneo_id=torneo_id) }}" class="form-ticket">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   {% for match in bracket %}
   <div class="field-row">
     <div class="field">

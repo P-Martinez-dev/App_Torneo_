@@ -1,4 +1,4 @@
-import requests
+from services.api_client import session as requests
 from config import Config
 
 
@@ -22,8 +22,11 @@ def eliminar_torneo(torneo_id):
     resp.raise_for_status()
 
 
-def actualizar_torneo(torneo_id, nombre, fecha):
-    resp = requests.put(f"{Config.API_BASE_URL}/torneos/{torneo_id}", json={"nombre": nombre, "fecha": fecha})
+def actualizar_torneo(torneo_id, nombre, fecha, descripcion=None):
+    resp = requests.put(
+        f"{Config.API_BASE_URL}/torneos/{torneo_id}",
+        json={"nombre": nombre, "fecha": fecha, "descripcion": descripcion},
+    )
     if resp.status_code == 400:
         raise TorneoInvalidoError(resp.json().get("error", "Datos inválidos"))
     resp.raise_for_status()
@@ -48,6 +51,62 @@ def obtener_estadisticas(torneo_id):
     resp = requests.get(f"{Config.API_BASE_URL}/torneos/{torneo_id}/estadisticas")
     resp.raise_for_status()
     return resp.json()
+
+
+def obtener_estadisticas_generales():
+    resp = requests.get(f"{Config.API_BASE_URL}/torneos/estadisticas-generales")
+    resp.raise_for_status()
+    return resp.json()
+
+
+def obtener_navegacion(torneo_id):
+    resp = requests.get(f"{Config.API_BASE_URL}/torneos/{torneo_id}/navegacion")
+    resp.raise_for_status()
+    return resp.json()
+
+
+def actualizar_proximo_torneo(fecha):
+    resp = requests.put(f"{Config.API_BASE_URL}/torneos/proximo-torneo", json={"fecha": fecha})
+    resp.raise_for_status()
+
+
+def actualizar_descripcion_inicio(descripcion):
+    resp = requests.put(f"{Config.API_BASE_URL}/torneos/descripcion-inicio", json={"descripcion": descripcion})
+    resp.raise_for_status()
+
+
+def actualizar_descripcion_tablas(descripcion):
+    resp = requests.put(f"{Config.API_BASE_URL}/torneos/descripcion-tablas", json={"descripcion": descripcion})
+    resp.raise_for_status()
+
+
+def obtener_nombre_club():
+    resp = requests.get(f"{Config.API_BASE_URL}/torneos/nombre-club")
+    resp.raise_for_status()
+    return resp.json()["nombre_club"]
+
+
+def actualizar_nombre_club(nombre):
+    resp = requests.put(f"{Config.API_BASE_URL}/torneos/nombre-club", json={"nombre": nombre})
+    resp.raise_for_status()
+
+
+def actualizar_tile(nombre_tile, visible):
+    resp = requests.put(f"{Config.API_BASE_URL}/torneos/tiles/{nombre_tile}", json={"visible": visible})
+    resp.raise_for_status()
+
+
+def exportar_imagen(torneo_id):
+    resp = requests.get(f"{Config.API_BASE_URL}/torneos/{torneo_id}/exportar-imagen")
+    resp.raise_for_status()
+    return resp.content
+
+
+def exportar_imagen_tabla_general(excluidos_ids=None):
+    params = [("excluir", i) for i in (excluidos_ids or [])]
+    resp = requests.get(f"{Config.API_BASE_URL}/torneos/tabla-general/exportar-imagen", params=params)
+    resp.raise_for_status()
+    return resp.content
 
 
 def tabla_general(excluidos_ids=None):
@@ -80,6 +139,7 @@ def armar_payload_creacion(form):
         "modo": modo,
         "fecha": form.get("fecha"),
         "jugadores_ids": [int(j) for j in form.getlist("jugadores_ids")],
+        "descripcion": (form.get("descripcion") or "").strip() or None,
     }
 
     if modo == "grupos_eliminacion":

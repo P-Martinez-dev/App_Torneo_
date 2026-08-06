@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Estadísticas generales · {{ nombre_club }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Historial completo</p>
+    <h1 class="display-title">Estadísticas&nbsp;generales</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('inicio.inicio') }}">Volver al inicio</a>
+</div>
+
+<section class="detalle-seccion">
+  <table class="tabla-datos">
+    <tbody>
+      {% if generales.modo == 'proximo' %}
+      <tr>
+        <td>Próximo torneo</td>
+        <td>{{ generales.fecha_proximo_torneo }} (faltan {{ generales.dias_para_proximo_torneo }} día{{ 's' if generales.dias_para_proximo_torneo != 1 else '' }})</td>
+      </tr>
+      {% endif %}
+      <tr>
+        <td>Último torneo</td>
+        <td>
+          {% if generales.fecha_ultimo_torneo %}
+          {{ generales.fecha_ultimo_torneo }} ({{ generales.dias_desde_ultimo_torneo }} día{{ 's' if generales.dias_desde_ultimo_torneo != 1 else '' }} atrás)
+          {% else %}
+          Todavía no hay ningún torneo cargado
+          {% endif %}
+        </td>
+      </tr>
+      <tr><td>Total de torneos jugados</td><td>{{ generales.total_torneos }}</td></tr>
+      <tr><td>Total de partidos jugados</td><td>{{ generales.total_partidos }}</td></tr>
+      <tr><td>Promedio de jugadores por torneo</td><td>{{ generales.promedio_jugadores_por_torneo or '--' }}</td></tr>
+      {% if generales.distancia_rating_primero_ultimo %}
+      <tr><td>Distancia de rating (1° a último)</td><td>{{ generales.distancia_rating_primero_ultimo }} puntos</td></tr>
+      {% endif %}
+      {% if generales.cantidad_por_modo %}
+      <tr>
+        <td>Torneos por modo</td>
+        <td>{% for modo, cant in generales.cantidad_por_modo.items() %}{{ modo.replace('_',' ') }}: {{ cant }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</section>
+
+{% macro top5(titulo, filas) %}
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">{{ titulo }}</h2>
+  {% if filas %}
+  <ol class="lista-partidos lista-partidos-numerada">
+    {{ caller() }}
+  </ol>
+  {% else %}
+  <p class="empty-body">Todavía no hay datos suficientes.</p>
+  {% endif %}
+</section>
+{% endmacro %}
+
+{% call top5('Torneos con más jugadores', generales.top_torneos_mas_jugadores) %}
+  {% for f in generales.top_torneos_mas_jugadores %}<li>{{ f.torneo_nombre }} — {{ f.cantidad_jugadores }} jugadores</li>{% endfor %}
+{% endcall %}
+
+{% call top5('Torneos con más partidos', generales.top_torneos_mas_partidos) %}
+  {% for f in generales.top_torneos_mas_partidos %}<li>{{ f.torneo_nombre }} — {{ f.cantidad_partidos }} partidos</li>{% endfor %}
+{% endcall %}
+
+{% call top5('Rivalidades más frecuentes', generales.top_rivalidades_mas_frecuentes) %}
+  {% for f in generales.top_rivalidades_mas_frecuentes %}<li>{{ f.jugadores | join(' vs ') }} — {{ f.veces }} veces</li>{% endfor %}
+{% endcall %}
+
+{% call top5('Rivalidades más parejas', generales.top_rivalidades_mas_parejas) %}
+  {% for f in generales.top_rivalidades_mas_parejas %}<li>{{ f.jugadores | join(' vs ') }} — {{ f.record }}</li>{% endfor %}
+{% endcall %}
+
+{% call top5('Mayores "padreadas"', generales.top_padreadas) %}
+  {% for f in generales.top_padreadas %}<li>{{ f.jugadores | join(' vs ') }} — {{ f.record }}</li>{% endfor %}
+{% endcall %}
+
+{% call top5('Más apariciones en podio', generales.top_apariciones_podio) %}
+  {% for f in generales.top_apariciones_podio %}<li>{{ f.nombre }} — {{ f.apariciones }} veces</li>{% endfor %}
+{% endcall %}
+
+{% call top5('Resultados más sorpresivos de la historia', generales.top_resultados_sorpresivos) %}
+  {% for f in generales.top_resultados_sorpresivos %}
+  <li>{{ f.ganador_nombre }} le ganó a {{ f.perdedor_nombre }} en {{ f.torneo_nombre }} (probabilidad de ganar: {{ (f.probabilidad_ganador * 100) | round(1) }}%)</li>
+  {% endfor %}
+{% endcall %}
+
+<section class="detalle-seccion">
+  <a class="btn btn-stamp" href="{{ url_for('torneo.listado') }}">Ver todos los torneos</a>
+  <a class="btn btn-ghost" href="{{ url_for('jugador.rating') }}">Ver rating de jugadores</a>
+</section>
+{% endblock %}

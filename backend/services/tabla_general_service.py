@@ -3,9 +3,16 @@ from services import tabla_service
 
 PUNTOS_POR_PUESTO = {1: 8, 2: 7, 3: 6, 4: 4, 5: 2}  # puesto 6 en adelante -> 1 punto (default)
 
+EMOJI_POR_PUESTO = {1: "🥇", 2: "🥈", 3: "🥉", 4: "4️⃣", 5: "8️⃣"}
+EMOJI_PARTICIPACION = "🎮"  # puesto 6 en adelante
+
 
 def _puntos_por_puesto(puesto):
     return PUNTOS_POR_PUESTO.get(puesto, 1)
+
+
+def _emoji_por_puesto(puesto):
+    return EMOJI_POR_PUESTO.get(puesto, EMOJI_PARTICIPACION)
 
 
 # =========================================================
@@ -32,15 +39,11 @@ def _puestos_todos_contra_todos(torneo_id):
 
 
 def _puestos_cinco_vidas(torneo_id):
-    filas = torneo_jugador_repository.obtener_vidas_de_torneo(torneo_id)
-    total = len(filas)
-    puestos = {}
-    for f in filas:
-        if not f["eliminado"]:
-            puestos[f["jugador_id"]] = 1  # el campeón nunca fue eliminado
-        else:
-            puestos[f["jugador_id"]] = total - f["orden_eliminacion"] + 1
-    return puestos
+    """El cálculo completo (racha², desempate por posición) vive en
+    tabla_service.calcular_tabla_cinco_vidas -- acá solo se extrae el
+    mapeo jugador_id -> puesto que necesita la tabla general."""
+    tabla = tabla_service.calcular_tabla_cinco_vidas(torneo_id)
+    return {f["jugador_id"]: f["puesto"] for f in tabla}
 
 
 def _puestos_grupos_eliminacion(torneo_id):
@@ -93,14 +96,23 @@ def calcular_puestos(torneo):
 # Tabla general (ranking histórico entre torneos)
 # =========================================================
 
-def calcular_tabla_general(torneos_excluidos_ids=None):
+def calcular_tabla_general(torneos_excluidos_ids=None, incluir_movimiento=True):
     """
     Suma los puntos de puesto de cada torneo finalizado (salvo los excluidos).
     Desempata por: 1) puntos totales, 2) puntos de victoria (3 por cada
     partido ganado, sumando TODOS los torneos incluidos), 3) win rate global.
+
+    Si incluir_movimiento=True (default), cada fila trae además
+    'movimiento': cuánto subió/bajó cada jugador respecto a la 'instancia
+    anterior' -- la misma tabla, pero sin contar el torneo más reciente de
+    los que están incluidos ahora mismo. Un jugador que no tenía puesto en
+    esa instancia anterior (su primer torneo fue justo el más reciente)
+    queda marcado como 'nuevo', no como que subió una cantidad arbitraria
+    de puestos.
     """
     torneos_excluidos_ids = torneos_excluidos_ids or []
     torneos = torneo_repository.obtener_finalizados(torneos_excluidos_ids)
+    torneos.sort(key=lambda t: t.fecha)  # cronológico, para que las insignias se lean en orden
     torneos_incluidos_ids = [t.id for t in torneos]
 
     acumulado = {}
@@ -108,10 +120,16 @@ def calcular_tabla_general(torneos_excluidos_ids=None):
         puestos = calcular_puestos(torneo)
         for jugador_id, puesto in puestos.items():
             entrada = acumulado.setdefault(
-                jugador_id, {"jugador_id": jugador_id, "puntos": 0, "torneos_jugados": 0}
+                jugador_id, {"jugador_id": jugador_id, "puntos": 0, "torneos_jugados": 0, "insignias": []}
             )
             entrada["puntos"] += _puntos_por_puesto(puesto)
             entrada["torneos_jugados"] += 1
+            entrada["insignias"].append({
+                "torneo_id": torneo.id,
+                "torneo_nombre": torneo.nombre,
+                "puesto": puesto,
+                "emoji": _emoji_por_puesto(puesto),
+            })
 
     # Desempate: estadísticas de partidos individuales, sumando TODOS los
     # torneos incluidos (no solo los que cada jugador jugó de a uno)
@@ -138,7 +156,9 @@ def calcular_tabla_general(torneos_excluidos_ids=None):
             "puntos_victoria": pg * 3,
             "partidos_jugados": pj,
             "partidos_ganados": pg,
+            "partidos_perdidos": pj - pg,
             "win_rate": round(pg / pj, 3) if pj > 0 else 0,
+            "insignias": entrada["insignias"],
         })
 
     resultado.sort(key=lambda f: (-f["puntos"], -f["puntos_victoria"], -f["win_rate"]))
@@ -154,5 +174,27 @@ def calcular_tabla_general(torneos_excluidos_ids=None):
             puesto_actual += 1
             clave_anterior = clave
         fila["puesto"] = puesto_actual
+
+    if incluir_movimiento and torneos:
+        torneo_mas_reciente = torneos[-1]  # ya viene ordenado cronológico
+        excluidos_para_anterior = torneos_excluidos_ids + [torneo_mas_reciente.id]
+        tabla_anterior = calcular_tabla_general(excluidos_para_anterior, incluir_movimiento=False)
+        puesto_anterior_por_jugador = {f["jugador_id"]: f["puesto"] for f in tabla_anterior}
+
+        for fila in resultado:
+            puesto_antes = puesto_anterior_por_jugador.get(fila["jugador_id"])
+            if puesto_antes is None:
+                fila["movimiento"] = {"tipo": "nuevo", "cantidad": 0}
+            else:
+                delta = puesto_antes - fila["puesto"]
+                if delta > 0:
+                    fila["movimiento"] = {"tipo": "subio", "cantidad": delta}
+                elif delta < 0:
+                    fila["movimiento"] = {"tipo": "bajo", "cantidad": abs(delta)}
+                else:
+                    fila["movimiento"] = {"tipo": "igual", "cantidad": 0}
+    else:
+        for fila in resultado:
+            fila["movimiento"] = None
 
     return resultado

@@ -1,13 +1,29 @@
 from flask import Blueprint, request, jsonify
-from services import jugador_service, estadisticas_service
+from services import jugador_service, estadisticas_service, rating_service
 from controllers.utils import obtener_json_body
 
 jugador_bp = Blueprint("jugador", __name__, url_prefix="/jugadores")
 
 
+@jugador_bp.route("/rating", methods=["GET"])
+def rating():
+    return jsonify(rating_service.calcular_ratings()), 200
+
+
+@jugador_bp.route("/limpiar-imagenes-rotas", methods=["POST"])
+def limpiar_imagenes_rotas():
+    limpiadas = jugador_service.limpiar_imagenes_rotas()
+    return jsonify({"limpiadas": limpiadas}), 200
+
+
 @jugador_bp.route("", methods=["GET"])
 def listar():
     return jsonify(jugador_service.listar_jugadores()), 200
+
+
+@jugador_bp.route("/<int:jugador_id>/navegacion", methods=["GET"])
+def navegacion(jugador_id):
+    return jsonify(jugador_service.obtener_navegacion(jugador_id)), 200
 
 
 @jugador_bp.route("/<int:jugador_id>", methods=["GET"])

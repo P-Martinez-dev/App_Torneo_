@@ -1,4 +1,4 @@
-import requests
+from services.api_client import session as requests
 from config import Config
 
 
@@ -16,6 +16,24 @@ class ImagenInvalidaError(Exception):
 
 def listar_jugadores():
     resp = requests.get(f"{Config.API_BASE_URL}/jugadores")
+    resp.raise_for_status()
+    return resp.json()
+
+
+def obtener_rating():
+    resp = requests.get(f"{Config.API_BASE_URL}/jugadores/rating")
+    resp.raise_for_status()
+    return resp.json()
+
+
+def limpiar_imagenes_rotas():
+    resp = requests.post(f"{Config.API_BASE_URL}/jugadores/limpiar-imagenes-rotas")
+    resp.raise_for_status()
+    return resp.json()["limpiadas"]
+
+
+def obtener_navegacion(jugador_id):
+    resp = requests.get(f"{Config.API_BASE_URL}/jugadores/{jugador_id}/navegacion")
     resp.raise_for_status()
     return resp.json()
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Decisión requerida · Bracket Log{% endblock %}
+{% block title %}Decisión requerida · {{ nombre_club }}{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -18,6 +18,7 @@
   <div class="decision-columna">
     <h2 class="ticket-nombre">Rejugar</h2>
     <form method="post" action="{{ url_for('partido.reintentar', torneo_id=torneo_id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="grupo_id" value="{{ grupo_id }}">
       {% for j in empatados %}
       <input type="hidden" name="jugadores_empatados_ids" value="{{ j.id }}">
@@ -34,6 +35,7 @@
     <h2 class="ticket-nombre">Forzar a mano</h2>
     {% for j in empatados %}
     <form method="post" action="{{ url_for('partido.forzar', torneo_id=torneo_id) }}" class="forzar-fila">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="jugador_id" value="{{ j.id }}">
       <span>{{ j.nombre }}</span>
       <input type="text" name="observacion" placeholder="Observación (opcional)">

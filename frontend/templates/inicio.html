@@ -1,15 +1,32 @@
 {% extends "base.html" %}
-{% block title %}Bracket Log{% endblock %}
+{% import "_macros.html" as macros %}
+{% block title %}{{ nombre_club }}{% endblock %}
 
 {% block content %}
-<div class="page-head">
-  <div>
-    <p class="eyebrow">Bracket Log</p>
-    <h1 class="display-title">¿Qué&nbsp;hacemos?</h1>
-  </div>
+<div class="page-head page-head-solo-badge">
+  {% if generales.modo == 'proximo' %}
+  <a href="{{ url_for('torneo.estadisticas_generales') }}" class="badge-dias-unico badge-dias-unico-proximo"
+     title="Tocá para ver las estadísticas generales">
+    <span class="badge-dias-numero">{{ generales.dias_para_proximo_torneo }}</span>
+    <span class="badge-dias-texto">día{{ 's' if generales.dias_para_proximo_torneo != 1 else '' }}<br>para el próximo torneo</span>
+  </a>
+  {% elif generales.dias_desde_ultimo_torneo is not none %}
+  <a href="{{ url_for('torneo.estadisticas_generales') }}" class="badge-dias-unico"
+     title="Tocá para ver las estadísticas generales">
+    <span class="badge-dias-numero">{{ generales.dias_desde_ultimo_torneo }}</span>
+    <span class="badge-dias-texto">día{{ 's' if generales.dias_desde_ultimo_torneo != 1 else '' }}<br>desde el último torneo</span>
+  </a>
+  {% endif %}
 </div>
 
+{% if es_admin() %}
+{{ macros.editor_descripcion(generales.descripcion_inicio, url_for('inicio.actualizar_descripcion'), 'inicio') }}
+{% elif generales.descripcion_inicio %}
+<p class="empty-body">{{ generales.descripcion_inicio }}</p>
+{% endif %}
+
 <div class="menu-grid">
+  {% if es_admin() %}
   {% if torneo_en_curso %}
   <button type="button" id="btn-crear-torneo" class="menu-tile menu-tile-button">
     <span class="menu-tile-titulo">Crear torneo</span>
@@ -20,18 +37,37 @@
     <span class="menu-tile-titulo">Crear torneo</span>
   </a>
   {% endif %}
+  {% endif %}
 
+  {% if generales.mostrar_tile_tablas %}
   <a href="{{ url_for('torneo.listado') }}" class="menu-tile">
     <span class="menu-tile-titulo">Tablas</span>
   </a>
+  {% endif %}
 
+  {% if generales.mostrar_tile_torneos %}
+  <a href="{{ url_for('torneo.explorar') }}" class="menu-tile">
+    <span class="menu-tile-titulo">Torneos</span>
+  </a>
+  {% endif %}
+
+  {% if generales.mostrar_tile_jugadores %}
   <a href="{{ url_for('jugador.grid') }}" class="menu-tile">
     <span class="menu-tile-titulo">Jugadores</span>
   </a>
+  {% endif %}
 
+  {% if generales.mostrar_tile_peleadores %}
+  <a href="{{ url_for('peleador_frontend.listado') }}" class="menu-tile">
+    <span class="menu-tile-titulo">Peleadores</span>
+  </a>
+  {% endif %}
+
+  {% if es_admin() %}
   <a href="{{ url_for('configuracion.index') }}" class="menu-tile">
     <span class="menu-tile-titulo">Configuración</span>
   </a>
+  {% endif %}
 </div>
 
 {% if torneo_en_curso %}
@@ -47,6 +83,7 @@
   <p class="dialog-texto">¿Estás seguro? El torneo en desarrollo se perderá.</p>
   <div class="dialog-acciones">
     <form method="post" action="{{ url_for('torneo.eliminar', torneo_id=torneo_en_curso.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-stamp">Sí, eliminar</button>
     </form>
     <button type="button" id="btn-descartar-no" class="btn btn-ghost">No</button>

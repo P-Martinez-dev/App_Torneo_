@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Info de formatos · {{ nombre_club }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Torneos</p>
+    <h1 class="display-title">Cómo&nbsp;funciona&nbsp;cada&nbsp;formato</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('torneo.explorar') }}">Volver</a>
+</div>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Todos contra todos</h2>
+  <p class="empty-body">
+    Cada jugador se enfrenta una vez con cada uno de los demás. El orden final sale de los
+    puntos que va sumando cada uno (por victoria), desempatando por puntos de victoria y
+    win rate si hace falta.
+  </p>
+</section>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Grupos + eliminación</h2>
+  <p class="empty-body">
+    Los jugadores se reparten en grupos, y dentro de cada grupo se juega todos contra
+    todos. Los mejores puestos de cada grupo clasifican a una fase de eliminación directa
+    (bracket). Si hay empates en la clasificación al corte, se resuelven con un desempate
+    interno; si sobran o faltan clasificados para completar el bracket, entra un repechaje
+    cruzado entre grupos.
+  </p>
+</section>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Cinco vidas</h2>
+  <p class="empty-body">
+    Todos arrancan con la misma cantidad de vidas. Se juega en cola: el que gana se queda
+    en cancha esperando al próximo desafiante, el que pierde una vida vuelve al final de la
+    cola (o queda eliminado si se quedó sin vidas). El torneo termina cuando queda un solo
+    jugador activo.
+  </p>
+</section>
+{% endblock %}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Tablas · Bracket Log{% endblock %}
+{% import "_macros.html" as macros %}
+{% block title %}Tablas · {{ nombre_club }}{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -7,8 +8,14 @@
     <p class="eyebrow">Tablas</p>
     <h1 class="display-title">Historial</h1>
   </div>
-  <a class="btn btn-stamp" href="{{ url_for('torneo.crear') }}">+ Nuevo torneo</a>
+  {% if es_admin() %}<a class="btn btn-stamp" href="{{ url_for('torneo.crear') }}">+ Nuevo torneo</a>{% endif %}
 </div>
+
+{% if es_admin() %}
+{{ macros.editor_descripcion(descripcion_tablas, url_for('torneo.actualizar_descripcion_tablas'), 'tablas') }}
+{% elif descripcion_tablas %}
+<p class="empty-body">{{ descripcion_tablas }}</p>
+{% endif %}
 
 {% if request.args.get('creado') %}
   <p class="flash flash-ok">Torneo #{{ request.args.get('creado') }} creado. Ya podés cargar resultados.</p>
@@ -46,29 +53,49 @@
   {% else %}
   <div class="empty-state">
     <p class="empty-title">Todavía no armaste ningún torneo.</p>
-    <a class="btn btn-stamp" href="{{ url_for('torneo.crear') }}">+ Nuevo torneo</a>
+    {% if es_admin() %}<a class="btn btn-stamp" href="{{ url_for('torneo.crear') }}">+ Nuevo torneo</a>{% endif %}
   </div>
   {% endif %}
 </section>
 
 {% if tabla_general %}
 <section class="detalle-seccion">
-  <h2 class="ticket-nombre">Ranking general</h2>
+  <div class="detalle-subtitulo-con-accion">
+    <h2 class="ticket-nombre">Ranking general</h2>
+    <a class="btn btn-ghost btn-chico" href="{{ url_for('torneo.exportar_imagen_tabla_general', excluir=excluidos_ids) }}">Exportar imagen</a>
+  </div>
   <table class="tabla-datos">
     <thead>
-      <tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Torneos</th><th>Pts. victoria</th><th>PJ</th><th>PG</th><th>Win rate</th></tr>
+      <tr><th>#</th><th>Mov.</th><th>Jugador</th><th>Puntos</th><th>Torneos</th><th>Pts. victoria</th><th>PJ</th><th>PG</th><th>PP</th><th>Win rate</th><th>Historial</th></tr>
     </thead>
     <tbody>
     {% for f in tabla_general %}
       <tr>
         <td>{{ f.puesto }}</td>
-        <td>{{ f.nombre }}</td>
+        <td>
+          {% if f.movimiento %}
+            {% if f.movimiento.tipo == 'subio' %}
+            <span class="movimiento movimiento-subio">▲{{ f.movimiento.cantidad }}</span>
+            {% elif f.movimiento.tipo == 'bajo' %}
+            <span class="movimiento movimiento-bajo">▼{{ f.movimiento.cantidad }}</span>
+            {% elif f.movimiento.tipo == 'nuevo' %}
+            <span class="movimiento movimiento-nuevo">NUEVO</span>
+            {% else %}
+            <span class="movimiento movimiento-igual">●</span>
+            {% endif %}
+          {% endif %}
+        </td>
+        <td><a href="{{ url_for('jugador.detalle', jugador_id=f.jugador_id) }}">{{ f.nombre }}</a></td>
         <td>{{ f.puntos }}</td>
         <td>{{ f.torneos_jugados }}</td>
         <td>{{ f.puntos_victoria }}</td>
         <td>{{ f.partidos_jugados }}</td>
         <td>{{ f.partidos_ganados }}</td>
+        <td>{{ f.partidos_perdidos }}</td>
         <td>{{ (f.win_rate * 100) | round(1) }}%</td>
+        <td class="historial-insignias">
+          {% for ins in f.insignias %}<span title="{{ ins.torneo_nombre }} · {{ ins.puesto }}°">{{ ins.emoji }}</span>{% endfor %}
+        </td>
       </tr>
     {% endfor %}
     </tbody>
