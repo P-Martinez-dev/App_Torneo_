@@ -39,6 +39,11 @@ def create_app():
     return app
 
 
+# gunicorn (y cualquier servidor WSGI de producción) importa este archivo y
+# busca una variable llamada 'app' a nivel de módulo -- nunca ejecuta el
+# bloque de abajo. En tu compu seguís corriendo 'python app.py' normal,
+# esto no cambia nada de cómo trabajás en local.
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
     app.run(port=Config.PORT, debug=Config.DEBUG)
