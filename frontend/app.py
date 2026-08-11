@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, render_template, g
 from flask_wtf.csrf import CSRFProtect
 
 from config import Config
@@ -26,9 +26,51 @@ def create_app():
     app.register_blueprint(peleador_frontend_bp)
     app.register_blueprint(admin_bp)
 
-    app.jinja_env.globals["imagen_url"] = lambda path: (
-        f"{Config.API_BASE_URL}/static/{path}" if path else None
-    )
+    # Estado del warmup, cacheado en memoria: una vez que terminó, no se
+    # vuelve a preguntar nunca más (el backend no reinicia sin que este
+    # proceso también reinicie, en la práctica).
+    _warmup_listo = {"si": False}
+
+    @app.before_request
+    def mostrar_pantalla_de_carga_si_hace_falta():
+        """Si el backend todavía está precalculando, se devuelve la pantalla
+        de carga en vez de la página pedida. Está ANTES de que la vista
+        intente traer datos: si no, la página quedaría esperando al backend
+        ocupado y la pantalla de carga aparecería recién cuando ya no hace
+        falta (que es justo lo que pasaba antes)."""
+        if _warmup_listo["si"]:
+            return
+        if request.endpoint in ("static", "inicio.estado_carga"):
+            return
+        if request.method != "GET":
+            return
+        try:
+            estado = torneo_service.estado_warmup()
+        except Exception:
+            _warmup_listo["si"] = True  # backend caído: que entre y vea el error real
+            return
+        if estado.get("completado"):
+            _warmup_listo["si"] = True
+            return
+        # Se usa el nombre que ya esté en cache, sin pedirlo al backend: la
+        # pantalla de carga tiene que renderizar al instante, y el backend
+        # está justo ocupado precalculando.
+        g.sirviendo_pantalla_de_carga = True
+        nombre = torneo_service._cache_nombre_club["valor"] or "App del Torneo"
+        return render_template("cargando.html", estado=estado, nombre_club_carga=nombre)
+
+    def imagen_url(path):
+        """Las imágenes pueden venir de dos lados: guardadas en la nube
+        (viene la URL completa, se usa tal cual) o en el disco del backend
+        (viene una ruta relativa, hay que armarle la URL). Soportar las dos
+        permite migrar de a poco, sin romper las que ya estaban."""
+        if not path:
+            return None
+        if path.startswith("http://") or path.startswith("https://"):
+            return path
+        return f"{Config.API_BASE_URL}/static/{path}"
+
+    app.jinja_env.globals["imagen_url"] = imagen_url
     app.jinja_env.globals["es_admin"] = es_admin
 
     @app.context_processor
@@ -37,6 +79,11 @@ def create_app():
         vive en base.html, que todas extienden) -- si el backend no
         responde por algún motivo, no rompe la página, solo usa el
         nombre por defecto."""
+        # Mientras se muestra la pantalla de carga NO se le pide nada al
+        # backend: está ocupado precalculando, y esa pantalla tiene que
+        # aparecer al instante.
+        if getattr(g, "sirviendo_pantalla_de_carga", False):
+            return {"nombre_club": torneo_service._cache_nombre_club["valor"] or "App del Torneo"}
         try:
             nombre = torneo_service.obtener_nombre_club()
         except Exception:

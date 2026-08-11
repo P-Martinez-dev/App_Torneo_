@@ -1,22 +1,35 @@
 from repositories import partido_repository, torneo_jugador_repository, grupo_repository, jugador_repository
 
 
-def calcular_tabla_cinco_vidas(torneo_id):
+def calcular_tabla_cinco_vidas(torneo_id, vidas_prefetch=None, partidos_prefetch=None, nombres_prefetch=None):
     """
     Tabla de posiciones de un torneo cinco_vidas: puesto (80% puntos de
     racha + 20% posición final -- ver el diseño largo que se charló para
     este criterio), puntos de racha, y momento de eliminación de cada
     jugador. El campeón siempre es puesto 1.
+
+    Los tres *_prefetch son opcionales -- si no se pasan, esta función
+    consulta la base por su cuenta (uso normal, para ver un torneo
+    puntual). Cuando SÍ se pasan (lo hace tabla_general_service al
+    recorrer todos los torneos para el ranking general), se usan esos
+    datos ya en memoria en vez de volver a pedirlos -- evita repetir 3
+    consultas por cada torneo cinco_vidas del historial.
     """
     PESO_RACHA = 0.8
     PESO_POSICION = 0.2
 
-    filas = torneo_jugador_repository.obtener_vidas_de_torneo(torneo_id)
-    partidos = sorted(
-        partido_repository.obtener_finalizados_por_torneo(torneo_id, "cinco_vidas", []),
-        key=lambda p: p.orden,
-    )
-    nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+    filas = vidas_prefetch if vidas_prefetch is not None else torneo_jugador_repository.obtener_vidas_de_torneo(torneo_id)
+    if partidos_prefetch is not None:
+        partidos = sorted(
+            [p for p in partidos_prefetch if p.fase == "cinco_vidas"],
+            key=lambda p: p.orden,
+        )
+    else:
+        partidos = sorted(
+            partido_repository.obtener_finalizados_por_torneo(torneo_id, "cinco_vidas", []),
+            key=lambda p: p.orden,
+        )
+    nombres = nombres_prefetch if nombres_prefetch is not None else {j.id: j.nombre for j in jugador_repository.obtener_todos()}
 
     racha_actual = {}
     puntos_racha = {}
@@ -172,13 +185,23 @@ def calcular_tabla_grupo(grupo_id, partidos_excluidos_ids=None):
     return sorted(tabla.values(), key=lambda f: f["puntos"], reverse=True)
 
 
-def calcular_tabla_todos_contra_todos(torneo_id, partidos_excluidos_ids=None):
-    """Misma lógica que calcular_tabla_grupo, pero sin filtrar por grupo."""
+def calcular_tabla_todos_contra_todos(torneo_id, partidos_excluidos_ids=None, jugadores_prefetch=None, partidos_prefetch=None):
+    """Misma lógica que calcular_tabla_grupo, pero sin filtrar por grupo.
+
+    jugadores_prefetch/partidos_prefetch opcionales -- ver el mismo
+    criterio explicado en calcular_tabla_cinco_vidas. Si se pasa
+    partidos_prefetch, tiene que venir SIN excluidos aplicados (el
+    filtro de excluidos, cuando hace falta, solo se soporta consultando
+    fresco -- que es lo que ya hacen todos los llamadores que usan
+    excluidos hoy)."""
     partidos_excluidos_ids = partidos_excluidos_ids or []
-    jugadores = torneo_jugador_repository.obtener_jugadores_de_torneo(torneo_id)
-    partidos = partido_repository.obtener_finalizados_por_torneo(
-        torneo_id, "todos_contra_todos", partidos_excluidos_ids
-    )
+    jugadores = jugadores_prefetch if jugadores_prefetch is not None else torneo_jugador_repository.obtener_jugadores_de_torneo(torneo_id)
+    if partidos_prefetch is not None:
+        partidos = [p for p in partidos_prefetch if p.fase == "todos_contra_todos"]
+    else:
+        partidos = partido_repository.obtener_finalizados_por_torneo(
+            torneo_id, "todos_contra_todos", partidos_excluidos_ids
+        )
 
     tabla = {
         j["torneo_jugador_id"]: {

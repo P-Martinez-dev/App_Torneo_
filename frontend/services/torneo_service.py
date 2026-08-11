@@ -1,5 +1,15 @@
+import time
+
 from services.api_client import session as requests
 from config import Config
+
+# El nombre del club se muestra en el encabezado de TODAS las páginas, pero
+# cambia casi nunca -- sin cachearlo, cada carga de cada pantalla se come un
+# viaje entero al backend + una consulta a la base solo para eso. Se guarda
+# en memoria por unos segundos y se descarta apenas el admin lo edita, así
+# que el cambio se ve igual de inmediato.
+_SEGUNDOS_CACHE_NOMBRE = 60
+_cache_nombre_club = {"valor": None, "vence_en": 0}
 
 
 class TorneoInvalidoError(Exception):
@@ -53,6 +63,19 @@ def obtener_estadisticas(torneo_id):
     return resp.json()
 
 
+def obtener_config_general():
+    resp = requests.get(f"{Config.API_BASE_URL}/torneos/config-general")
+    resp.raise_for_status()
+    datos = resp.json()
+    # Esta respuesta YA trae el nombre del club, así que se aprovecha para
+    # llenar el cache -- en las pantallas que llaman acá, el encabezado no
+    # necesita pedirlo por separado.
+    if datos.get("nombre_club"):
+        _cache_nombre_club["valor"] = datos["nombre_club"]
+        _cache_nombre_club["vence_en"] = time.time() + _SEGUNDOS_CACHE_NOMBRE
+    return datos
+
+
 def obtener_estadisticas_generales():
     resp = requests.get(f"{Config.API_BASE_URL}/torneos/estadisticas-generales")
     resp.raise_for_status()
@@ -81,14 +104,26 @@ def actualizar_descripcion_tablas(descripcion):
 
 
 def obtener_nombre_club():
+    if _cache_nombre_club["valor"] is not None and time.time() < _cache_nombre_club["vence_en"]:
+        return _cache_nombre_club["valor"]
+
     resp = requests.get(f"{Config.API_BASE_URL}/torneos/nombre-club")
     resp.raise_for_status()
-    return resp.json()["nombre_club"]
+    nombre = resp.json()["nombre_club"]
+    _cache_nombre_club["valor"] = nombre
+    _cache_nombre_club["vence_en"] = time.time() + _SEGUNDOS_CACHE_NOMBRE
+    return nombre
+
+
+def _invalidar_cache_nombre_club():
+    _cache_nombre_club["valor"] = None
+    _cache_nombre_club["vence_en"] = 0
 
 
 def actualizar_nombre_club(nombre):
     resp = requests.put(f"{Config.API_BASE_URL}/torneos/nombre-club", json={"nombre": nombre})
     resp.raise_for_status()
+    _invalidar_cache_nombre_club()  # que el cambio se vea ya, sin esperar a que venza el cache
 
 
 def actualizar_tile(nombre_tile, visible):
@@ -169,3 +204,12 @@ def _a_entero(valor):
         return int(valor)
     except ValueError:
         return None
+
+
+def estado_warmup():
+    """Progreso del precalentado del backend. Es una consulta liviana (el
+    backend responde de memoria, no toca la base), así que se puede
+    llamar seguido sin costo."""
+    resp = requests.get(f"{Config.API_BASE_URL}/torneos/warmup/progreso", timeout=5)
+    resp.raise_for_status()
+    return resp.json()

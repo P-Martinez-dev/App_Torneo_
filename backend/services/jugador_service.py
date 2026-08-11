@@ -2,6 +2,7 @@ import os
 
 from mysql.connector import Error
 from repositories import jugador_repository
+from services import almacenamiento_service
 
 
 class JugadorNoEncontradoError(Exception):
@@ -40,7 +41,12 @@ def limpiar_imagenes_rotas():
             ("imagen_vertical_path", j.imagen_vertical_path),
             ("imagen_icono_path", j.imagen_icono_path),
         ):
-            if path and not os.path.isfile(os.path.join(CARPETA_STATIC, path)):
+            # Las imágenes de la nube (URL completa) NO se tocan: viven
+            # fuera de este disco, así que preguntar si "existen acá" daría
+            # que no y las borraría a todas.
+            if not path or path.startswith("http"):
+                continue
+            if not os.path.isfile(os.path.join(CARPETA_STATIC, path)):
                 jugador_repository.actualizar_imagen(j.id, campo, None)
                 limpiadas += 1
     return limpiadas
@@ -145,21 +151,23 @@ def _subir_imagen(jugador_id, file_storage, sufijo, campo_db):
     if tamaño > TAMAÑO_MAXIMO_BYTES:
         raise ImagenInvalidaError("La imagen no puede superar los 5MB")
 
-    os.makedirs(CARPETA_UPLOADS, exist_ok=True)
-    _borrar_archivo_existente(jugador_id, sufijo)
-
-    nombre_archivo = f"jugador_{jugador_id}_{sufijo}.{ext}"
-    file_storage.save(os.path.join(CARPETA_UPLOADS, nombre_archivo))
-
-    path_relativo = f"uploads/jugadores/{nombre_archivo}"
-    jugador_repository.actualizar_imagen(jugador_id, campo_db, path_relativo)
+    # Dónde termina guardada (nube o disco local) lo decide
+    # almacenamiento_service según haya credenciales configuradas.
+    valor = almacenamiento_service.guardar_imagen(
+        file_storage, f"jugador_{jugador_id}_{sufijo}", "jugadores"
+    )
+    jugador_repository.actualizar_imagen(jugador_id, campo_db, valor)
     return obtener_jugador(jugador_id)
 
 
 def _eliminar_imagen(jugador_id, sufijo, campo_db):
-    if jugador_repository.obtener_por_id(jugador_id) is None:
+    jugador = jugador_repository.obtener_por_id(jugador_id)
+    if jugador is None:
         raise JugadorNoEncontradoError(f"No existe el jugador {jugador_id}")
-    _borrar_archivo_existente(jugador_id, sufijo)
+    valor_actual = getattr(jugador, campo_db, None)
+    almacenamiento_service.borrar_imagen(
+        valor_actual, f"jugador_{jugador_id}_{sufijo}", "jugadores"
+    )
     jugador_repository.actualizar_imagen(jugador_id, campo_db, None)
     return obtener_jugador(jugador_id)
 

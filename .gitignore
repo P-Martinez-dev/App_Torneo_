@@ -1,0 +1,22 @@
+# Entornos virtuales -- se regeneran solos con requirements.txt, nunca se commitean
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Variables de entorno -- acá van contraseñas y claves reales, nunca al repo
+.env
+*.env
+!.env.example
+
+# Imágenes subidas por los usuarios -- son datos, no código; además son
+# fotos de gente real, no algo para tener en un repo público
+backend/static/uploads/
+
+# Archivos del sistema operativo / editor
+.DS_Store
+*.swp

@@ -90,6 +90,11 @@ def asignar_jugadores(torneo_id, jugadores_ids):
 def asignar_jugadores_a_grupo(grupo_id, jugadores_ids):
     """Inserta en torneo_jugador_grupo para jugadores ya existentes en torneo_jugador."""
     conn = get_connection()
+    # Varias escrituras que tienen que aplicarse todas o ninguna: como la
+    # conexion viene en autocommit (para que las LECTURAS no paguen el costo
+    # de abrir y cerrar una transaccion en cada una), acá se abre uno
+    # explicito para no perder esa garantia.
+    conn.start_transaction()
     cursor = conn.cursor(dictionary=True)
     for jugador_id in jugadores_ids:
         cursor.execute(
@@ -115,6 +120,11 @@ def inicializar_cola_cinco_vidas(torneo_id, jugadores_ids_ordenados, vidas_inici
     torneo_jugador ya existen (las crea asignar_jugadores en crear_torneo).
     """
     conn = get_connection()
+    # Varias escrituras que tienen que aplicarse todas o ninguna: como la
+    # conexion viene en autocommit (para que las LECTURAS no paguen el costo
+    # de abrir y cerrar una transaccion en cada una), acá se abre uno
+    # explicito para no perder esa garantia.
+    conn.start_transaction()
     cursor = conn.cursor(dictionary=True)
     for posicion, jugador_id in enumerate(jugadores_ids_ordenados):
         cursor.execute(
@@ -224,6 +234,11 @@ def eliminar_completo(torneo_id):
     torneo_jugador, y recién al final el torneo en sí.
     """
     conn = get_connection()
+    # Varias escrituras que tienen que aplicarse todas o ninguna: como la
+    # conexion viene en autocommit (para que las LECTURAS no paguen el costo
+    # de abrir y cerrar una transaccion en cada una), acá se abre uno
+    # explicito para no perder esa garantia.
+    conn.start_transaction()
     cursor = conn.cursor()
     try:
         cursor.execute("DELETE FROM partido WHERE torneo_id = %s", (torneo_id,))

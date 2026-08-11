@@ -19,14 +19,16 @@ def _emoji_por_puesto(puesto):
 # Cálculo de puestos, uno por modo (misma idea, forma distinta de resolverla)
 # =========================================================
 
-def _puestos_todos_contra_todos(torneo_id):
+def _puestos_todos_contra_todos(torneo_id, jugadores_prefetch=None, partidos_prefetch=None):
     """
     Ranking 'denso': todos los empatados en puntos comparten el mismo
     puesto, y el próximo grupo de puntos distinto pasa al puesto siguiente
     sin saltar números (no es 1,1,1,4 -- es 1,1,1,2). Ej: si 9 de 10
     jugadores empatan en la cima, los 9 son 1° y el restante es 2°, no 10°.
     """
-    tabla = tabla_service.calcular_tabla_todos_contra_todos(torneo_id)
+    tabla = tabla_service.calcular_tabla_todos_contra_todos(
+        torneo_id, jugadores_prefetch=jugadores_prefetch, partidos_prefetch=partidos_prefetch
+    )
     puestos = {}
     puesto_actual = 0
     puntos_anterior = None
@@ -38,16 +40,24 @@ def _puestos_todos_contra_todos(torneo_id):
     return puestos
 
 
-def _puestos_cinco_vidas(torneo_id):
+def _puestos_cinco_vidas(torneo_id, vidas_prefetch=None, partidos_prefetch=None, nombres_prefetch=None):
     """El cálculo completo (racha², desempate por posición) vive en
     tabla_service.calcular_tabla_cinco_vidas -- acá solo se extrae el
     mapeo jugador_id -> puesto que necesita la tabla general."""
-    tabla = tabla_service.calcular_tabla_cinco_vidas(torneo_id)
+    tabla = tabla_service.calcular_tabla_cinco_vidas(
+        torneo_id, vidas_prefetch=vidas_prefetch, partidos_prefetch=partidos_prefetch, nombres_prefetch=nombres_prefetch
+    )
     return {f["jugador_id"]: f["puesto"] for f in tabla}
 
 
-def _puestos_grupos_eliminacion(torneo_id):
-    partidos_elim = partido_repository.obtener_finalizados_por_torneo(torneo_id, "eliminacion", [])
+def _puestos_grupos_eliminacion(torneo_id, jugadores_prefetch=None, partidos_prefetch=None):
+    if partidos_prefetch is not None:
+        partidos_elim = [p for p in partidos_prefetch if p.fase == "eliminacion"]
+        partidos_tercer = [p for p in partidos_prefetch if p.fase == "tercer_puesto"]
+    else:
+        partidos_elim = partido_repository.obtener_finalizados_por_torneo(torneo_id, "eliminacion", [])
+        partidos_tercer = partido_repository.obtener_finalizados_por_torneo(torneo_id, "tercer_puesto", [])
+
     puestos = {}
 
     if partidos_elim:
@@ -60,7 +70,6 @@ def _puestos_grupos_eliminacion(torneo_id):
         )
         puestos[perdedor_final] = 2
 
-        partidos_tercer = partido_repository.obtener_finalizados_por_torneo(torneo_id, "tercer_puesto", [])
         if partidos_tercer:
             tp = partidos_tercer[0]
             puestos[tp.ganador_id] = 3
@@ -75,20 +84,30 @@ def _puestos_grupos_eliminacion(torneo_id):
                     puestos[perdedor] = 5
 
     # todos los demás participantes del torneo (no llegaron a cuartos) -> puesto 6, "resto"
-    todos = torneo_jugador_repository.obtener_jugadores_de_torneo(torneo_id)
+    todos = jugadores_prefetch if jugadores_prefetch is not None else torneo_jugador_repository.obtener_jugadores_de_torneo(torneo_id)
     for j in todos:
         puestos.setdefault(j["jugador_id"], 6)
 
     return puestos
 
 
-def calcular_puestos(torneo):
+def calcular_puestos(torneo, jugadores_prefetch=None, partidos_prefetch=None, vidas_prefetch=None, nombres_prefetch=None):
+    """
+    Calcula el puesto de cada jugador en un torneo, según su modo.
+
+    Los *_prefetch son opcionales -- pensados para cuando se recorren
+    MUCHOS torneos seguidos (como en calcular_tabla_general): en vez de
+    que cada torneo dispare sus propias consultas (jugadores, partidos,
+    vidas), se le pasan los datos ya traídos de antes en una sola tanda.
+    Sin pasar nada, funciona exactamente igual que antes -- consulta
+    fresco, para cuando se pide el puesto de un solo torneo puntual.
+    """
     if torneo.modo == "todos_contra_todos":
-        return _puestos_todos_contra_todos(torneo.id)
+        return _puestos_todos_contra_todos(torneo.id, jugadores_prefetch=jugadores_prefetch, partidos_prefetch=partidos_prefetch)
     elif torneo.modo == "cinco_vidas":
-        return _puestos_cinco_vidas(torneo.id)
+        return _puestos_cinco_vidas(torneo.id, vidas_prefetch=vidas_prefetch, partidos_prefetch=partidos_prefetch, nombres_prefetch=nombres_prefetch)
     elif torneo.modo == "grupos_eliminacion":
-        return _puestos_grupos_eliminacion(torneo.id)
+        return _puestos_grupos_eliminacion(torneo.id, jugadores_prefetch=jugadores_prefetch, partidos_prefetch=partidos_prefetch)
     return {}
 
 
@@ -96,7 +115,10 @@ def calcular_puestos(torneo):
 # Tabla general (ranking histórico entre torneos)
 # =========================================================
 
-def calcular_tabla_general(torneos_excluidos_ids=None, incluir_movimiento=True):
+def calcular_tabla_general(
+    torneos_excluidos_ids=None, incluir_movimiento=True,
+    torneos_prefetch=None, partidos_prefetch=None, nombres_prefetch=None, jugadores_por_torneo_prefetch=None,
+):
     """
     Suma los puntos de puesto de cada torneo finalizado (salvo los excluidos).
     Desempata por: 1) puntos totales, 2) puntos de victoria (3 por cada
@@ -109,15 +131,92 @@ def calcular_tabla_general(torneos_excluidos_ids=None, incluir_movimiento=True):
     esa instancia anterior (su primer torneo fue justo el más reciente)
     queda marcado como 'nuevo', no como que subió una cantidad arbitraria
     de puestos.
+
+    Nota de rendimiento: TODO lo que hace falta para calcular el puesto
+    de cada torneo (jugadores, partidos, vidas de cinco_vidas) se trae acá
+    en una sola tanda para TODOS los torneos a la vez, y se le pasa ya
+    listo a cada uno -- en vez de que cada torneo dispare sus propias
+    consultas por su cuenta. Contra una base remota, con esto la
+    cantidad de consultas deja de crecer con la cantidad de torneos.
+
+    Los *_prefetch son opcionales -- pensados para cuando quien llama
+    (como las estadísticas generales) ya tiene estos datos en memoria
+    (mismo set de torneos, sin exclusiones) y no hace falta volver a
+    pedirlos. Sin pasar nada, se comporta exactamente igual que antes.
     """
     torneos_excluidos_ids = torneos_excluidos_ids or []
-    torneos = torneo_repository.obtener_finalizados(torneos_excluidos_ids)
-    torneos.sort(key=lambda t: t.fecha)  # cronológico, para que las insignias se lean en orden
+    if torneos_prefetch is not None:
+        torneos = [t for t in torneos_prefetch if t.id not in torneos_excluidos_ids]
+    else:
+        torneos = torneo_repository.obtener_finalizados(torneos_excluidos_ids)
+    torneos = sorted(torneos, key=lambda t: t.fecha)  # cronológico, para que las insignias se lean en orden
     torneos_incluidos_ids = [t.id for t in torneos]
 
+    if partidos_prefetch is not None:
+        ids_incluidos = set(torneos_incluidos_ids)
+        partidos = [p for p in partidos_prefetch if p.torneo_id in ids_incluidos]
+    else:
+        partidos = partido_repository.obtener_finalizados_por_torneos(torneos_incluidos_ids)
+
+    nombres = nombres_prefetch if nombres_prefetch is not None else {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+    jugadores_por_torneo = (
+        jugadores_por_torneo_prefetch if jugadores_por_torneo_prefetch is not None
+        else torneo_jugador_repository.obtener_jugadores_de_torneos(torneos_incluidos_ids)
+    )
+    vidas_por_torneo = torneo_jugador_repository.obtener_vidas_de_torneos(
+        [t.id for t in torneos if t.modo == "cinco_vidas"]
+    )
+    partidos_por_torneo = {}
+    for p in partidos:
+        partidos_por_torneo.setdefault(p.torneo_id, []).append(p)
+
+    puestos_por_torneo = {
+        t.id: calcular_puestos(
+            t,
+            jugadores_prefetch=jugadores_por_torneo.get(t.id, []),
+            partidos_prefetch=partidos_por_torneo.get(t.id, []),
+            vidas_prefetch=vidas_por_torneo.get(t.id),
+            nombres_prefetch=nombres,
+        )
+        for t in torneos
+    }
+
+    resultado = _armar_tabla(torneos, puestos_por_torneo, partidos, nombres)
+
+    if incluir_movimiento and torneos:
+        torneo_mas_reciente = torneos[-1]  # ya viene ordenado cronológico
+        torneos_anteriores = torneos[:-1]
+        partidos_anteriores = [p for p in partidos if p.torneo_id != torneo_mas_reciente.id]
+        resultado_anterior = _armar_tabla(torneos_anteriores, puestos_por_torneo, partidos_anteriores, nombres)
+        puesto_anterior_por_jugador = {f["jugador_id"]: f["puesto"] for f in resultado_anterior}
+
+        for fila in resultado:
+            puesto_antes = puesto_anterior_por_jugador.get(fila["jugador_id"])
+            if puesto_antes is None:
+                fila["movimiento"] = {"tipo": "nuevo", "cantidad": 0}
+            else:
+                delta = puesto_antes - fila["puesto"]
+                if delta > 0:
+                    fila["movimiento"] = {"tipo": "subio", "cantidad": delta}
+                elif delta < 0:
+                    fila["movimiento"] = {"tipo": "bajo", "cantidad": abs(delta)}
+                else:
+                    fila["movimiento"] = {"tipo": "igual", "cantidad": 0}
+    else:
+        for fila in resultado:
+            fila["movimiento"] = None
+
+    return resultado
+
+
+def _armar_tabla(torneos, puestos_por_torneo, partidos, nombres):
+    """Arma la tabla (puntos, ranking) a partir de datos YA calculados/
+    consultados -- no hace ninguna consulta nueva a la base. Se usa dos
+    veces (ranking actual, y 'antes del último torneo') sin repetir
+    ningún viaje a la base entre una y otra."""
     acumulado = {}
     for torneo in torneos:
-        puestos = calcular_puestos(torneo)
+        puestos = puestos_por_torneo[torneo.id]
         for jugador_id, puesto in puestos.items():
             entrada = acumulado.setdefault(
                 jugador_id, {"jugador_id": jugador_id, "puntos": 0, "torneos_jugados": 0, "insignias": []}
@@ -131,9 +230,6 @@ def calcular_tabla_general(torneos_excluidos_ids=None, incluir_movimiento=True):
                 "emoji": _emoji_por_puesto(puesto),
             })
 
-    # Desempate: estadísticas de partidos individuales, sumando TODOS los
-    # torneos incluidos (no solo los que cada jugador jugó de a uno)
-    partidos = partido_repository.obtener_finalizados_por_torneos(torneos_incluidos_ids)
     stats = {}
     for p in partidos:
         for jugador_id in (p.jugador1_id, p.jugador2_id):
@@ -141,8 +237,6 @@ def calcular_tabla_general(torneos_excluidos_ids=None, incluir_movimiento=True):
             stats[jugador_id]["pj"] += 1
         if p.ganador_id in stats:
             stats[p.ganador_id]["pg"] += 1
-
-    nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
 
     resultado = []
     for jugador_id, entrada in acumulado.items():
@@ -174,27 +268,5 @@ def calcular_tabla_general(torneos_excluidos_ids=None, incluir_movimiento=True):
             puesto_actual += 1
             clave_anterior = clave
         fila["puesto"] = puesto_actual
-
-    if incluir_movimiento and torneos:
-        torneo_mas_reciente = torneos[-1]  # ya viene ordenado cronológico
-        excluidos_para_anterior = torneos_excluidos_ids + [torneo_mas_reciente.id]
-        tabla_anterior = calcular_tabla_general(excluidos_para_anterior, incluir_movimiento=False)
-        puesto_anterior_por_jugador = {f["jugador_id"]: f["puesto"] for f in tabla_anterior}
-
-        for fila in resultado:
-            puesto_antes = puesto_anterior_por_jugador.get(fila["jugador_id"])
-            if puesto_antes is None:
-                fila["movimiento"] = {"tipo": "nuevo", "cantidad": 0}
-            else:
-                delta = puesto_antes - fila["puesto"]
-                if delta > 0:
-                    fila["movimiento"] = {"tipo": "subio", "cantidad": delta}
-                elif delta < 0:
-                    fila["movimiento"] = {"tipo": "bajo", "cantidad": abs(delta)}
-                else:
-                    fila["movimiento"] = {"tipo": "igual", "cantidad": 0}
-    else:
-        for fila in resultado:
-            fila["movimiento"] = None
 
     return resultado

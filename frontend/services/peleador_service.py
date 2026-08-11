@@ -74,3 +74,9 @@ def subir_icono(peleador_id, file_storage):
 
 def eliminar_icono(peleador_id):
     requests.delete(f"{Config.API_BASE_URL}/peleadores/{peleador_id}/icono").raise_for_status()
+
+
+def limpiar_imagenes_rotas():
+    resp = requests.post(f"{Config.API_BASE_URL}/peleadores/limpiar-imagenes-rotas")
+    resp.raise_for_status()
+    return resp.json()["limpiadas"]

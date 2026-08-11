@@ -164,6 +164,34 @@ def obtener_jugadores_de_torneo(torneo_id):
     return filas
 
 
+def obtener_jugadores_de_torneos(torneos_ids):
+    """Igual que obtener_jugadores_de_torneo, pero para VARIOS torneos de
+    una sola consulta -- devuelve {torneo_id: [filas]}. Pensada para
+    pantallas que necesitan esto de todos los torneos a la vez (como
+    las estadísticas generales), donde pedirlo torneo por torneo
+    multiplica los viajes a la base sin necesidad."""
+    if not torneos_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    placeholders = ",".join(["%s"] * len(torneos_ids))
+    cursor.execute(
+        f"""SELECT tj.torneo_id, tj.id AS torneo_jugador_id, j.id AS jugador_id, j.nombre
+            FROM torneo_jugador tj
+            JOIN jugador j ON j.id = tj.jugador_id
+            WHERE tj.torneo_id IN ({placeholders})""",
+        torneos_ids,
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    por_torneo = {torneo_id: [] for torneo_id in torneos_ids}
+    for fila in filas:
+        por_torneo[fila["torneo_id"]].append(fila)
+    return por_torneo
+
+
 def obtener_grupo_original(torneo_id, jugador_id):
     """El grupo de tipo 'grupo' (no repechaje/desempate) al que pertenece el jugador."""
     conn = get_connection()
@@ -196,3 +224,28 @@ def obtener_vidas_de_torneo(torneo_id):
     cursor.close()
     conn.close()
     return filas
+
+
+def obtener_vidas_de_torneos(torneos_ids):
+    """Igual que obtener_vidas_de_torneo, pero para VARIOS torneos cinco_vidas
+    de una sola consulta -- devuelve {torneo_id: [filas]}."""
+    if not torneos_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    placeholders = ",".join(["%s"] * len(torneos_ids))
+    cursor.execute(
+        f"""SELECT tj.torneo_id, tj.jugador_id, tjv.eliminado, tjv.orden_eliminacion
+            FROM torneo_jugador_vidas tjv
+            JOIN torneo_jugador tj ON tj.id = tjv.torneo_jugador_id
+            WHERE tj.torneo_id IN ({placeholders})""",
+        torneos_ids,
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    por_torneo = {torneo_id: [] for torneo_id in torneos_ids}
+    for fila in filas:
+        por_torneo[fila["torneo_id"]].append(fila)
+    return por_torneo

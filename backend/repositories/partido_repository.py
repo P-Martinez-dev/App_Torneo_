@@ -186,6 +186,11 @@ def reemplazar_partidos(ids_a_eliminar, nuevos_partidos):
     puestos, ni duplicados). Pensado para resembrar_bracket_manual.
     """
     conn = get_connection()
+    # Varias escrituras que tienen que aplicarse todas o ninguna: como la
+    # conexion viene en autocommit (para que las LECTURAS no paguen el costo
+    # de abrir y cerrar una transaccion en cada una), acá se abre uno
+    # explicito para no perder esa garantia.
+    conn.start_transaction()
     cursor = conn.cursor()
     try:
         if ids_a_eliminar:
@@ -369,6 +374,11 @@ def marcar_en_curso(partido_id):
 
 def marcar_pospuesto(partido_id):
     conn = get_connection()
+    # Varias escrituras que tienen que aplicarse todas o ninguna: como la
+    # conexion viene en autocommit (para que las LECTURAS no paguen el costo
+    # de abrir y cerrar una transaccion en cada una), acá se abre uno
+    # explicito para no perder esa garantia.
+    conn.start_transaction()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT torneo_id, fase FROM partido WHERE id = %s", (partido_id,))
     partido = cursor.fetchone()
@@ -554,3 +564,30 @@ def contar_jugadores_activos(torneo_id):
     cursor.close()
     conn.close()
     return total
+
+def obtener_partidos_cinco_vidas_de_torneos(torneos_ids):
+    """Todos los partidos cinco_vidas finalizados de VARIOS torneos, en una
+    sola consulta -- devuelve {torneo_id: [partidos]}.
+
+    Reemplaza a pedir obtener_partido_eliminacion() una vez por cada
+    jugador de cada torneo: con esto se trae todo junto y el "quién eliminó
+    a quién" se resuelve en memoria."""
+    if not torneos_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    placeholders = ",".join(["%s"] * len(torneos_ids))
+    cursor.execute(
+        f"""SELECT * FROM partido
+            WHERE torneo_id IN ({placeholders})
+              AND fase = 'cinco_vidas' AND estado = 'finalizado'""",
+        torneos_ids,
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    por_torneo = {torneo_id: [] for torneo_id in torneos_ids}
+    for fila in filas:
+        por_torneo[fila["torneo_id"]].append(Partido.from_row(fila))
+    return por_torneo

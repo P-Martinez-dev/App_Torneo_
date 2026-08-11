@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services import jugador_service, estadisticas_service, rating_service
+from services import cache_resultados, jugador_service, estadisticas_service, rating_service
 from controllers.utils import obtener_json_body
 
 jugador_bp = Blueprint("jugador", __name__, url_prefix="/jugadores")
@@ -18,7 +18,7 @@ def limpiar_imagenes_rotas():
 
 @jugador_bp.route("", methods=["GET"])
 def listar():
-    return jsonify(jugador_service.listar_jugadores()), 200
+    return jsonify(cache_resultados.obtener("listado-jugadores", jugador_service.listar_jugadores)), 200
 
 
 @jugador_bp.route("/<int:jugador_id>/navegacion", methods=["GET"])
@@ -39,7 +39,10 @@ def estadisticas(jugador_id):
     """Estadísticas históricas del jugador: rivales, peleadores, rachas,
     mejor puesto y veces campeón, sumando todos sus torneos."""
     try:
-        return jsonify(estadisticas_service.obtener_estadisticas_jugador(jugador_id)), 200
+        return jsonify(cache_resultados.obtener(
+            f"stats-jugador-{jugador_id}",
+            lambda: estadisticas_service.obtener_estadisticas_jugador(jugador_id)
+        )), 200
     except estadisticas_service.JugadorNoEncontradoError as e:
         return jsonify({"error": str(e)}), 404
 

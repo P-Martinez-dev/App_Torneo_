@@ -6,6 +6,7 @@ from controllers.torneo_routes import torneo_bp
 from controllers.partido_routes import partido_bp
 from controllers.peleador_routes import peleador_bp
 from controllers.admin_routes import admin_bp
+from services import cache_resultados
 
 
 def create_app():
@@ -30,11 +31,26 @@ def create_app():
         if clave != Config.INTERNAL_API_KEY:
             return jsonify({"error": "No autorizado"}), 401
 
+    @app.after_request
+    def invalidar_cache_si_hubo_cambios(response):
+        """Cualquier escritura que haya salido bien invalida todo lo
+        cacheado. Está puesto acá, en un solo lugar, y no endpoint por
+        endpoint: así no hay forma de agregar una ruta nueva que modifique
+        datos y olvidarse de invalidar (que sería un bug silencioso, de los
+        que muestran datos viejos sin avisar)."""
+        if request.method in ("POST", "PUT", "PATCH", "DELETE") and response.status_code < 400:
+            cache_resultados.invalidar_todo()
+        return response
+
     app.register_blueprint(jugador_bp)
     app.register_blueprint(torneo_bp)
     app.register_blueprint(partido_bp)
     app.register_blueprint(peleador_bp)
     app.register_blueprint(admin_bp)
+
+    # Calienta el cache al arrancar -- así el primer usuario ya encuentra
+    # todo precalculado. El progreso queda disponible en /torneos/warmup/progreso
+    cache_resultados.calentar(app)
 
     return app
 

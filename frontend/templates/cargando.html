@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cargando...</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="pantalla-carga">
+    <div class="carga-contenido">
+      <p class="carga-titulo">{{ nombre_club_carga }}</p>
+      <p class="carga-paso" id="carga-paso">{{ estado.paso_actual or 'Conectando...' }}</p>
+      <div class="carga-barra-fondo">
+        <div class="carga-barra-progreso" id="carga-barra"></div>
+      </div>
+      <p class="carga-porcentaje" id="carga-porcentaje">0%</p>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    const barra = document.getElementById("carga-barra");
+    const paso = document.getElementById("carga-paso");
+    const pct = document.getElementById("carga-porcentaje");
+
+    function consultar() {
+      // Le pregunta al FRONTEND (mismo origen). El frontend consulta al
+      // backend del lado del servidor, con la clave interna -- que nunca
+      // llega al navegador.
+      fetch("{{ url_for('inicio.estado_carga') }}")
+        .then(r => r.json())
+        .then(data => {
+          const porcentaje = data.pasos_totales > 0
+            ? Math.round((data.pasos_hechos / data.pasos_totales) * 100)
+            : 0;
+          barra.style.width = porcentaje + "%";
+          pct.textContent = porcentaje + "%";
+          paso.textContent = data.paso_actual || "Cargando...";
+
+          if (data.completado) {
+            paso.textContent = "Listo";
+            barra.style.width = "100%";
+            pct.textContent = "100%";
+            // Recarga la página que el usuario quería ver originalmente
+            setTimeout(() => { window.location.reload(); }, 350);
+          } else {
+            setTimeout(consultar, 400);
+          }
+        })
+        .catch(() => setTimeout(consultar, 1000));
+    }
+
+    consultar();
+  })();
+  </script>
+</body>
+</html>

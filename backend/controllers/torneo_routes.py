@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, send_file
-from services import torneo_service, partido_service, tabla_service, tabla_general_service, torneo_estadisticas_service, estadisticas_generales_service, exportar_service
+from services import cache_resultados, torneo_service, partido_service, tabla_service, tabla_general_service, torneo_estadisticas_service, estadisticas_generales_service, exportar_service
 from repositories import grupo_repository
 from controllers.utils import obtener_json_body
 
@@ -63,14 +63,23 @@ def actualizar_proximo_torneo():
     return jsonify({"ok": True}), 200
 
 
+@torneo_bp.route("/config-general", methods=["GET"])
+def config_general():
+    return jsonify(cache_resultados.obtener(
+        "config-general", estadisticas_generales_service.obtener_config_general
+    )), 200
+
+
 @torneo_bp.route("/estadisticas-generales", methods=["GET"])
 def estadisticas_generales():
-    return jsonify(estadisticas_generales_service.obtener_estadisticas_generales()), 200
+    return jsonify(cache_resultados.obtener(
+        "estadisticas-generales", estadisticas_generales_service.obtener_estadisticas_generales
+    )), 200
 
 
 @torneo_bp.route("", methods=["GET"])
 def listar():
-    return jsonify(torneo_service.listar_torneos()), 200
+    return jsonify(cache_resultados.obtener("listado-torneos", torneo_service.listar_torneos)), 200
 
 
 @torneo_bp.route("", methods=["POST"])
@@ -205,7 +214,12 @@ def exportar_imagen_tabla_general():
 def tabla_general():
     """Ranking histórico de campeonatos. Query param opcional: ?excluir=4&excluir=7"""
     torneos_excluidos = request.args.getlist("excluir", type=int)
-    tabla = tabla_general_service.calcular_tabla_general(torneos_excluidos)
+    # La clave incluye los excluidos: filtrar cambia el ranking, así que
+    # cada combinación de filtros se cachea por separado.
+    clave = f"tabla-general:{sorted(torneos_excluidos)}"
+    tabla = cache_resultados.obtener(
+        clave, lambda: tabla_general_service.calcular_tabla_general(torneos_excluidos)
+    )
     return jsonify(tabla), 200
 
 
@@ -271,3 +285,9 @@ def forzar_clasificado(torneo_id):
         return "", 204
     except partido_service.ClasificacionInvalidaError as e:
         return jsonify({"error": str(e)}), 400
+
+@torneo_bp.route("/warmup/progreso", methods=["GET"])
+def warmup_progreso():
+    """Estado del warmup del cache -- para la pantalla de 'cargando'
+    del frontend. No devuelve ningún dato del negocio, solo progreso."""
+    return jsonify(cache_resultados.estado_warmup()), 200

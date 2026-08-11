@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services import peleador_service, estadisticas_peleador_service
+from services import cache_resultados, peleador_service, estadisticas_peleador_service
 from controllers.utils import obtener_json_body
 
 peleador_bp = Blueprint("peleador", __name__, url_prefix="/peleadores")
@@ -7,7 +7,10 @@ peleador_bp = Blueprint("peleador", __name__, url_prefix="/peleadores")
 
 @peleador_bp.route("/<int:peleador_id>/estadisticas", methods=["GET"])
 def estadisticas(peleador_id):
-    return jsonify(estadisticas_peleador_service.obtener_estadisticas_peleador(peleador_id)), 200
+    return jsonify(cache_resultados.obtener(
+        f"stats-peleador-{peleador_id}",
+        lambda: estadisticas_peleador_service.obtener_estadisticas_peleador(peleador_id)
+    )), 200
 
 
 @peleador_bp.route("/<int:peleador_id>/navegacion", methods=["GET"])
@@ -17,7 +20,7 @@ def navegacion(peleador_id):
 
 @peleador_bp.route("", methods=["GET"])
 def listar():
-    return jsonify(peleador_service.listar_peleadores()), 200
+    return jsonify(cache_resultados.obtener("listado-peleadores", peleador_service.listar_peleadores)), 200
 
 
 @peleador_bp.route("/<int:peleador_id>", methods=["GET"])

@@ -34,6 +34,60 @@ body {
 a { color: inherit; }
 
 /* ---------- Header ---------- */
+/* === Pantalla de carga (warmup) === */
+.pantalla-carga {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+.carga-contenido {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: min(400px, 90vw);
+}
+.carga-titulo {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+  margin: 0;
+}
+.carga-paso {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--graphite);
+  text-align: center;
+  margin: 0;
+  min-height: 1.5em;
+}
+.carga-barra-fondo {
+  width: 100%;
+  height: 6px;
+  background: var(--card);
+  border: 1px solid var(--ink);
+}
+.carga-barra-progreso {
+  height: 100%;
+  background: var(--stamp);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+.carga-porcentaje {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--graphite);
+  margin: 0;
+}
+
 .site-header {
   border-bottom: 3px solid var(--ink);
   padding: 20px 32px;

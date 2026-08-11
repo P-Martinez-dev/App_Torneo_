@@ -43,21 +43,30 @@ def obtener_estadisticas_jugador(jugador_id: int) -> dict:
     torneos_finalizados = torneo_repository.obtener_finalizados_de_jugador(jugador_id)
     torneos_todos = torneo_repository.obtener_todos_de_jugador(jugador_id)
 
+    # Todo esto lo necesitan VARIAS de las funciones de abajo. Si cada una
+    # lo pidiera por su cuenta (que es lo que pasaba antes), un solo perfil
+    # terminaba consultando la lista de jugadores 3 veces, la de peleadores
+    # 2, y recalculando Bradley-Terry sobre TODO el historial 2 veces. Se
+    # trae una sola vez acá y se reparte.
+    nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+    nombres_peleador = {pl.id: pl.nombre for pl in peleador_repository.obtener_todos()}
+    probabilidades = _probabilidades_con_nombres(nombres)
+
     resultado = {
         "jugador_id": jugador_id,
         "nombre": jugador.nombre,
         "resumen_general": _resumen_general(jugador_id, partidos),
         "ultimos_resultados": _ultimos_resultados(jugador_id, partidos),
-        "rivales": _stats_rivales(jugador_id, partidos),
-        "peleadores": _stats_peleadores(jugador_id, partidos),
-        "peleadores_rivales": _stats_peleadores_rivales(jugador_id, partidos),
+        "rivales": _stats_rivales(jugador_id, partidos, nombres),
+        "peleadores": _stats_peleadores(jugador_id, partidos, nombres_peleador),
+        "peleadores_rivales": _stats_peleadores_rivales(jugador_id, partidos, nombres_peleador),
         "rachas": _stats_rachas(jugador_id, partidos),
         "rounds": _stats_rounds(jugador_id, partidos),
         "torneos": _stats_torneos(jugador_id, torneos_finalizados, torneos_todos),
-        "cinco_vidas": _stats_cinco_vidas(jugador_id, torneos_finalizados),
+        "cinco_vidas": _stats_cinco_vidas(jugador_id, torneos_finalizados, nombres),
         "veces_en_repechaje_o_desempate": torneo_jugador_repository.contar_repechajes_y_desempates(jugador_id),
-        "mejores_victorias": _mejores_victorias(jugador_id),
-        "peores_caidas": _peores_caidas(jugador_id),
+        "mejores_victorias": _mejores_victorias(jugador_id, probabilidades=probabilidades),
+        "peores_caidas": _peores_caidas(jugador_id, probabilidades=probabilidades),
     }
 
     # Los campos de nivel superior primero...
@@ -97,31 +106,31 @@ def obtener_estadisticas_jugador(jugador_id: int) -> dict:
     return resultado
 
 
-def _mejores_victorias(jugador_id, top_n=5):
+def _mejores_victorias(jugador_id, top_n=5, probabilidades=None):
     """Tus victorias más sorpresivas -- ganaste con menor probabilidad
     según el rating (Bradley-Terry) del rival en ese momento del
     historial completo. Top 5 con empates (no se decide arbitrariamente
     cuál va antes si dan exactamente igual de sorpresivo)."""
-    probabilidades = _probabilidades_con_nombres()
+    probabilidades = probabilidades if probabilidades is not None else _probabilidades_con_nombres()
     propias = [f for f in probabilidades if f["ganador_id"] == jugador_id]
     return _top_n_con_empates(propias, key=lambda f: -f["probabilidad_ganador"], n=top_n)
 
 
-def _peores_caidas(jugador_id, top_n=5):
+def _peores_caidas(jugador_id, top_n=5, probabilidades=None):
     """Tus derrotas más sorpresivas -- perdiste siendo favorito según el
     rating (probabilidad baja de que gane el rival, y aun así ganó)."""
-    probabilidades = _probabilidades_con_nombres()
+    probabilidades = probabilidades if probabilidades is not None else _probabilidades_con_nombres()
     propias = [f for f in probabilidades if f["perdedor_id"] == jugador_id]
     return _top_n_con_empates(propias, key=lambda f: -f["probabilidad_ganador"], n=top_n)
 
 
-def _probabilidades_con_nombres():
+def _probabilidades_con_nombres(nombres=None):
     """calcular_probabilidades_resultados() solo trae ids -- acá se le
     pegan los nombres, para no tener que hacerlo en cada función que la
     usa (y para no repetir el bug de mostrar el % sin decir contra
     quién)."""
     probabilidades = rating_service.calcular_probabilidades_resultados()
-    nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+    nombres = nombres if nombres is not None else {j.id: j.nombre for j in jugador_repository.obtener_todos()}
     for f in probabilidades:
         f["ganador_nombre"] = nombres.get(f["ganador_id"])
         f["perdedor_nombre"] = nombres.get(f["perdedor_id"])
@@ -167,7 +176,7 @@ def _resumen_general(jugador_id, partidos):
 RIVAL_MIN_PARTIDOS_PARA_MATCHUP = 3
 
 
-def _stats_rivales(jugador_id, partidos):
+def _stats_rivales(jugador_id, partidos, nombres=None):
     """'A quién le ganó más' y 'rival más frecuente' son preguntas
     distintas (frecuencia vs. victorias), así que se calculan por
     separado aunque salgan de la misma tabla."""
@@ -184,7 +193,7 @@ def _stats_rivales(jugador_id, partidos):
         else:
             entrada["partidos_perdidos"] += 1
 
-    nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+    nombres = nombres if nombres is not None else {j.id: j.nombre for j in jugador_repository.obtener_todos()}
     lista = list(contra_rival.values())
     for entrada in lista:
         entrada["nombre"] = nombres.get(entrada["jugador_id"])
@@ -207,7 +216,7 @@ def _stats_rivales(jugador_id, partidos):
     }
 
 
-def _stats_peleadores(jugador_id, partidos):
+def _stats_peleadores(jugador_id, partidos, nombres_peleador=None):
     """Excluye cinco_vidas a propósito -- no se trackea peleador en ese modo."""
     contra_peleador = {}
     for p in partidos:
@@ -223,7 +232,7 @@ def _stats_peleadores(jugador_id, partidos):
         if p.ganador_id == jugador_id:
             entrada["partidos_ganados"] += 1
 
-    nombres_peleador = {pl.id: pl.nombre for pl in peleador_repository.obtener_todos()}
+    nombres_peleador = nombres_peleador if nombres_peleador is not None else {pl.id: pl.nombre for pl in peleador_repository.obtener_todos()}
     lista = []
     for entrada in contra_peleador.values():
         entrada["nombre"] = nombres_peleador.get(entrada["peleador_id"])
@@ -242,7 +251,7 @@ def _stats_peleadores(jugador_id, partidos):
     }
 
 
-def _stats_peleadores_rivales(jugador_id, partidos):
+def _stats_peleadores_rivales(jugador_id, partidos, nombres_peleador=None):
     """El espejo de _stats_peleadores: acá no importa qué peleador usás
     vos, sino qué peleador usa el RIVAL en tu contra. 'Que te gana más' y
     'que le ganás más' son conteos (no win rate) para que sea consistente
@@ -264,7 +273,7 @@ def _stats_peleadores_rivales(jugador_id, partidos):
         else:
             entrada["partidos_perdidos"] += 1
 
-    nombres_peleador = {pl.id: pl.nombre for pl in peleador_repository.obtener_todos()}
+    nombres_peleador = nombres_peleador if nombres_peleador is not None else {pl.id: pl.nombre for pl in peleador_repository.obtener_todos()}
     lista = list(contra_peleador_rival.values())
     for entrada in lista:
         entrada["nombre"] = nombres_peleador.get(entrada["peleador_id"])
@@ -389,7 +398,7 @@ def _stats_rounds(jugador_id, partidos):
     }
 
 
-def _stats_cinco_vidas(jugador_id, torneos_finalizados):
+def _stats_cinco_vidas(jugador_id, torneos_finalizados, nombres=None):
     """Quién te eliminó y a quiénes eliminaste vos, en el modo cinco_vidas.
     Para cada torneo de ese modo, se busca el partido puntual donde cada
     jugador perdió su última vida (obtener_partido_eliminacion) -- ahí el
@@ -398,12 +407,34 @@ def _stats_cinco_vidas(jugador_id, torneos_finalizados):
     eliminado_por = {}
     eliminaste_a = {}
 
+    # Se trae TODO de una: las vidas de todos los torneos en una consulta, y
+    # los partidos de todos los torneos en otra. Antes, esto pedía las vidas
+    # por torneo MÁS un partido por cada jugador eliminado de cada torneo --
+    # con unos pocos torneos ya eran decenas de consultas para armar un
+    # solo perfil.
+    ids_cv = [t.id for t in torneos_cv]
+    vidas_por_torneo = torneo_jugador_repository.obtener_vidas_de_torneos(ids_cv)
+    partidos_por_torneo = partido_repository.obtener_partidos_cinco_vidas_de_torneos(ids_cv)
+
+    def _partido_donde_lo_eliminaron(partidos, jid):
+        """El último partido que ese jugador perdió -- ahí perdió su última
+        vida. Mismo criterio que la consulta que se hacía antes por
+        separado (la más reciente por fecha_jugado)."""
+        perdidos = [
+            p for p in partidos
+            if (p.jugador1_id == jid or p.jugador2_id == jid) and p.ganador_id != jid
+        ]
+        if not perdidos:
+            return None
+        return max(perdidos, key=lambda p: (p.fecha_jugado is not None, p.fecha_jugado))
+
     for t in torneos_cv:
-        vidas_torneo = torneo_jugador_repository.obtener_vidas_de_torneo(t.id)
+        vidas_torneo = vidas_por_torneo.get(t.id, [])
+        partidos_torneo = partidos_por_torneo.get(t.id, [])
         propio = next((f for f in vidas_torneo if f["jugador_id"] == jugador_id), None)
 
         if propio and propio["eliminado"]:
-            partido_elim = partido_repository.obtener_partido_eliminacion(t.id, jugador_id)
+            partido_elim = _partido_donde_lo_eliminaron(partidos_torneo, jugador_id)
             if partido_elim:
                 rival_id = partido_elim.ganador_id
                 entrada = eliminado_por.setdefault(rival_id, {"jugador_id": rival_id, "veces": 0})
@@ -412,12 +443,12 @@ def _stats_cinco_vidas(jugador_id, torneos_finalizados):
         for f in vidas_torneo:
             if f["jugador_id"] == jugador_id or not f["eliminado"]:
                 continue
-            partido_elim = partido_repository.obtener_partido_eliminacion(t.id, f["jugador_id"])
+            partido_elim = _partido_donde_lo_eliminaron(partidos_torneo, f["jugador_id"])
             if partido_elim and partido_elim.ganador_id == jugador_id:
                 entrada = eliminaste_a.setdefault(f["jugador_id"], {"jugador_id": f["jugador_id"], "veces": 0})
                 entrada["veces"] += 1
 
-    nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+    nombres = nombres if nombres is not None else {j.id: j.nombre for j in jugador_repository.obtener_todos()}
     lista_eliminado_por = sorted(eliminado_por.values(), key=lambda f: -f["veces"])
     lista_eliminaste = sorted(eliminaste_a.values(), key=lambda f: -f["veces"])
     for d in lista_eliminado_por + lista_eliminaste:

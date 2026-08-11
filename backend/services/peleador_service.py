@@ -2,6 +2,7 @@ import os
 
 from mysql.connector import Error
 from repositories import peleador_repository
+from services import almacenamiento_service
 
 
 class PeleadorNoEncontradoError(Exception):
@@ -29,7 +30,12 @@ def limpiar_imagenes_rotas():
     peleadores = peleador_repository.obtener_todos()
     limpiadas = 0
     for p in peleadores:
-        if p.imagen_icono_path and not os.path.isfile(os.path.join(CARPETA_STATIC, p.imagen_icono_path)):
+        # Las imágenes de la nube (URL completa) NO se tocan: viven fuera
+        # de este disco, así que preguntar si "existen acá" daría que no y
+        # las borraría a todas.
+        if not p.imagen_icono_path or p.imagen_icono_path.startswith("http"):
+            continue
+        if not os.path.isfile(os.path.join(CARPETA_STATIC, p.imagen_icono_path)):
             peleador_repository.actualizar_imagen(p.id, None)
             limpiadas += 1
     return limpiadas
@@ -109,21 +115,22 @@ def subir_icono(peleador_id, file_storage):
     if tamaño > TAMAÑO_MAXIMO_BYTES:
         raise ImagenInvalidaError("La imagen no puede superar los 5MB")
 
-    os.makedirs(CARPETA_UPLOADS, exist_ok=True)
-    _borrar_archivo_existente(peleador_id)
-
-    nombre_archivo = f"peleador_{peleador_id}_icono.{ext}"
-    file_storage.save(os.path.join(CARPETA_UPLOADS, nombre_archivo))
-
-    path_relativo = f"uploads/peleadores/{nombre_archivo}"
-    peleador_repository.actualizar_imagen(peleador_id, path_relativo)
+    # Dónde termina guardada (nube o disco local) lo decide
+    # almacenamiento_service según haya credenciales configuradas.
+    valor = almacenamiento_service.guardar_imagen(
+        file_storage, f"peleador_{peleador_id}_icono", "peleadores"
+    )
+    peleador_repository.actualizar_imagen(peleador_id, valor)
     return obtener_peleador(peleador_id)
 
 
 def eliminar_icono(peleador_id):
-    if peleador_repository.obtener_por_id(peleador_id) is None:
+    peleador = peleador_repository.obtener_por_id(peleador_id)
+    if peleador is None:
         raise PeleadorNoEncontradoError(f"No existe el peleador {peleador_id}")
-    _borrar_archivo_existente(peleador_id)
+    almacenamiento_service.borrar_imagen(
+        peleador.imagen_icono_path, f"peleador_{peleador_id}_icono", "peleadores"
+    )
     peleador_repository.actualizar_imagen(peleador_id, None)
     return obtener_peleador(peleador_id)
 

@@ -36,7 +36,7 @@ def listado():
     torneos = torneo_service.listar_torneos()
     excluidos_ids = request.args.getlist("excluir", type=int)
     tabla = torneo_service.tabla_general(excluidos_ids)
-    generales = torneo_service.obtener_estadisticas_generales()
+    generales = torneo_service.obtener_config_general()
     return render_template(
         "torneos/listado.html", torneos=torneos, tabla_general=tabla, excluidos_ids=excluidos_ids,
         descripcion_tablas=generales.get("descripcion_tablas"),

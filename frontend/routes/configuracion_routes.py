@@ -8,7 +8,7 @@ configuracion_bp = Blueprint("configuracion", __name__, url_prefix="/configuraci
 @configuracion_bp.route("")
 @requiere_admin
 def index():
-    generales = torneo_service.obtener_estadisticas_generales()
+    generales = torneo_service.obtener_config_general()
     return render_template("configuracion/index.html", generales=generales)
 
 

@@ -7,34 +7,33 @@ ITERACIONES_MAXIMAS = 300
 TOLERANCIA_CONVERGENCIA = 1e-9
 
 
-def calcular_ratings():
-    """
-    Rating de cada jugador basado en Bradley-Terry sobre TODO el
-    historial de partidos reales (excluye repechaje/desempate, mismo
-    criterio que el resto de las estadísticas del proyecto) -- a
-    diferencia de Elo, no pondera lo reciente sobre lo viejo: busca un
-    solo número por jugador que mejor explique el conjunto completo de
-    resultados a la vez.
+def _obtener_partidos_y_fuerzas(torneos_prefetch=None, partidos_prefetch=None):
+    """Consulta los partidos reales del historial y ajusta Bradley-Terry
+    UNA sola vez -- calcular_ratings() y calcular_probabilidades_resultados()
+    necesitan exactamente los mismos datos de base, así que compartir
+    este paso evita duplicar la consulta (y el ajuste, que aunque no
+    toca la base, tampoco tiene sentido correrlo dos veces).
 
-    Se presenta en escala tipo Elo (1500 = fuerza de referencia) para
-    que sea legible, pero el cálculo de fondo es Bradley-Terry.
-
-    Devuelve [{jugador_id, nombre, rating, partidos_jugados}] ordenado
-    de mayor a menor rating. Jugadores sin ningún partido real no
-    aparecen (no hay datos para estimarles nada).
-    """
-    torneos_ids = [t.id for t in torneo_repository.obtener_finalizados()]
-    partidos = partido_repository.obtener_finalizados_por_torneos(torneos_ids)
+    torneos_prefetch/partidos_prefetch opcionales -- para cuando quien
+    llama (como las estadísticas generales) ya tiene estos datos en
+    memoria y no hace falta volver a pedirlos."""
+    torneos = torneos_prefetch if torneos_prefetch is not None else torneo_repository.obtener_finalizados()
+    torneos_por_id = {t.id: t for t in torneos}
+    partidos = partidos_prefetch if partidos_prefetch is not None else partido_repository.obtener_finalizados_por_torneos([t.id for t in torneos])
 
     resultados = [
         (p.ganador_id, p.jugador2_id if p.ganador_id == p.jugador1_id else p.jugador1_id)
         for p in partidos
     ]
-
     fuerzas = _bradley_terry(resultados)
+    return partidos, torneos_por_id, fuerzas
 
+
+def _armar_ratings(partidos, fuerzas):
     partidos_jugados = {}
-    for ganador, perdedor in resultados:
+    for p in partidos:
+        ganador = p.ganador_id
+        perdedor = p.jugador2_id if p.ganador_id == p.jugador1_id else p.jugador1_id
         partidos_jugados[ganador] = partidos_jugados.get(ganador, 0) + 1
         partidos_jugados[perdedor] = partidos_jugados.get(perdedor, 0) + 1
 
@@ -53,29 +52,7 @@ def calcular_ratings():
     return filas
 
 
-def calcular_probabilidades_resultados():
-    """
-    Para cada partido real del historial, la probabilidad que el modelo
-    (con las fuerzas finales, ya ajustadas con todo el historial) le
-    daba al GANADOR de haber ganado -- sirve para medir qué tan
-    sorpresivo fue cada resultado. Cuanto más baja la probabilidad, más
-    sorpresivo. Comparten esta base tanto 'resultado más sorpresivo de
-    la historia' (general) como 'mejor victoria'/'peor caída' (de cada
-    jugador).
-
-    Devuelve [{partido_id, torneo_id, torneo_nombre, ganador_id,
-    perdedor_id, probabilidad_ganador}].
-    """
-    torneos = torneo_repository.obtener_finalizados()
-    torneos_por_id = {t.id: t for t in torneos}
-    partidos = partido_repository.obtener_finalizados_por_torneos([t.id for t in torneos])
-
-    resultados = [
-        (p.ganador_id, p.jugador2_id if p.ganador_id == p.jugador1_id else p.jugador1_id)
-        for p in partidos
-    ]
-    fuerzas = _bradley_terry(resultados)
-
+def _armar_probabilidades(partidos, torneos_por_id, fuerzas):
     filas = []
     for p in partidos:
         ganador = p.ganador_id
@@ -93,6 +70,55 @@ def calcular_probabilidades_resultados():
             "probabilidad_ganador": round(p_g / (p_g + p_p), 4),
         })
     return filas
+
+
+def calcular_ratings_y_probabilidades(torneos_prefetch=None, partidos_prefetch=None):
+    """Cuando hace falta lo de las dos funciones juntas (como en las
+    estadísticas generales), esto da las dos salidas a partir de UNA
+    sola consulta + ajuste -- en vez de llamar a calcular_ratings() y
+    calcular_probabilidades_resultados() por separado, que repetiría
+    todo el trabajo dos veces."""
+    partidos, torneos_por_id, fuerzas = _obtener_partidos_y_fuerzas(torneos_prefetch, partidos_prefetch)
+    ratings = _armar_ratings(partidos, fuerzas)
+    probabilidades = _armar_probabilidades(partidos, torneos_por_id, fuerzas)
+    return ratings, probabilidades
+
+
+def calcular_ratings():
+    """
+    Rating de cada jugador basado en Bradley-Terry sobre TODO el
+    historial de partidos reales (excluye repechaje/desempate, mismo
+    criterio que el resto de las estadísticas del proyecto) -- a
+    diferencia de Elo, no pondera lo reciente sobre lo viejo: busca un
+    solo número por jugador que mejor explique el conjunto completo de
+    resultados a la vez.
+
+    Se presenta en escala tipo Elo (1500 = fuerza de referencia) para
+    que sea legible, pero el cálculo de fondo es Bradley-Terry.
+
+    Devuelve [{jugador_id, nombre, rating, partidos_jugados}] ordenado
+    de mayor a menor rating. Jugadores sin ningún partido real no
+    aparecen (no hay datos para estimarles nada).
+    """
+    partidos, _torneos_por_id, fuerzas = _obtener_partidos_y_fuerzas()
+    return _armar_ratings(partidos, fuerzas)
+
+
+def calcular_probabilidades_resultados():
+    """
+    Para cada partido real del historial, la probabilidad que el modelo
+    (con las fuerzas finales, ya ajustadas con todo el historial) le
+    daba al GANADOR de haber ganado -- sirve para medir qué tan
+    sorpresivo fue cada resultado. Cuanto más baja la probabilidad, más
+    sorpresivo. Comparten esta base tanto 'resultado más sorpresivo de
+    la historia' (general) como 'mejor victoria'/'peor caída' (de cada
+    jugador).
+
+    Devuelve [{partido_id, torneo_id, torneo_nombre, ganador_id,
+    perdedor_id, probabilidad_ganador}].
+    """
+    partidos, torneos_por_id, fuerzas = _obtener_partidos_y_fuerzas()
+    return _armar_probabilidades(partidos, torneos_por_id, fuerzas)
 
 
 def _bradley_terry(resultados):
