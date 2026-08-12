@@ -4,7 +4,7 @@ from repositories import (
     torneo_repository, partido_repository, torneo_jugador_repository, jugador_repository,
     configuracion_general_repository,
 )
-from services import tabla_general_service, rating_service, estadisticas_config_service
+from services import tabla_general_service, rating_service, estadisticas_config_service, textos_info
 
 MIN_PARTIDOS_PARA_RIVALIDAD = 3  # para "rivalidad más pareja" y "mayor padreada" -- un 1-0 no cuenta como nada
 TOP_N = 5
@@ -40,6 +40,26 @@ def actualizar_descripcion_inicio(descripcion):
 
 def actualizar_descripcion_tablas(descripcion):
     configuracion_general_repository.actualizar_descripcion_tablas(descripcion)
+
+
+def obtener_infos():
+    """Los textos de las pantallas de Info. Si el admin nunca los editó,
+    devuelve los que vienen por defecto -- así la pantalla nunca queda
+    vacía, aunque nadie haya escrito nada todavía."""
+    config = configuracion_general_repository.obtener()
+    return {
+        "info_tablas": config["info_tablas"] or textos_info.INFO_TABLAS,
+        "info_formatos": config["info_formatos"] or textos_info.INFO_FORMATOS,
+    }
+
+
+def actualizar_info_tablas(texto):
+    """Guardar vacío = volver al texto por defecto."""
+    configuracion_general_repository.actualizar_info_tablas((texto or "").strip() or None)
+
+
+def actualizar_info_formatos(texto):
+    configuracion_general_repository.actualizar_info_formatos((texto or "").strip() or None)
 
 
 def actualizar_nombre_club(nombre):

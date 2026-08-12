@@ -4,6 +4,7 @@ import time
 
 import mysql.connector
 from mysql.connector import Error
+from mysql.connector.constants import ClientFlag
 
 # Si la conexión estuvo un rato sin usarse, antes de reusarla se verifica
 # que siga viva. Ese chequeo cuesta un viaje entero a la base, así que
@@ -61,6 +62,13 @@ def _config():
         # transaccion explicitamente (ver conn.start_transaction() en los
         # repositorios), asi que no se pierde ninguna garantia.
         "autocommit": True,
+        # Por defecto, MySQL informa cuántas filas CAMBIARON en un UPDATE.
+        # Todo el proyecto usa ese número para saber si la fila existía
+        # ("¿actualicé algo o no había nada con ese id?"), así que guardar
+        # sin modificar nada daba 0 y se interpretaba como "no existe" ->
+        # 404. Con FOUND_ROWS informa cuántas COINCIDIERON, que es lo que
+        # el código realmente quiere preguntar. No afecta a DELETE.
+        "client_flags": [ClientFlag.FOUND_ROWS],
     }
 
 

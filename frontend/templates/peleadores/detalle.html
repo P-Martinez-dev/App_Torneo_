@@ -3,10 +3,10 @@
 
 {% block content %}
 {% if navegacion.anterior_id %}
-<a href="{{ url_for('peleador_frontend.detalle', peleador_id=navegacion.anterior_id) }}" class="flecha-navegacion flecha-navegacion-izq" title="Peleador anterior">‹</a>
+<a href="{{ url_for('peleador_frontend.detalle', peleador_id=navegacion.anterior_id) }}" class="flecha-navegacion flecha-navegacion-izq" title="Peleador anterior"><span class="flecha-navegacion-texto">Peleador anterior</span></a>
 {% endif %}
 {% if navegacion.siguiente_id %}
-<a href="{{ url_for('peleador_frontend.detalle', peleador_id=navegacion.siguiente_id) }}" class="flecha-navegacion flecha-navegacion-der" title="Peleador siguiente">›</a>
+<a href="{{ url_for('peleador_frontend.detalle', peleador_id=navegacion.siguiente_id) }}" class="flecha-navegacion flecha-navegacion-der" title="Peleador siguiente"><span class="flecha-navegacion-texto">Peleador siguiente</span></a>
 {% endif %}
 <div class="page-head">
   <div>

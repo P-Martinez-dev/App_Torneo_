@@ -2,6 +2,7 @@ import os
 
 from mysql.connector import Error
 from repositories import jugador_repository
+from services import cache_resultados
 from services import almacenamiento_service
 
 
@@ -62,8 +63,11 @@ def obtener_navegacion(jugador_id):
     listan en el roster (alfabético) -- para las flechas de 'anterior/
     siguiente' del perfil, sin tener que volver al listado y elegir a
     mano."""
-    todos = jugador_repository.obtener_todos()
-    ids = [j.id for j in todos]
+    # Sale del listado ya cacheado (el mismo que se precalienta al
+    # arrancar), en vez de traer toda la tabla otra vez solo para saber
+    # cuál va antes y cuál después.
+    todos = cache_resultados.obtener("listado-jugadores", listar_jugadores)
+    ids = [j["id"] for j in todos]
     if jugador_id not in ids:
         return {"anterior_id": None, "siguiente_id": None}
     idx = ids.index(jugador_id)

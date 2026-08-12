@@ -3,10 +3,10 @@
 
 {% block content %}
 {% if navegacion.anterior_id %}
-<a href="{{ url_for('torneo.detalle', torneo_id=navegacion.anterior_id) }}" class="flecha-navegacion flecha-navegacion-izq" title="Torneo anterior">‹</a>
+<a href="{{ url_for('torneo.detalle', torneo_id=navegacion.anterior_id) }}" class="flecha-navegacion flecha-navegacion-izq" title="Torneo anterior"><span class="flecha-navegacion-texto">Torneo anterior</span></a>
 {% endif %}
 {% if navegacion.siguiente_id %}
-<a href="{{ url_for('torneo.detalle', torneo_id=navegacion.siguiente_id) }}" class="flecha-navegacion flecha-navegacion-der" title="Torneo siguiente">›</a>
+<a href="{{ url_for('torneo.detalle', torneo_id=navegacion.siguiente_id) }}" class="flecha-navegacion flecha-navegacion-der" title="Torneo siguiente"><span class="flecha-navegacion-texto">Torneo siguiente</span></a>
 {% endif %}
 <div class="page-head">
   <div>

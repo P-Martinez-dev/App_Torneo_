@@ -8,55 +8,15 @@
     <p class="eyebrow">Tablas</p>
     <h1 class="display-title">Historial</h1>
   </div>
-  {% if es_admin() %}<a class="btn btn-stamp" href="{{ url_for('torneo.crear') }}">+ Nuevo torneo</a>{% endif %}
+  <div class="page-head-acciones">
+    <a class="btn btn-ghost" href="{{ url_for('torneo.info_tablas') }}">Info</a>
+    {% if es_admin() %}<a class="btn btn-stamp" href="{{ url_for('torneo.crear') }}">+ Nuevo torneo</a>{% endif %}
+  </div>
 </div>
-
-{% if es_admin() %}
-{{ macros.editor_descripcion(descripcion_tablas, url_for('torneo.actualizar_descripcion_tablas'), 'tablas') }}
-{% elif descripcion_tablas %}
-<p class="empty-body">{{ descripcion_tablas }}</p>
-{% endif %}
 
 {% if request.args.get('creado') %}
   <p class="flash flash-ok">Torneo #{{ request.args.get('creado') }} creado. Ya podés cargar resultados.</p>
 {% endif %}
-
-<section class="detalle-seccion">
-  <h2 class="ticket-nombre">Torneos</h2>
-  {% if torneos %}
-  <form method="get" action="{{ url_for('torneo.listado') }}" id="form-excluir">
-    <table class="tabla-datos tabla-torneos">
-      <thead>
-        <tr><th>Excluir</th><th>Nombre</th><th>Modo</th><th>Fecha</th><th>Estado</th><th></th></tr>
-      </thead>
-      <tbody>
-      {% for t in torneos %}
-        <tr>
-          <td>
-            {% if t.estado == 'finalizado' %}
-            <input type="checkbox" name="excluir" value="{{ t.id }}" class="excluir-checkbox"
-                   {% if t.id in excluidos_ids %}checked{% endif %}>
-            {% else %}
-            <span class="tabla-datos-nota">--</span>
-            {% endif %}
-          </td>
-          <td>{{ t.nombre }}</td>
-          <td>{{ t.modo.replace('_', ' ') }}</td>
-          <td>{{ t.fecha }}</td>
-          <td class="ticket-estado estado-{{ t.estado }}"><span class="estado-dot"></span>{{ t.estado.replace('_', ' ') }}</td>
-          <td><a class="btn btn-ghost btn-chico" href="{{ url_for('torneo.detalle', torneo_id=t.id) }}">Ver detalle</a></td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </form>
-  {% else %}
-  <div class="empty-state">
-    <p class="empty-title">Todavía no armaste ningún torneo.</p>
-    {% if es_admin() %}<a class="btn btn-stamp" href="{{ url_for('torneo.crear') }}">+ Nuevo torneo</a>{% endif %}
-  </div>
-  {% endif %}
-</section>
 
 {% if tabla_general %}
 <section class="detalle-seccion">
@@ -103,7 +63,53 @@
 </section>
 {% elif torneos %}
 <p class="empty-body">Todavía no hay torneos finalizados para armar un ranking.</p>
+{% else %}
+<div class="empty-state">
+  <p class="empty-title">Todavía no armaste ningún torneo.</p>
+  {% if es_admin() %}<a class="btn btn-stamp" href="{{ url_for('torneo.crear') }}">+ Nuevo torneo</a>{% endif %}
+</div>
 {% endif %}
+<!-- El filtro va DESPUÉS de la tabla y plegado: lo que se viene a ver
+     acá es el ranking, no la lista de torneos (para eso está la sección
+     Torneos). Si hay filtros aplicados se abre solo, para que quede claro
+     por qué la tabla no muestra todo. -->
+{% if torneos %}
+<details class="filtro-torneos" {% if excluidos_ids %}open{% endif %}>
+  <summary class="filtro-torneos-resumen">
+    Filtrar torneos
+    {% if excluidos_ids %}<span class="filtro-torneos-activo">{{ excluidos_ids | length }} excluido{{ 's' if excluidos_ids | length != 1 else '' }}</span>{% endif %}
+  </summary>
+  {% if torneos %}
+  <form method="get" action="{{ url_for('torneo.listado') }}" id="form-excluir">
+    <table class="tabla-datos tabla-torneos">
+      <thead>
+        <tr><th>Excluir</th><th>Nombre</th><th>Modo</th><th>Fecha</th><th>Estado</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for t in torneos %}
+        <tr>
+          <td>
+            {% if t.estado == 'finalizado' %}
+            <input type="checkbox" name="excluir" value="{{ t.id }}" class="excluir-checkbox"
+                   {% if t.id in excluidos_ids %}checked{% endif %}>
+            {% else %}
+            <span class="tabla-datos-nota">--</span>
+            {% endif %}
+          </td>
+          <td>{{ t.nombre }}</td>
+          <td>{{ t.modo.replace('_', ' ') }}</td>
+          <td>{{ t.fecha }}</td>
+          <td class="ticket-estado estado-{{ t.estado }}"><span class="estado-dot"></span>{{ t.estado.replace('_', ' ') }}</td>
+          <td><a class="btn btn-ghost btn-chico" href="{{ url_for('torneo.detalle', torneo_id=t.id) }}">Ver detalle</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </form>
+  {% endif %}
+</details>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}

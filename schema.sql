@@ -75,6 +75,8 @@ CREATE TABLE configuracion_general (
     fecha_proximo_torneo DATE NULL,
     descripcion_inicio TEXT NULL,
     descripcion_tablas TEXT NULL,
+    info_tablas TEXT NULL,
+    info_formatos TEXT NULL,
     nombre_club VARCHAR(100) NULL,
     mostrar_tile_tablas BOOLEAN NOT NULL DEFAULT TRUE,
     mostrar_tile_torneos BOOLEAN NOT NULL DEFAULT TRUE,

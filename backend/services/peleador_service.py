@@ -2,6 +2,7 @@ import os
 
 from mysql.connector import Error
 from repositories import peleador_repository
+from services import cache_resultados
 from services import almacenamiento_service
 
 
@@ -44,8 +45,11 @@ def limpiar_imagenes_rotas():
 def obtener_navegacion(peleador_id):
     """Mismo criterio que jugador_service.obtener_navegacion, en el
     mismo orden en que se listan (alfabético)."""
-    todos = peleador_repository.obtener_todos()
-    ids = [p.id for p in todos]
+    # Sale del listado ya cacheado (el mismo que se precalienta al
+    # arrancar), en vez de traer toda la tabla otra vez solo para saber
+    # cuál va antes y cuál después.
+    todos = cache_resultados.obtener("listado-peleadores", listar_peleadores)
+    ids = [p["id"] for p in todos]
     if peleador_id not in ids:
         return {"anterior_id": None, "siguiente_id": None}
     idx = ids.index(peleador_id)

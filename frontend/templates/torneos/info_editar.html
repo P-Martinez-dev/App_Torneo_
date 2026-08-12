@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Editar info · {{ nombre_club }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Editar info</p>
+    <h1 class="display-title">{{ titulo }}</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ volver }}">Cancelar</a>
+</div>
+
+<form class="form-ticket" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="field">
+    <label for="texto">Texto</label>
+    <textarea id="texto" name="texto" rows="24" class="textarea-info">{{ texto }}</textarea>
+  </div>
+  <p class="empty-body">
+    Se puede dar formato: <code>## Título</code> al principio de una línea hace un
+    título, <code>**palabra**</code> la pone en negrita, y una línea que empieza con
+    <code>-</code> es un ítem de lista. Si borrás todo y guardás, vuelve al texto
+    original.
+  </p>
+  <button type="submit" class="btn btn-stamp btn-submit">Guardar</button>
+</form>
+{% endblock %}

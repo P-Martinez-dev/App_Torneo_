@@ -2,7 +2,8 @@ from database.db import get_connection
 
 CAMPOS = (
     "fecha_proximo_torneo, descripcion_inicio, descripcion_tablas, nombre_club, "
-    "mostrar_tile_tablas, mostrar_tile_torneos, mostrar_tile_jugadores, mostrar_tile_peleadores"
+    "mostrar_tile_tablas, mostrar_tile_torneos, mostrar_tile_jugadores, mostrar_tile_peleadores, "
+    "info_tablas, info_formatos"
 )
 
 
@@ -17,6 +18,7 @@ def obtener():
         "fecha_proximo_torneo": None, "descripcion_inicio": None, "descripcion_tablas": None,
         "nombre_club": None, "mostrar_tile_tablas": True, "mostrar_tile_torneos": True,
         "mostrar_tile_jugadores": True, "mostrar_tile_peleadores": True,
+        "info_tablas": None, "info_formatos": None,
     }
 
 
@@ -42,6 +44,14 @@ def actualizar_descripcion_tablas(descripcion):
 
 def actualizar_nombre_club(nombre):
     _actualizar_campo("nombre_club", nombre)
+
+
+def actualizar_info_tablas(texto):
+    _actualizar_campo("info_tablas", texto)
+
+
+def actualizar_info_formatos(texto):
+    _actualizar_campo("info_formatos", texto)
 
 
 CAMPOS_TILE_VALIDOS = {

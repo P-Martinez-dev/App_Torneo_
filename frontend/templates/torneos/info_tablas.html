@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Info de tablas · {{ nombre_club }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Tablas</p>
+    <h1 class="display-title">Cómo&nbsp;se&nbsp;arma&nbsp;la&nbsp;tabla</h1>
+  </div>
+  <a class="btn btn-ghost" href="{{ url_for('torneo.listado') }}">Volver</a>
+</div>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Puntos por puesto</h2>
+  <table class="tabla-datos">
+    <tbody>
+      <tr><td>🥇 1° puesto</td><td>8 puntos</td></tr>
+      <tr><td>🥈 2° puesto</td><td>7 puntos</td></tr>
+      <tr><td>🥉 3° puesto</td><td>6 puntos</td></tr>
+      <tr><td>4️⃣ 4° puesto</td><td>4 puntos</td></tr>
+      <tr><td>8️⃣ 5° puesto</td><td>2 puntos</td></tr>
+      <tr><td>🎮 6° en adelante</td><td>1 punto</td></tr>
+    </tbody>
+  </table>
+  <p class="empty-body">
+    Los puntos se acumulan a lo largo de todos los torneos: la tabla es histórica,
+    no de un torneo puntual. Con solo presentarte ya sumás, así que venir siempre
+    también cuenta.
+  </p>
+</section>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Desempates</h2>
+  <p class="empty-body">
+    Si dos jugadores tienen los mismos puntos, desempata primero los <strong>puntos
+    por victoria</strong> (3 por cada partido ganado, sumando todos los torneos) y
+    después el <strong>win rate</strong>. Si empatan en las tres cosas, comparten
+    el mismo puesto.
+  </p>
+</section>
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Cómo leerla</h2>
+  <p class="empty-body">
+    Las <strong>insignias</strong> son un torneo cada una, en orden cronológico:
+    de un vistazo se ve el recorrido completo de cada jugador.
+  </p>
+  <p class="empty-body">
+    La <strong>flecha</strong> compara el puesto actual con el de antes del último
+    torneo: ▲ subió, ▼ bajó, ● se mantuvo. Si es su primer torneo aparece como
+    NUEVO, en vez de un salto de puestos que no significaría nada.
+  </p>
+  <p class="empty-body">
+    También se pueden <strong>filtrar torneos</strong>: la tabla se recalcula al
+    instante sin ellos, para ver cómo estaría todo sin contar ciertas fechas.
+  </p>
+</section>
+{% endblock %}

@@ -2,7 +2,7 @@ from repositories import (
     torneo_repository, partido_repository, jugador_repository,
     peleador_repository, torneo_jugador_repository,
 )
-from services import tabla_general_service, rating_service, estadisticas_config_service
+from services import tabla_general_service, rating_service, estadisticas_config_service, cache_resultados
 
 
 class JugadorNoEncontradoError(Exception):
@@ -321,24 +321,35 @@ def _stats_torneos(jugador_id, torneos_finalizados, torneos_todos):
     for t in torneos_todos:
         por_modo[t.modo] = por_modo.get(t.modo, 0) + 1
 
+    # El puesto del jugador en cada torneo YA está calculado dentro de la
+    # tabla general (viene en sus insignias), que además está cacheada y
+    # precalentada al arrancar. Antes esto recalculaba el puesto de cada
+    # torneo desde cero, con 2 o 3 consultas por torneo -- o sea que un
+    # solo perfil disparaba decenas de consultas para llegar a un número
+    # que ya estaba a mano.
+    tabla = cache_resultados.obtener(
+        "tabla-general:[]", tabla_general_service.calcular_tabla_general
+    )
+    fila_propia = next((f for f in tabla if f["jugador_id"] == jugador_id), None)
+    insignias = fila_propia["insignias"] if fila_propia else []
+
     mejor_puesto_valor = None
     mejor_puesto_torneos = []
     veces_campeon = 0
     suma_puestos = 0
     cantidad_puestos = 0
-    for t in torneos_finalizados:
-        puesto = tabla_general_service.calcular_puestos(t).get(jugador_id)
-        if puesto is None:
-            continue
+    for ins in insignias:
+        puesto = ins["puesto"]
         suma_puestos += puesto
         cantidad_puestos += 1
         if puesto == 1:
             veces_campeon += 1
+        entrada = {"torneo_id": ins["torneo_id"], "nombre": ins["torneo_nombre"], "puesto": puesto}
         if mejor_puesto_valor is None or puesto < mejor_puesto_valor:
             mejor_puesto_valor = puesto
-            mejor_puesto_torneos = [{"torneo_id": t.id, "nombre": t.nombre, "puesto": puesto}]
+            mejor_puesto_torneos = [entrada]
         elif puesto == mejor_puesto_valor:
-            mejor_puesto_torneos.append({"torneo_id": t.id, "nombre": t.nombre, "puesto": puesto})
+            mejor_puesto_torneos.append(entrada)
 
     return {
         "torneos_jugados_por_modo": por_modo,

@@ -10,6 +10,7 @@ from routes.configuracion_routes import configuracion_bp
 from routes.peleador_routes import peleador_frontend_bp
 from routes.admin_routes import admin_bp
 from auth import es_admin
+from markdown_simple import markdown_a_html
 from services import torneo_service
 
 
@@ -72,6 +73,7 @@ def create_app():
 
     app.jinja_env.globals["imagen_url"] = imagen_url
     app.jinja_env.globals["es_admin"] = es_admin
+    app.jinja_env.filters["markdown"] = markdown_a_html
 
     @app.context_processor
     def inyectar_nombre_club():

@@ -88,6 +88,67 @@ a { color: inherit; }
   margin: 0;
 }
 
+
+/* === Filtro de torneos plegable (pantalla de Tablas) === */
+.filtro-torneos {
+  margin-top: 32px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-left: 4px solid var(--stamp);
+}
+.filtro-torneos-resumen {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  user-select: none;
+}
+.filtro-torneos-resumen:hover { color: var(--stamp); }
+.filtro-torneos[open] .filtro-torneos-resumen {
+  border-bottom: 2px solid var(--line);
+  margin-bottom: 8px;
+}
+/* Marca cuántos torneos quedaron afuera: si la tabla no muestra todo,
+   tiene que notarse aunque el panel esté cerrado. */
+.filtro-torneos-activo {
+  font-size: 11px;
+  background: var(--stamp);
+  color: var(--ink);
+  padding: 3px 8px;
+  letter-spacing: 0.04em;
+}
+.filtro-torneos > form { padding: 0 20px 16px; }
+
+
+/* === Pantallas de Info === */
+.info-contenido h2.ticket-nombre { margin-top: 28px; }
+.info-contenido h2.ticket-nombre:first-child { margin-top: 0; }
+.info-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px;
+}
+.info-lista li {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--graphite);
+  padding: 6px 0 6px 18px;
+  border-left: 2px solid var(--line);
+  margin-bottom: 2px;
+}
+.info-lista li strong { color: var(--ink); }
+.textarea-info {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .site-header {
   border-bottom: 3px solid var(--ink);
   padding: 20px 32px;
@@ -738,33 +799,86 @@ input:focus, select:focus, .btn:focus, a:focus {
   position: fixed;
   top: 50%;
   transform: translateY(-50%);
-  width: 52px;
-  height: 52px;
+  height: 64px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 0;
   background: var(--card);
   border: 2px solid var(--ink);
   color: var(--ink);
-  font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: 800;
   text-decoration: none;
   z-index: 20;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  overflow: hidden;
+  transition: box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
-.flecha-navegacion:hover {
+
+/* El chevron se DIBUJA con bordes en vez de usar un carácter tipográfico:
+   los ‹ › de la fuente son finos y a este tamaño se perdían contra el fondo
+   oscuro. Así queda grueso y nítido, y acompaña el trazo marcado del resto
+   de la interfaz. */
+.flecha-navegacion::before {
+  content: "";
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin: 0 20px;
+  border-top: 5px solid currentColor;
+  border-left: 5px solid currentColor;
+}
+
+/* La etiqueta arranca en ancho 0 y se despliega al pasar el mouse: en
+   reposo la flecha no tapa contenido, y al acercarse queda explícito
+   adónde lleva (antes solo se sabía por el tooltip del navegador). */
+.flecha-navegacion-texto {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  max-width: 0;
+  opacity: 0;
+  transition: max-width 0.2s ease, opacity 0.2s ease, padding 0.2s ease;
+}
+.flecha-navegacion:hover .flecha-navegacion-texto,
+.flecha-navegacion:focus-visible .flecha-navegacion-texto {
+  max-width: 140px;
+  opacity: 1;
+}
+
+.flecha-navegacion:hover,
+.flecha-navegacion:focus-visible {
   background: var(--stamp);
-  box-shadow: 0 4px 18px rgba(227, 30, 36, 0.45);
+  border-color: var(--stamp);
+  color: var(--ink);
+  box-shadow: 0 4px 20px rgba(227, 30, 36, 0.5);
 }
+
 .flecha-navegacion-izq {
-  left: 16px;
-  clip-path: polygon(14px 0, 100% 0, 100% 100%, 14px 100%, 0 50%);
+  left: 0;
+  border-left: none;
+  border-right: 4px solid var(--stamp);
 }
+.flecha-navegacion-izq::before {
+  transform: rotate(-45deg);
+}
+.flecha-navegacion-izq:hover { border-right-color: var(--ink); }
+.flecha-navegacion-izq .flecha-navegacion-texto { padding-right: 4px; }
+.flecha-navegacion-izq:hover .flecha-navegacion-texto { padding-right: 22px; }
+
 .flecha-navegacion-der {
-  right: 16px;
-  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+  right: 0;
+  flex-direction: row-reverse;
+  border-right: none;
+  border-left: 4px solid var(--stamp);
 }
+.flecha-navegacion-der::before {
+  transform: rotate(135deg);
+}
+.flecha-navegacion-der:hover { border-left-color: var(--ink); }
+.flecha-navegacion-der .flecha-navegacion-texto { padding-left: 4px; }
+.flecha-navegacion-der:hover .flecha-navegacion-texto { padding-left: 22px; }
+
 @media (max-width: 900px) {
   .flecha-navegacion { display: none; }
 }

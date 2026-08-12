@@ -213,3 +213,14 @@ def estado_warmup():
     resp = requests.get(f"{Config.API_BASE_URL}/torneos/warmup/progreso", timeout=5)
     resp.raise_for_status()
     return resp.json()
+
+
+def obtener_infos():
+    resp = requests.get(f"{Config.API_BASE_URL}/torneos/infos")
+    resp.raise_for_status()
+    return resp.json()
+
+
+def actualizar_info(cual, texto):
+    resp = requests.put(f"{Config.API_BASE_URL}/torneos/infos/{cual}", json={"texto": texto})
+    resp.raise_for_status()

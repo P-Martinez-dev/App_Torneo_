@@ -28,7 +28,38 @@ def explorar():
 
 @torneo_bp.route("/info")
 def info():
-    return render_template("torneos/info.html")
+    infos = torneo_service.obtener_infos()
+    return render_template("torneos/info.html", texto=infos["info_formatos"], cual="formatos",
+                           titulo="Cómo funciona cada formato", eyebrow="Torneos",
+                           volver=url_for("torneo.explorar"))
+
+
+@torneo_bp.route("/info-tablas")
+def info_tablas():
+    infos = torneo_service.obtener_infos()
+    return render_template("torneos/info.html", texto=infos["info_tablas"], cual="tablas",
+                           titulo="Cómo se arma la tabla", eyebrow="Tablas",
+                           volver=url_for("torneo.listado"))
+
+
+@torneo_bp.route("/info/<string:cual>/editar", methods=["GET", "POST"])
+@requiere_admin
+def editar_info(cual):
+    if cual not in ("tablas", "formatos"):
+        flash("Esa info no existe.")
+        return redirect(url_for("inicio.inicio"))
+
+    volver = url_for("torneo.info_tablas") if cual == "tablas" else url_for("torneo.info")
+
+    if request.method == "POST":
+        torneo_service.actualizar_info(cual, request.form.get("texto"))
+        flash("Info actualizada.")
+        return redirect(volver)
+
+    infos = torneo_service.obtener_infos()
+    texto = infos["info_tablas"] if cual == "tablas" else infos["info_formatos"]
+    return render_template("torneos/info_editar.html", texto=texto, cual=cual, volver=volver,
+                           titulo="Cómo se arma la tabla" if cual == "tablas" else "Cómo funciona cada formato")
 
 
 @torneo_bp.route("")
@@ -36,18 +67,9 @@ def listado():
     torneos = torneo_service.listar_torneos()
     excluidos_ids = request.args.getlist("excluir", type=int)
     tabla = torneo_service.tabla_general(excluidos_ids)
-    generales = torneo_service.obtener_config_general()
     return render_template(
         "torneos/listado.html", torneos=torneos, tabla_general=tabla, excluidos_ids=excluidos_ids,
-        descripcion_tablas=generales.get("descripcion_tablas"),
     )
-
-
-@torneo_bp.route("/descripcion", methods=["POST"])
-@requiere_admin
-def actualizar_descripcion_tablas():
-    torneo_service.actualizar_descripcion_tablas(request.form.get("descripcion") or None)
-    return redirect(url_for("torneo.listado"))
 
 
 @torneo_bp.route("/<int:torneo_id>/exportar-imagen")

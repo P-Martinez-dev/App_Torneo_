@@ -3,10 +3,10 @@
 
 {% block content %}
 {% if navegacion.anterior_id %}
-<a href="{{ url_for('jugador.detalle', jugador_id=navegacion.anterior_id) }}" class="flecha-navegacion flecha-navegacion-izq" title="Jugador anterior">‹</a>
+<a href="{{ url_for('jugador.detalle', jugador_id=navegacion.anterior_id) }}" class="flecha-navegacion flecha-navegacion-izq" title="Jugador anterior"><span class="flecha-navegacion-texto">Jugador anterior</span></a>
 {% endif %}
 {% if navegacion.siguiente_id %}
-<a href="{{ url_for('jugador.detalle', jugador_id=navegacion.siguiente_id) }}" class="flecha-navegacion flecha-navegacion-der" title="Jugador siguiente">›</a>
+<a href="{{ url_for('jugador.detalle', jugador_id=navegacion.siguiente_id) }}" class="flecha-navegacion flecha-navegacion-der" title="Jugador siguiente"><span class="flecha-navegacion-texto">Jugador siguiente</span></a>
 {% endif %}
 <div class="page-head">
   <div>

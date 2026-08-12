@@ -28,6 +28,25 @@ def actualizar_descripcion_tablas():
     return jsonify({"ok": True}), 200
 
 
+@torneo_bp.route("/infos", methods=["GET"])
+def obtener_infos():
+    return jsonify(estadisticas_generales_service.obtener_infos()), 200
+
+
+@torneo_bp.route("/infos/<string:cual>", methods=["PUT"])
+def actualizar_info(cual):
+    datos, error = obtener_json_body()
+    if error:
+        return error
+    if cual == "tablas":
+        estadisticas_generales_service.actualizar_info_tablas(datos.get("texto"))
+    elif cual == "formatos":
+        estadisticas_generales_service.actualizar_info_formatos(datos.get("texto"))
+    else:
+        return jsonify({"error": f"'{cual}' no es una info conocida"}), 400
+    return jsonify({"ok": True}), 200
+
+
 @torneo_bp.route("/nombre-club", methods=["GET"])
 def obtener_nombre_club():
     return jsonify({"nombre_club": estadisticas_generales_service.obtener_nombre_club()}), 200
