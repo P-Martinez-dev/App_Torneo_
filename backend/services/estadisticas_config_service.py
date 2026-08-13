@@ -78,7 +78,9 @@ def filtrar_visibles(resultado, prefijo, campos_lista=()):
     visible bajo ese prefijo, la vacía -- None para un campo simple, []
     para uno que la plantilla ya trata como lista (evita romper los
     '{% if %}' que ya existen en las plantillas, no hace falta tocarlas)."""
-    ocultas = config_estadistica_repository.obtener_ocultas()
+    from services import cache_resultados
+    ocultas = cache_resultados.obtener("estadisticas-ocultas",
+        config_estadistica_repository.obtener_ocultas)
     for campo in list(resultado.keys()):
         if f"{prefijo}.{campo}" in ocultas:
             resultado[campo] = [] if campo in campos_lista else None

@@ -50,7 +50,17 @@ def create_app():
 
     # Calienta el cache al arrancar -- así el primer usuario ya encuentra
     # todo precalculado. El progreso queda disponible en /torneos/warmup/progreso
-    cache_resultados.calentar(app)
+    # El warmup se lanza al atender el primer pedido, no al importar el
+    # módulo: bajo gunicorn, la importación ocurre en un proceso y los
+    # pedidos se atienden en otro, así que si se lanza acá el estado
+    # queda en el proceso equivocado y el frontend nunca lo ve avanzar.
+    _warmup_lanzado = {"si": False}
+
+    @app.before_request
+    def _lanzar_warmup_una_vez():
+        if not _warmup_lanzado["si"]:
+            _warmup_lanzado["si"] = True
+            cache_resultados.calentar(app)
 
     return app
 
