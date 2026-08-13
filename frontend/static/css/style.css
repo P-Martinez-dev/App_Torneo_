@@ -762,42 +762,15 @@ input:focus, select:focus, .btn:focus, a:focus {
 
 
 /* === Tabla del ranking en pantallas chicas ===
-   La tabla del ranking tiene 11 columnas. En un celular no entra, y hasta
-   ahora había que hacer zoom out para verla entera. En vez de achicarla
-   de verdad (que la dejaría ilegible) o de obligar a deslizar de costado,
-   se aprovecha el espacio: menos padding, letra un punto más chica, y las
-   celdas que pueden partirse en dos líneas lo hacen. Así entra completa y
-   el zoom queda para cuando querés mirar algo puntual, no como requisito. */
-@media (max-width: 900px) {
-  .tabla-ranking { font-size: 12px; table-layout: fixed; }
-  .tabla-ranking th, .tabla-ranking td { padding: 6px 3px; }
-  .tabla-ranking th {
-    font-size: 9px;
-    letter-spacing: 0;
-    word-break: break-word;   /* "Pts. victoria" parte en dos líneas */
-    line-height: 1.2;
-  }
-  /* El nombre es lo único que puede ser largo: se le da el espacio que
-     sobra y se corta con puntos suspensivos si no entra. */
-  .tabla-ranking .celda-jugador {
-    max-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  /* Los emojis del historial son lo que más ancho ocupa: se achican y se
-     permite que bajen de renglón. */
-  .tabla-ranking .historial-insignias {
-    font-size: 11px;
-    letter-spacing: 0;
-    word-break: break-all;
-  }
-}
-
-@media (max-width: 480px) {
-  .tabla-ranking { font-size: 11px; }
-  .tabla-ranking th, .tabla-ranking td { padding: 5px 2px; }
-  .tabla-ranking th { font-size: 8px; }
+   La tabla tiene 11 columnas y en un celular no entra. En vez de
+   rediseñarla (achicar padding, partir títulos, recortar nombres), se la
+   deja EXACTAMENTE igual y se la muestra a escala reducida: es el mismo
+   "zoom out" que había que hacer a mano, pero aplicado solo. El valor lo
+   calcula tabla_responsive.js según el ancho real de cada pantalla, así
+   que entra completa en cualquier celular y el zoom manual queda para
+   cuando querés mirar algo puntual, no como requisito para leerla. */
+.tabla-ranking-contenedor {
+  transform-origin: top left;
 }
 
 .tabla-datos {
