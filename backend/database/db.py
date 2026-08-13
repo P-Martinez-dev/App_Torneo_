@@ -99,7 +99,9 @@ def _descartar_conexion():
 
 
 def get_connection():
-    print(">>> DB: pidiendo conexión", flush=True)
+    import threading as _th
+    print(f">>> DB: pidiendo conexión (hilo {_th.current_thread().name}, "
+          f"reusa={getattr(_local, 'cnx', None) is not None})", flush=True)
     """
     Devuelve una conexión lista para usar, reusando la misma mientras
     siga viva (una por hilo). El código que la usa no cambia en nada:
