@@ -73,6 +73,11 @@ def _config():
         # siempre en silencio, sin error ni timeout -- que es exactamente
         # lo que dejaba el warmup congelado en 0% sin ninguna pista.
         "connection_timeout": 15,
+        # El timeout de arriba cubre solo el ESTABLECER la conexión. Si la
+        # conexión entra bien pero la consulta nunca vuelve, hace falta este
+        # otro: sin él, el hilo se queda esperando una respuesta que no llega.
+        "read_timeout": 30,
+        
     }
 
 
@@ -94,6 +99,7 @@ def _descartar_conexion():
 
 
 def get_connection():
+    print(">>> DB: pidiendo conexión", flush=True)
     """
     Devuelve una conexión lista para usar, reusando la misma mientras
     siga viva (una por hilo). El código que la usa no cambia en nada:
