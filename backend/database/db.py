@@ -14,6 +14,8 @@ _SEGUNDOS_SIN_USO_PARA_VERIFICAR = 60
 
 _local = threading.local()
 
+_contador = {"n": 0}
+
 
 class _ConexionReusada:
     """
@@ -100,6 +102,8 @@ def _descartar_conexion():
 
 def get_connection():
     import threading as _th
+    _contador["n"] += 1
+    print(f">>> DB consulta #{_contador['n']}", flush=True)
     print(f">>> DB: pidiendo conexión (hilo {_th.current_thread().name}, "
           f"reusa={getattr(_local, 'cnx', None) is not None})", flush=True)
     """
