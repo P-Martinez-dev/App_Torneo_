@@ -168,8 +168,14 @@ def obtener_navegacion(torneo_id: int) -> dict:
         return {"anterior_id": None, "siguiente_id": None}
     idx = ids.index(torneo_id)
     return {
-        "anterior_id": ids[idx - 1] if idx > 0 else None,
-        "siguiente_id": ids[idx + 1] if idx < len(ids) - 1 else None,
+        # Navegación CÍCLICA: desde el primero, "anterior" lleva al último,
+        # y desde el último "siguiente" vuelve al primero. Así nunca falta
+        # una flecha y se puede recorrer todo dando la vuelta, sin tener
+        # que volver al listado al llegar a una punta.
+        # (ids[-1] ya es el último por cómo indexa Python, y el módulo se
+        # encarga de volver al principio.)
+        "anterior_id": ids[idx - 1],
+        "siguiente_id": ids[(idx + 1) % len(ids)],
     }
 
 

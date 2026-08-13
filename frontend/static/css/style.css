@@ -760,6 +760,46 @@ input:focus, select:focus, .btn:focus, a:focus {
 }
 .detalle-grupo { margin-bottom: 28px; }
 
+
+/* === Tabla del ranking en pantallas chicas ===
+   La tabla del ranking tiene 11 columnas. En un celular no entra, y hasta
+   ahora había que hacer zoom out para verla entera. En vez de achicarla
+   de verdad (que la dejaría ilegible) o de obligar a deslizar de costado,
+   se aprovecha el espacio: menos padding, letra un punto más chica, y las
+   celdas que pueden partirse en dos líneas lo hacen. Así entra completa y
+   el zoom queda para cuando querés mirar algo puntual, no como requisito. */
+@media (max-width: 900px) {
+  .tabla-ranking { font-size: 12px; table-layout: fixed; }
+  .tabla-ranking th, .tabla-ranking td { padding: 6px 3px; }
+  .tabla-ranking th {
+    font-size: 9px;
+    letter-spacing: 0;
+    word-break: break-word;   /* "Pts. victoria" parte en dos líneas */
+    line-height: 1.2;
+  }
+  /* El nombre es lo único que puede ser largo: se le da el espacio que
+     sobra y se corta con puntos suspensivos si no entra. */
+  .tabla-ranking .celda-jugador {
+    max-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Los emojis del historial son lo que más ancho ocupa: se achican y se
+     permite que bajen de renglón. */
+  .tabla-ranking .historial-insignias {
+    font-size: 11px;
+    letter-spacing: 0;
+    word-break: break-all;
+  }
+}
+
+@media (max-width: 480px) {
+  .tabla-ranking { font-size: 11px; }
+  .tabla-ranking th, .tabla-ranking td { padding: 5px 2px; }
+  .tabla-ranking th { font-size: 8px; }
+}
+
 .tabla-datos {
   width: 100%;
   border-collapse: collapse;
@@ -879,8 +919,22 @@ input:focus, select:focus, .btn:focus, a:focus {
 .flecha-navegacion-der .flecha-navegacion-texto { padding-left: 4px; }
 .flecha-navegacion-der:hover .flecha-navegacion-texto { padding-left: 22px; }
 
+
+/* Flecha apagada: solo aparece cuando hay un único jugador/peleador/torneo,
+   para que la pantalla no cambie de forma según cuántos haya cargados. */
+.flecha-navegacion-inactiva {
+  opacity: 0.25;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* En móvil las flechas se achican en vez de esconderse: pegadas al borde
+   y sin la etiqueta molestan poco, y en un celular son la forma natural de
+   recorrer perfiles (no hay mouse para pasar por encima de nada). */
 @media (max-width: 900px) {
-  .flecha-navegacion { display: none; }
+  .flecha-navegacion { height: 52px; }
+  .flecha-navegacion::before { margin: 0 12px; width: 12px; height: 12px; border-width: 4px; }
+  .flecha-navegacion-texto { display: none; }
 }
 
 .tabla-acciones { display: inline-flex; gap: 8px; }

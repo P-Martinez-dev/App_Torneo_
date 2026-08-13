@@ -2,10 +2,16 @@
 {% block title %}{{ peleador.nombre }} · {{ nombre_club }}{% endblock %}
 
 {% block content %}
-{% if navegacion.anterior_id %}
+{# La navegación es cíclica, así que casi siempre hay adónde ir. La
+   excepción es cuando hay UNO SOLO: ahí la flecha apuntaría a sí mismo,
+   y en vez de eso se muestra apagada, para que la pantalla no cambie de
+   forma según cuántos haya. #}
+{% set solo_uno = navegacion.anterior_id is none or navegacion.anterior_id == peleador.id %}
+{% if solo_uno %}
+<span class="flecha-navegacion flecha-navegacion-izq flecha-navegacion-inactiva" title="No hay otro peleador"><span class="flecha-navegacion-texto">Peleador anterior</span></span>
+<span class="flecha-navegacion flecha-navegacion-der flecha-navegacion-inactiva" title="No hay otro peleador"><span class="flecha-navegacion-texto">Peleador siguiente</span></span>
+{% else %}
 <a href="{{ url_for('peleador_frontend.detalle', peleador_id=navegacion.anterior_id) }}" class="flecha-navegacion flecha-navegacion-izq" title="Peleador anterior"><span class="flecha-navegacion-texto">Peleador anterior</span></a>
-{% endif %}
-{% if navegacion.siguiente_id %}
 <a href="{{ url_for('peleador_frontend.detalle', peleador_id=navegacion.siguiente_id) }}" class="flecha-navegacion flecha-navegacion-der" title="Peleador siguiente"><span class="flecha-navegacion-texto">Peleador siguiente</span></a>
 {% endif %}
 <div class="page-head">

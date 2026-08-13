@@ -24,7 +24,7 @@
     <h2 class="ticket-nombre">Ranking general</h2>
     <a class="btn btn-ghost btn-chico" href="{{ url_for('torneo.exportar_imagen_tabla_general', excluir=excluidos_ids) }}">Exportar imagen</a>
   </div>
-  <table class="tabla-datos">
+  <table class="tabla-datos tabla-ranking">
     <thead>
       <tr><th>#</th><th>Mov.</th><th>Jugador</th><th>Puntos</th><th>Torneos</th><th>Pts. victoria</th><th>PJ</th><th>PG</th><th>PP</th><th>Win rate</th><th>Historial</th></tr>
     </thead>
@@ -45,7 +45,7 @@
             {% endif %}
           {% endif %}
         </td>
-        <td><a href="{{ url_for('jugador.detalle', jugador_id=f.jugador_id) }}">{{ f.nombre }}</a></td>
+        <td class="celda-jugador"><a href="{{ url_for('jugador.detalle', jugador_id=f.jugador_id) }}">{{ f.nombre }}</a></td>
         <td>{{ f.puntos }}</td>
         <td>{{ f.torneos_jugados }}</td>
         <td>{{ f.puntos_victoria }}</td>
