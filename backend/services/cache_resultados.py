@@ -1,5 +1,6 @@
 import threading
 import time
+import traceback
 
 # Cuánto vive un resultado cacheado si NADIE cambia nada. La invalidación
 # real ocurre apenas hay cualquier escritura (ver el gancho en app.py).
@@ -58,25 +59,27 @@ def _recalentar_todo():
     app = _app_para_recalentar["app"]
     if app is None:
         return
-    from services import (
-        estadisticas_generales_service, tabla_general_service,
-        torneo_service, jugador_service, peleador_service,
-    )
-    funciones = {
-        "config-general":         estadisticas_generales_service.obtener_config_general,
-        "listado-torneos":        torneo_service.listar_torneos,
-        "listado-jugadores":      jugador_service.listar_jugadores,
-        "listado-peleadores":     peleador_service.listar_peleadores,
-        "tabla-general:[]":       tabla_general_service.calcular_tabla_general,
-        "estadisticas-generales": estadisticas_generales_service.obtener_estadisticas_generales,
-    }
+    # Todo adentro del try, imports incluidos -- ver el comentario largo
+    # en _run(): un import que falle acá afuera mata el hilo en silencio.
     try:
+        from services import (
+            estadisticas_generales_service, tabla_general_service,
+            torneo_service, jugador_service, peleador_service,
+        )
+        funciones = {
+            "config-general":         estadisticas_generales_service.obtener_config_general,
+            "listado-torneos":        torneo_service.listar_torneos,
+            "listado-jugadores":      jugador_service.listar_jugadores,
+            "listado-peleadores":     peleador_service.listar_peleadores,
+            "tabla-general:[]":       tabla_general_service.calcular_tabla_general,
+            "estadisticas-generales": estadisticas_generales_service.obtener_estadisticas_generales,
+        }
         with app.app_context():
             for _nombre, clave in _PASOS:
                 obtener(clave, funciones[clave])
             _calentar_perfiles_en_segundo_plano()
     except Exception:
-        pass
+        traceback.print_exc()
 
 
 def estado_warmup():
@@ -114,19 +117,24 @@ def calentar(app):
         })
 
     def _run():
-        from services import (
-            estadisticas_generales_service, tabla_general_service,
-            torneo_service, jugador_service, peleador_service,
-        )
-        funciones = {
-            "config-general":         estadisticas_generales_service.obtener_config_general,
-            "listado-torneos":        torneo_service.listar_torneos,
-            "listado-jugadores":      jugador_service.listar_jugadores,
-            "listado-peleadores":     peleador_service.listar_peleadores,
-            "tabla-general:[]":       tabla_general_service.calcular_tabla_general,
-            "estadisticas-generales": estadisticas_generales_service.obtener_estadisticas_generales,
-        }
+        # TODO adentro del try, imports incluidos: si algo falla acá afuera
+        # (por ejemplo un import circular), el hilo muere en silencio y el
+        # estado queda congelado en "Conectando..." para siempre -- y como
+        # la pantalla de carga espera a "completado", todos se quedan
+        # trabados en 0% sin ningún mensaje ni error visible.
         try:
+            from services import (
+                estadisticas_generales_service, tabla_general_service,
+                torneo_service, jugador_service, peleador_service,
+            )
+            funciones = {
+                "config-general":         estadisticas_generales_service.obtener_config_general,
+                "listado-torneos":        torneo_service.listar_torneos,
+                "listado-jugadores":      jugador_service.listar_jugadores,
+                "listado-peleadores":     peleador_service.listar_peleadores,
+                "tabla-general:[]":       tabla_general_service.calcular_tabla_general,
+                "estadisticas-generales": estadisticas_generales_service.obtener_estadisticas_generales,
+            }
             with app.app_context():
                 for nombre, clave in _PASOS:
                     with _lock:
@@ -149,8 +157,10 @@ def calentar(app):
             # completado igual: es preferible dejar entrar a la app y que
             # muestre el error real, antes que dejar al usuario trabado
             # para siempre en la pantalla de carga.
+            traceback.print_exc()  # que el error quede en los logs del servidor
             with _lock:
                 _estado_warmup["error"] = str(e)
+                _estado_warmup["paso_actual"] = "Listo"
                 _estado_warmup["completado"] = True
 
     threading.Thread(target=_run, daemon=True).start()
@@ -175,13 +185,14 @@ def _calentar_perfiles_en_segundo_plano():
     sienta fluida, a calentar rápido pero trabando lo que el usuario está
     mirando ahora.
     """
-    from repositories import jugador_repository, peleador_repository
-    from services import estadisticas_service, estadisticas_peleador_service
-
     try:
+        from repositories import jugador_repository, peleador_repository
+        from services import estadisticas_service, estadisticas_peleador_service
+
         jugadores = jugador_repository.obtener_todos()
         peleadores = peleador_repository.obtener_todos()
     except Exception:
+        traceback.print_exc()
         return
 
     with _lock:
