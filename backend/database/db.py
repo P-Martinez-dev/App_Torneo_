@@ -69,6 +69,10 @@ def _config():
         # 404. Con FOUND_ROWS informa cuántas COINCIDIERON, que es lo que
         # el código realmente quiere preguntar. No afecta a DELETE.
         "client_flags": [ClientFlag.FOUND_ROWS],
+        # Sin esto, una conexión bloqueada por firewall se cuelga para
+        # siempre en silencio, sin error ni timeout -- que es exactamente
+        # lo que dejaba el warmup congelado en 0% sin ninguna pista.
+        "connection_timeout": 15,
     }
 
 
