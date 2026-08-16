@@ -30,10 +30,10 @@
 <section class="detalle-seccion">
   <h2 class="ticket-nombre">Tabla</h2>
   <table class="tabla-datos">
-    <thead><tr><th>Puesto</th><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Pts</th></tr></thead>
+    <thead><tr><th>#</th><th></th><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Win rate</th><th>Pts</th></tr></thead>
     <tbody>
     {% for f in resumen.tabla %}
-      <tr><td>{{ f.puesto }}</td><td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td><td>{{ f.puntos }}</td></tr>
+      <tr><td>{{ f.puesto }}</td><td class="celda-emoji">{{ f.emoji }}</td><td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td><td>{{ (f.win_rate * 100) | round(1) }}%</td><td>{{ f.puntos }}</td></tr>
     {% endfor %}
     </tbody>
   </table>
@@ -44,10 +44,10 @@
 <section class="detalle-seccion">
   <h2 class="ticket-nombre">Tabla</h2>
   <table class="tabla-datos">
-    <thead><tr><th>Puesto</th><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th></tr></thead>
+    <thead><tr><th>#</th><th></th><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Win rate</th></tr></thead>
     <tbody>
     {% for f in resumen.tabla %}
-      <tr><td>{{ f.puesto }}</td><td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td></tr>
+      <tr><td>{{ f.puesto }}</td><td class="celda-emoji">{{ f.emoji }}</td><td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td><td>{{ (f.win_rate * 100) | round(1) }}%</td></tr>
     {% endfor %}
     </tbody>
   </table>
@@ -63,12 +63,13 @@
   <h2 class="ticket-nombre">Tabla</h2>
   <table class="tabla-datos">
     <thead>
-      <tr><th>Puesto</th><th>Jugador</th><th>Puntos racha</th><th>Momento de eliminación</th></tr>
+      <tr><th>#</th><th></th><th>Jugador</th><th>Puntos racha</th><th>Momento de eliminación</th></tr>
     </thead>
     <tbody>
     {% for f in resumen.tabla %}
       <tr>
         <td>{{ f.puesto }}</td>
+        <td class="celda-emoji">{{ f.emoji }}</td>
         <td>{{ f.nombre }}</td>
         <td>{{ f.puntos_racha }}</td>
         <td>{% if f.eliminado %}{{ f.orden_eliminacion }}° en caer{% else %}Nunca eliminado (campeón){% endif %}</td>
@@ -143,10 +144,10 @@
       {{ g.nombre }} <span class="ticket-stamp stamp-{{ g.tipo }}">{{ g.tipo }}</span>
     </h3>
     <table class="tabla-datos">
-      <thead><tr><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Pts</th></tr></thead>
+      <thead><tr><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Win rate</th><th>Pts</th></tr></thead>
       <tbody>
       {% for f in g.tabla %}
-        <tr><td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td><td>{{ f.puntos }}</td></tr>
+        <tr><td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td><td>{{ (f.win_rate * 100) | round(1) }}%</td><td>{{ f.puntos }}</td></tr>
       {% endfor %}
       </tbody>
     </table>

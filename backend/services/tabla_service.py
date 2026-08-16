@@ -87,6 +87,14 @@ def calcular_tabla_cinco_vidas(torneo_id, vidas_prefetch=None, partidos_prefetch
         }
         for f in filas
     ]
+    # Solo el emoji, que es cosmético. El ORDEN de este modo lo define el
+    # puesto que sale de la fórmula (80% racha² + 20% posición final) y no
+    # se toca: acá el win rate no ordena ni desempata, porque el mérito se
+    # mide por las rachas, no por la proporción de partidos ganados.
+    from services import tabla_general_service
+    for f in tabla:
+        f["emoji"] = tabla_general_service.emoji_por_puesto(f["puesto"]) if f["puesto"] else ""
+
     tabla.sort(key=lambda f: f["puesto"])
     return tabla
 
@@ -182,7 +190,12 @@ def calcular_tabla_grupo(grupo_id, partidos_excluidos_ids=None):
             tabla[perdedor_tj]["pj"] += 1
             tabla[perdedor_tj]["pp"] += 1
 
-    return sorted(tabla.values(), key=lambda f: f["puntos"], reverse=True)
+    for f in tabla.values():
+        f["win_rate"] = round(f["pg"] / f["pj"], 3) if f["pj"] else 0
+
+    # Sin emoji a propósito: acá el orden es DENTRO del grupo, no del torneo.
+    # Un 🥇 en la tabla de un grupo daría a entender que ganó el torneo.
+    return sorted(tabla.values(), key=lambda f: (-f["puntos"], -f["win_rate"]))
 
 
 def calcular_tabla_todos_contra_todos(torneo_id, partidos_excluidos_ids=None, jugadores_prefetch=None, partidos_prefetch=None):
@@ -228,6 +241,8 @@ def calcular_tabla_todos_contra_todos(torneo_id, partidos_excluidos_ids=None, ju
         tabla[perdedor_tj]["pj"] += 1
         tabla[perdedor_tj]["pp"] += 1
 
+    from services import tabla_general_service
+
     filas = sorted(tabla.values(), key=lambda f: f["puntos"], reverse=True)
 
     # Puesto denso, el mismo criterio que en el resto del proyecto: los que
@@ -240,7 +255,12 @@ def calcular_tabla_todos_contra_todos(torneo_id, partidos_excluidos_ids=None, ju
             puesto_actual += 1
             puntos_anteriores = fila["puntos"]
         fila["puesto"] = puesto_actual
+        fila["win_rate"] = round(fila["pg"] / fila["pj"], 3) if fila["pj"] else 0
+        fila["emoji"] = tabla_general_service.emoji_por_puesto(puesto_actual)
 
+    # Dentro de un mismo puesto (mismos puntos), primero el de mejor win
+    # rate. No cambia las posiciones -- solo ordena a los empatados.
+    filas.sort(key=lambda f: (f["puesto"], -f["win_rate"]))
     return filas
 
 
@@ -360,6 +380,10 @@ def calcular_tabla_grupos_eliminacion(torneo_id):
             filas[perdedor_id]["pj"] += 1
             filas[perdedor_id]["pp"] += 1
 
+    for f in filas.values():
+        f["win_rate"] = round(f["pg"] / f["pj"], 3) if f["pj"] else 0
+        f["emoji"] = tabla_general_service.emoji_por_puesto(f["puesto"]) if f["puesto"] else ""
+
     # Por puesto, y entre los que comparten puesto (los eliminados en la
-    # misma instancia), primero el que más ganó.
-    return sorted(filas.values(), key=lambda f: (f["puesto"] or 99, -f["pg"], f["nombre"]))
+    # misma instancia), primero el de mejor win rate.
+    return sorted(filas.values(), key=lambda f: (f["puesto"] or 99, -f["win_rate"], f["nombre"]))

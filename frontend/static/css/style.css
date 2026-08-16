@@ -773,6 +773,16 @@ input:focus, select:focus, .btn:focus, a:focus {
   transform-origin: top left;
 }
 
+
+/* Columna del emoji de puesto en las tablas de cada torneo: angosta y
+   centrada, para que no le robe espacio al nombre. */
+.celda-emoji {
+  width: 1.8em;
+  text-align: center;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 .tabla-datos {
   width: 100%;
   border-collapse: collapse;

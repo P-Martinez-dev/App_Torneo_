@@ -11,8 +11,15 @@ def _puntos_por_puesto(puesto):
     return PUNTOS_POR_PUESTO.get(puesto, 1)
 
 
-def _emoji_por_puesto(puesto):
+def emoji_por_puesto(puesto):
+    """Pública a propósito: las tablas de cada torneo usan el mismo emoji
+    que las insignias del ranking general, así el 🥇 significa siempre lo
+    mismo en toda la app."""
     return EMOJI_POR_PUESTO.get(puesto, EMOJI_PARTICIPACION)
+
+
+def _emoji_por_puesto(puesto):
+    return emoji_por_puesto(puesto)
 
 
 # =========================================================
