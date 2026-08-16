@@ -175,7 +175,7 @@ def _describir_fase(partido):
         nombre = NOMBRES_RONDA_ELIMINACION.get(cantidad, f"Ronda de {cantidad * 2}")
         return f"Eliminación · {nombre}"
     if fase == "cinco_vidas":
-        return "Cinco vidas"
+        return "Rey de la cancha"
     if fase == "todos_contra_todos":
         return f"Todos contra todos · Jornada {partido['jornada']}"
     return fase

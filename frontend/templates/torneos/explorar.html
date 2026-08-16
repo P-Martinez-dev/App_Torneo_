@@ -20,7 +20,7 @@
   {% for t in torneos %}
   <a href="{{ url_for('torneo.detalle', torneo_id=t.id) }}" class="torneo-card" data-nombre="{{ t.nombre | lower }}">
     <div>
-      <p class="eyebrow">{{ t.modo.replace('_', ' ') }} · {{ t.fecha }}</p>
+      <p class="eyebrow">{{ t.modo | nombre_modo }} · {{ t.fecha }}</p>
       <p class="torneo-card-nombre">{{ t.nombre }}</p>
     </div>
     <span class="ticket-estado estado-{{ t.estado }}"><span class="estado-dot"></span>{{ t.estado.replace('_', ' ') }}</span>

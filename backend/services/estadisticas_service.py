@@ -201,8 +201,17 @@ def _stats_rivales(jugador_id, partidos, nombres=None):
     lista.sort(key=lambda f: -f["partidos_jugados"])
 
     candidatos_matchup = [f for f in lista if f["partidos_jugados"] >= RIVAL_MIN_PARTIDOS_PARA_MATCHUP]
+    # "Parejo" se mide por qué tan cerca del 50% está el win rate, NO por la
+    # diferencia bruta entre ganados y perdidos. Con la diferencia sola, un
+    # 0-3 (diferencia 3) le ganaba a un 4-6 (diferencia 2) y aparecía como
+    # el matchup más parejo, cuando 0-3 es todo lo contrario: es una paliza.
+    # Mirando el win rate, 0-3 da 0.0 (lejísimos del 50%) y 4-6 da 0.4 (cerca),
+    # que es lo que uno espera leer ahí.
+    # Ante igual cercanía al 50%, gana el que jugó más partidos: un 5-5 dice
+    # más de una rivalidad pareja que un 1-1.
     matchup_parejo = _todos_los_minimos(
-        candidatos_matchup, key=lambda f: abs(f["partidos_ganados"] - f["partidos_perdidos"])
+        candidatos_matchup,
+        key=lambda f: (abs(f["win_rate"] - 0.5), -f["partidos_jugados"]),
     )
     nemesis = _todos_los_minimos(candidatos_matchup, key=lambda f: f["win_rate"])
 

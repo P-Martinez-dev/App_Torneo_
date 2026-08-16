@@ -19,6 +19,20 @@ ANCHO = 1000
 MARGEN = 60
 
 
+# Los modos se guardan con su nombre técnico ('cinco_vidas'), que quedó de
+# cuando el formato se llamaba así. Acá se traduce al nombre visible, igual
+# que hace el filtro nombre_modo del frontend.
+NOMBRES_VISIBLES_MODO = {
+    "cinco_vidas": "Rey de la cancha",
+    "todos_contra_todos": "Todos contra todos",
+    "grupos_eliminacion": "Grupos + eliminación",
+}
+
+
+def _nombre_modo(valor):
+    return NOMBRES_VISIBLES_MODO.get(valor, (valor or "").replace("_", " "))
+
+
 def generar_imagen_tabla_general(excluidos_ids=None):
     """Exporta el RANKING GENERAL tal como está en pantalla en ese
     momento -- respeta los torneos tildados para excluir, no siempre
@@ -164,7 +178,7 @@ def generar_imagen_resumen(torneo_id):
     Sigue el mismo criterio visual que la imagen del ranking general:
     encabezado con el nombre del club, columnas con encabezado, bandas
     alternadas por fila y el campeón en rojo. Las columnas cambian según
-    el modo, porque cada uno mide cosas distintas (en cinco vidas no hay
+    el modo, porque cada uno mide cosas distintas (en rey de la cancha no hay
     win rate, por ejemplo: ahí lo que vale son las rachas).
     """
     resumen = torneo_service.obtener_resumen(torneo_id)
@@ -209,7 +223,7 @@ def generar_imagen_resumen(torneo_id):
     draw.line([(margen, y), (ancho - margen, y)], fill=COLOR_TINTA, width=3)
     y += 40
 
-    draw.text((margen, y), f"{modo.replace('_', ' ').upper()} · {torneo['fecha']}",
+    draw.text((margen, y), f"{_nombre_modo(modo).upper()} · {torneo['fecha']}",
               font=_fuente_mono(17, medium=True), fill=COLOR_STAMP)
     y += 45
 
@@ -295,7 +309,7 @@ def _imagen_solo_podio(resumen, torneo):
     y += 55
     draw.line([(margen, y), (ancho - margen, y)], fill=COLOR_TINTA, width=3)
     y += 40
-    draw.text((margen, y), f"{torneo['modo'].replace('_', ' ').upper()} · {torneo['fecha']}",
+    draw.text((margen, y), f"{_nombre_modo(torneo['modo']).upper()} · {torneo['fecha']}",
               font=_fuente_mono(18, medium=True), fill=COLOR_STAMP)
     y += 45
     y = _dibujar_texto_envuelto(draw, torneo["nombre"].upper(), margen, y, ancho - margen * 2,

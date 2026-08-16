@@ -18,7 +18,7 @@
   <tbody>
   {% for p in partidos %}
     <tr>
-      <td>{{ p.fase.replace('_', ' ') }}{% if p.jornada %} · J{{ p.jornada }}{% endif %}{% if p.ronda %} · R{{ p.ronda }}{% endif %}</td>
+      <td>{{ p.fase | nombre_modo }}{% if p.jornada %} · J{{ p.jornada }}{% endif %}{% if p.ronda %} · R{{ p.ronda }}{% endif %}</td>
       <td>{{ p.nombre1 }} vs {{ p.nombre2 }}</td>
       <td>{{ p.nombre_ganador or '--' }}</td>
       <td class="ticket-estado estado-{{ p.estado }}"><span class="estado-dot"></span>{{ p.estado.replace('_', ' ') }}</td>

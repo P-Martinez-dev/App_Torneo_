@@ -61,7 +61,7 @@ Si hay empates en la clasificación al corte, se resuelven con un desempate
 interno; si sobran o faltan clasificados para completar el bracket, entra
 un repechaje cruzado entre grupos.
 
-## Cinco vidas
+## Rey de la cancha
 
 Se juega en cola: el que gana se queda en cancha esperando al próximo
 desafiante, y el que pierde una vida vuelve al final de la cola. Cuando se

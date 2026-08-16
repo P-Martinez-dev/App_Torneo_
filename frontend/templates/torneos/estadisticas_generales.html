@@ -38,7 +38,7 @@
       {% if generales.cantidad_por_modo %}
       <tr>
         <td>Torneos por modo</td>
-        <td>{% for modo, cant in generales.cantidad_por_modo.items() %}{{ modo.replace('_',' ') }}: {{ cant }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
+        <td>{% for modo, cant in generales.cantidad_por_modo.items() %}{{ modo | nombre_modo }}: {{ cant }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
       </tr>
       {% endif %}
     </tbody>

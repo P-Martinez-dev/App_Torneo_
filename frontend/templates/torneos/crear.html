@@ -39,7 +39,7 @@
       <label for="modo">Modo</label>
       <select id="modo" name="modo" required>
         <option value="">Elegir...</option>
-        {% for valor, etiqueta in [('todos_contra_todos', 'Todos contra todos'), ('grupos_eliminacion', 'Grupos + eliminación'), ('cinco_vidas', 'Cinco vidas')] %}
+        {% for valor, etiqueta in [('todos_contra_todos', 'Todos contra todos'), ('grupos_eliminacion', 'Grupos + eliminación'), ('cinco_vidas', 'Rey de la cancha')] %}
         <option value="{{ valor }}" {% if form and form.get('modo') == valor %}selected{% endif %}>{{ etiqueta }}</option>
         {% endfor %}
       </select>

@@ -99,7 +99,7 @@
             {% endif %}
           </td>
           <td>{{ t.nombre }}</td>
-          <td>{{ t.modo.replace('_', ' ') }}</td>
+          <td>{{ t.modo | nombre_modo }}</td>
           <td>{{ t.fecha }}</td>
           <td class="ticket-estado estado-{{ t.estado }}"><span class="estado-dot"></span>{{ t.estado.replace('_', ' ') }}</td>
           <td><a class="btn btn-ghost btn-chico" href="{{ url_for('torneo.detalle', torneo_id=t.id) }}">Ver detalle</a></td>

@@ -10,7 +10,7 @@
 {% endif %}
 <div class="page-head">
   <div>
-    <p class="eyebrow">{{ resumen.torneo.modo.replace('_', ' ') }} · {{ resumen.torneo.fecha }}</p>
+    <p class="eyebrow">{{ resumen.torneo.modo | nombre_modo }} · {{ resumen.torneo.fecha }}</p>
     <h1 class="display-title">{{ resumen.torneo.nombre }}</h1>
     {% if resumen.torneo.descripcion %}
     <p class="empty-body">{{ resumen.torneo.descripcion }}</p>

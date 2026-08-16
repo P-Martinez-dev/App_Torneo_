@@ -93,10 +93,10 @@
         <tr><td>Cerrados (2-1) ganados / perdidos</td><td>{{ estadisticas.rounds.cerrados_ganados }} / {{ estadisticas.rounds.cerrados_perdidos }}</td></tr>
         {% endif %}
         {% if estadisticas.cinco_vidas.quien_te_elimino_mas %}
-        <tr><td>Quién más te eliminó (5 vidas)</td><td>{{ estadisticas.cinco_vidas.quien_te_elimino_mas | map(attribute='nombre') | join(', ') }}</td></tr>
+        <tr><td>Quién más te eliminó (rey de la cancha)</td><td>{{ estadisticas.cinco_vidas.quien_te_elimino_mas | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
         {% if estadisticas.cinco_vidas.a_quien_eliminaste_mas %}
-        <tr><td>A quién más eliminaste (5 vidas)</td><td>{{ estadisticas.cinco_vidas.a_quien_eliminaste_mas | map(attribute='nombre') | join(', ') }}</td></tr>
+        <tr><td>A quién más eliminaste (rey de la cancha)</td><td>{{ estadisticas.cinco_vidas.a_quien_eliminaste_mas | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
       </tbody>
     </table>
