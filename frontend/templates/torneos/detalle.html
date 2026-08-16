@@ -2,16 +2,10 @@
 {% block title %}{{ resumen.torneo.nombre }} · {{ nombre_club }}{% endblock %}
 
 {% block content %}
-{# La navegación es cíclica, así que casi siempre hay adónde ir. La
-   excepción es cuando hay UNO SOLO: ahí la flecha apuntaría a sí mismo,
-   y en vez de eso se muestra apagada, para que la pantalla no cambie de
-   forma según cuántos haya. #}
-{% set solo_uno = navegacion.anterior_id is none or navegacion.anterior_id == torneo_id %}
-{% if solo_uno %}
-<span class="flecha-navegacion flecha-navegacion-izq flecha-navegacion-inactiva" title="No hay otro torneo"><span class="flecha-navegacion-texto">Torneo anterior</span></span>
-<span class="flecha-navegacion flecha-navegacion-der flecha-navegacion-inactiva" title="No hay otro torneo"><span class="flecha-navegacion-texto">Torneo siguiente</span></span>
-{% else %}
+{% if navegacion.anterior_id %}
 <a href="{{ url_for('torneo.detalle', torneo_id=navegacion.anterior_id) }}" class="flecha-navegacion flecha-navegacion-izq" title="Torneo anterior"><span class="flecha-navegacion-texto">Torneo anterior</span></a>
+{% endif %}
+{% if navegacion.siguiente_id %}
 <a href="{{ url_for('torneo.detalle', torneo_id=navegacion.siguiente_id) }}" class="flecha-navegacion flecha-navegacion-der" title="Torneo siguiente"><span class="flecha-navegacion-texto">Torneo siguiente</span></a>
 {% endif %}
 <div class="page-head">
@@ -29,14 +23,38 @@
   </div>
 </div>
 
-{% if resumen.podio %}
+{# Primero la TABLA: es lo que se viene a ver al abrir un torneo.
+   Antes arrancaba con un 'Podio' aparte, que se sacó porque repetía
+   lo mismo que la tabla ya muestra con su columna de puesto. #}
+{% if resumen.torneo.modo == 'todos_contra_todos' %}
 <section class="detalle-seccion">
-  <h2 class="ticket-nombre">Podio</h2>
+  <h2 class="ticket-nombre">Tabla</h2>
   <table class="tabla-datos">
-    <thead><tr><th>Puesto</th><th>Jugador</th></tr></thead>
+    <thead><tr><th>Puesto</th><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Pts</th></tr></thead>
     <tbody>
-    {% for fila in resumen.podio %}
-      <tr><td>{{ fila.puesto }}</td><td>{{ fila.nombre }}</td></tr>
+    {% for f in resumen.tabla %}
+      <tr><td>{{ f.puesto }}</td><td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td><td>{{ f.puntos }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if resumen.torneo.modo == 'cinco_vidas' %}
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Tabla</h2>
+  <table class="tabla-datos">
+    <thead>
+      <tr><th>Puesto</th><th>Jugador</th><th>Puntos racha</th><th>Momento de eliminación</th></tr>
+    </thead>
+    <tbody>
+    {% for f in resumen.tabla %}
+      <tr>
+        <td>{{ f.puesto }}</td>
+        <td>{{ f.nombre }}</td>
+        <td>{{ f.puntos_racha }}</td>
+        <td>{% if f.eliminado %}{{ f.orden_eliminacion }}° en caer{% else %}Nunca eliminado (campeón){% endif %}</td>
+      </tr>
     {% endfor %}
     </tbody>
   </table>
@@ -85,18 +103,6 @@
 </section>
 
 {% if resumen.torneo.modo == 'todos_contra_todos' %}
-<section class="detalle-seccion">
-  <h2 class="ticket-nombre">Tabla</h2>
-  <table class="tabla-datos">
-    <thead><tr><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Pts</th></tr></thead>
-    <tbody>
-    {% for f in resumen.tabla %}
-      <tr><td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td><td>{{ f.puntos }}</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
-</section>
-
 <section class="detalle-seccion">
   <h2 class="ticket-nombre">Partidos por jornada</h2>
   {% for jornada, partidos in resumen.partidos | groupby('jornada') %}
@@ -154,26 +160,6 @@
 {% endif %}
 {% endif %}
 
-{% if resumen.torneo.modo == 'cinco_vidas' %}
-<section class="detalle-seccion">
-  <h2 class="ticket-nombre">Tabla</h2>
-  <table class="tabla-datos">
-    <thead>
-      <tr><th>Puesto</th><th>Jugador</th><th>Puntos racha</th><th>Momento de eliminación</th></tr>
-    </thead>
-    <tbody>
-    {% for f in resumen.tabla %}
-      <tr>
-        <td>{{ f.puesto }}</td>
-        <td>{{ f.nombre }}</td>
-        <td>{{ f.puntos_racha }}</td>
-        <td>{% if f.eliminado %}{{ f.orden_eliminacion }}° en caer{% else %}Nunca eliminado (campeón){% endif %}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-</section>
-
 <section class="detalle-seccion">
   <h2 class="ticket-nombre">Orden cronológico</h2>
   <ol class="lista-partidos lista-partidos-numerada">
@@ -182,5 +168,4 @@
     {% endfor %}
   </ol>
 </section>
-{% endif %}
 {% endblock %}

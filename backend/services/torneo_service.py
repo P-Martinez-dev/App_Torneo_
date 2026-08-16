@@ -158,24 +158,26 @@ NOMBRES_RONDA = {1: "Final", 2: "Semifinal", 4: "Cuartos de final", 8: "Octavos 
 
 
 def obtener_navegacion(torneo_id: int) -> dict:
-    """IDs del torneo anterior y siguiente, en el mismo orden que se
-    listan en Tablas (fecha DESC) -- para las flechas de 'anterior/
-    siguiente' del detalle, sin tener que volver al listado y elegir a
-    mano."""
+    """IDs del torneo anterior y siguiente EN EL TIEMPO, para las flechas
+    del detalle.
+
+    Ojo con el orden: el listado viene de más reciente a más viejo, así que
+    moverse "hacia adelante" en esa lista es ir hacia ATRÁS en el tiempo.
+    Como las flechas dicen "torneo anterior/siguiente", acá se invierte para
+    que signifiquen lo que dicen: siguiente = el torneo que vino después.
+
+    Es CÍCLICA: desde el más nuevo, "siguiente" vuelve al más viejo, y
+    viceversa. Así nunca falta una flecha."""
     todos = torneo_repository.obtener_todos()
     ids = [t.id for t in todos]
     if torneo_id not in ids:
         return {"anterior_id": None, "siguiente_id": None}
     idx = ids.index(torneo_id)
     return {
-        # Navegación CÍCLICA: desde el primero, "anterior" lleva al último,
-        # y desde el último "siguiente" vuelve al primero. Así nunca falta
-        # una flecha y se puede recorrer todo dando la vuelta, sin tener
-        # que volver al listado al llegar a una punta.
-        # (ids[-1] ya es el último por cómo indexa Python, y el módulo se
-        # encarga de volver al principio.)
-        "anterior_id": ids[idx - 1],
-        "siguiente_id": ids[(idx + 1) % len(ids)],
+        # +1 en la lista (más abajo) = más viejo = el torneo ANTERIOR
+        "anterior_id": ids[(idx + 1) % len(ids)],
+        # -1 en la lista (más arriba) = más nuevo = el torneo SIGUIENTE
+        "siguiente_id": ids[idx - 1],
     }
 
 

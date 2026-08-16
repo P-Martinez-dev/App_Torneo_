@@ -228,7 +228,20 @@ def calcular_tabla_todos_contra_todos(torneo_id, partidos_excluidos_ids=None, ju
         tabla[perdedor_tj]["pj"] += 1
         tabla[perdedor_tj]["pp"] += 1
 
-    return sorted(tabla.values(), key=lambda f: f["puntos"], reverse=True)
+    filas = sorted(tabla.values(), key=lambda f: f["puntos"], reverse=True)
+
+    # Puesto denso, el mismo criterio que en el resto del proyecto: los que
+    # empatan en puntos comparten puesto, y el siguiente grupo pasa al
+    # número que sigue sin saltear (1,1,1,2 y no 1,1,1,4).
+    puesto_actual = 0
+    puntos_anteriores = None
+    for fila in filas:
+        if fila["puntos"] != puntos_anteriores:
+            puesto_actual += 1
+            puntos_anteriores = fila["puntos"]
+        fila["puesto"] = puesto_actual
+
+    return filas
 
 
 def _posicion_resuelta_en_grupo_origen(grupo_origen_id, jugador_id, tabla_origen):
