@@ -40,6 +40,24 @@
 </section>
 {% endif %}
 
+{% if resumen.torneo.modo == 'grupos_eliminacion' and resumen.tabla %}
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Tabla</h2>
+  <table class="tabla-datos">
+    <thead><tr><th>Puesto</th><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th></tr></thead>
+    <tbody>
+    {% for f in resumen.tabla %}
+      <tr><td>{{ f.puesto }}</td><td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="tabla-datos-nota">
+    El puesto sale de hasta dónde llegó cada uno en la eliminación. Los que
+    cayeron en la misma instancia comparten posición.
+  </p>
+</section>
+{% endif %}
+
 {% if resumen.torneo.modo == 'cinco_vidas' %}
 <section class="detalle-seccion">
   <h2 class="ticket-nombre">Tabla</h2>

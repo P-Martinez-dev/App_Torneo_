@@ -1,4 +1,4 @@
-from repositories import partido_repository, torneo_jugador_repository, grupo_repository, jugador_repository
+from repositories import partido_repository, torneo_jugador_repository, grupo_repository, jugador_repository, torneo_repository
 
 
 def calcular_tabla_cinco_vidas(torneo_id, vidas_prefetch=None, partidos_prefetch=None, nombres_prefetch=None):
@@ -313,3 +313,53 @@ def contexto_repechaje(torneo_id, grupo_repechaje_id):
         })
 
     return contexto
+
+def calcular_tabla_grupos_eliminacion(torneo_id):
+    """
+    Tabla general de un torneo de grupos + eliminación: la posición final
+    de TODOS los participantes, no solo del podio.
+
+    El puesto no sale de sumar puntos como en los otros modos, sino de
+    hasta dónde llegó cada uno en la eliminación (campeón, finalista,
+    tercero, cuarto, cuartos, y el resto). Esa lógica ya existe y es la
+    que usa la tabla histórica para repartir puntos, así que se reutiliza
+    tal cual -- si se recalculara acá con otro criterio, la tabla del
+    torneo y el ranking general podrían llegar a contradecirse.
+
+    A cada jugador se le suman además sus partidos del torneo (todas las
+    fases), para que la tabla diga algo más que el puesto.
+    """
+    from services import tabla_general_service
+
+    torneo = torneo_repository.obtener_por_id(torneo_id)
+    if torneo is None:
+        return []
+
+    puestos = tabla_general_service.calcular_puestos(torneo)
+    jugadores = torneo_jugador_repository.obtener_jugadores_de_torneo(torneo_id)
+    partidos = partido_repository.obtener_por_torneo(torneo_id)
+
+    filas = {
+        j["jugador_id"]: {
+            "jugador_id": j["jugador_id"],
+            "nombre": j["nombre"],
+            "puesto": puestos.get(j["jugador_id"]),
+            "pj": 0, "pg": 0, "pp": 0,
+        }
+        for j in jugadores
+    }
+
+    for p in partidos:
+        if p.estado != "finalizado" or p.ganador_id is None:
+            continue
+        perdedor_id = p.jugador2_id if p.ganador_id == p.jugador1_id else p.jugador1_id
+        if p.ganador_id in filas:
+            filas[p.ganador_id]["pj"] += 1
+            filas[p.ganador_id]["pg"] += 1
+        if perdedor_id in filas:
+            filas[perdedor_id]["pj"] += 1
+            filas[perdedor_id]["pp"] += 1
+
+    # Por puesto, y entre los que comparten puesto (los eliminados en la
+    # misma instancia), primero el que más ganó.
+    return sorted(filas.values(), key=lambda f: (f["puesto"] or 99, -f["pg"], f["nombre"]))

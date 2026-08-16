@@ -216,7 +216,17 @@ def obtener_resumen(torneo_id: int) -> dict:
             }
             for g in grupos
         ]
+        # Tabla general del torneo: la posición final de todos, no solo de
+        # los que entraron al podio. Los otros modos ya la tenían; este se
+        # quedaba solo con las tablas por grupo, que no dicen cómo terminó
+        # el torneo en conjunto.
+        resumen["tabla"] = tabla_service.calcular_tabla_grupos_eliminacion(torneo_id)
         resumen["bracket"] = _armar_bracket(partidos, con_nombres)
+        # La lista completa en orden, igual que en los otros modos: los
+        # partidos ya están arriba repartidos por grupo y por ronda, pero
+        # sin esto la sección "Orden cronológico" del detalle quedaba vacía
+        # justamente en el modo que MÁS partidos tiene.
+        resumen["partidos"] = [con_nombres(p) for p in partidos]
 
     if torneo.estado == "finalizado":
         resumen["podio"] = _resumen_podio(torneo, nombres)
