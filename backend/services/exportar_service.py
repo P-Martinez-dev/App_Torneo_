@@ -157,72 +157,172 @@ def _dibujar_triangulo(draw, x, y, arriba, color):
 
 
 def generar_imagen_resumen(torneo_id):
-    """Genera una imagen PNG (en memoria, sin tocar disco) con el resumen
-    de un torneo -- pensada para compartir el podio/resultado en un chat,
-    sin mandar un link a la app. Devuelve un BytesIO listo para servir."""
+    """Genera una imagen PNG (en memoria, sin tocar disco) con la tabla de
+    un torneo -- pensada para compartir el resultado en un chat, sin mandar
+    un link. Devuelve un BytesIO listo para servir.
+
+    Sigue el mismo criterio visual que la imagen del ranking general:
+    encabezado con el nombre del club, columnas con encabezado, bandas
+    alternadas por fila y el campeón en rojo. Las columnas cambian según
+    el modo, porque cada uno mide cosas distintas (en cinco vidas no hay
+    win rate, por ejemplo: ahí lo que vale son las rachas).
+    """
     resumen = torneo_service.obtener_resumen(torneo_id)
     torneo = resumen["torneo"]
     tabla = resumen.get("tabla") or []
-    # En grupos+eliminación no hay una tabla general del torneo (cada grupo
-    # tiene la suya), así que ahí se sigue usando el podio, que es la única
-    # forma de mostrar el resultado final en una sola lista.
-    podio = resumen.get("podio") or []
-    filas = tabla if tabla else podio
+    modo = torneo["modo"]
 
-    alto_estimado = 500 + len(filas) * 80 + 200
-    img = Image.new("RGB", (ANCHO, alto_estimado), COLOR_PAPEL)
+    # Si no hay tabla (torneo sin terminar, o un modo sin tabla general),
+    # se cae al podio para no devolver una imagen vacía.
+    if not tabla:
+        return _imagen_solo_podio(resumen, torneo)
+
+    ancho = 1200
+    margen = 50
+    alto_fila = 54
+
+    if modo == "cinco_vidas":
+        columnas = [("#", margen, 45), ("", margen + 45, 45),
+                    ("JUGADOR", margen + 90, 300),
+                    ("PTS RACHA", margen + 390, 130),
+                    ("ELIMINACION", margen + 520, 300)]
+    elif modo == "grupos_eliminacion":
+        columnas = [("#", margen, 45), ("", margen + 45, 45),
+                    ("JUGADOR", margen + 90, 300),
+                    ("PJ", margen + 390, 70), ("PG", margen + 460, 70),
+                    ("PP", margen + 530, 70), ("WR", margen + 600, 90)]
+    else:  # todos_contra_todos
+        columnas = [("#", margen, 45), ("", margen + 45, 45),
+                    ("JUGADOR", margen + 90, 300),
+                    ("PJ", margen + 390, 70), ("PG", margen + 460, 70),
+                    ("PP", margen + 530, 70), ("WR", margen + 600, 90),
+                    ("PTS", margen + 690, 70)]
+
+    alto = 320 + len(tabla) * alto_fila + 110
+    img = Image.new("RGB", (ancho, alto), COLOR_PAPEL)
     draw = ImageDraw.Draw(img)
 
     y = 50
-    draw.text((MARGEN, y), estadisticas_generales_service.obtener_nombre_club().upper(), font=_fuente_mono(22, medium=True), fill=COLOR_TINTA)
+    draw.text((margen, y), estadisticas_generales_service.obtener_nombre_club().upper(),
+              font=_fuente_mono(24, medium=True), fill=COLOR_TINTA)
     y += 55
-
-    draw.line([(MARGEN, y), (ANCHO - MARGEN, y)], fill=COLOR_TINTA, width=3)
+    draw.line([(margen, y), (ancho - margen, y)], fill=COLOR_TINTA, width=3)
     y += 40
 
-    eyebrow = f"{torneo['modo'].replace('_', ' ').upper()} · {torneo['fecha']}"
-    draw.text((MARGEN, y), eyebrow, font=_fuente_mono(18, medium=True), fill=COLOR_SELLO)
+    draw.text((margen, y), f"{modo.replace('_', ' ').upper()} · {torneo['fecha']}",
+              font=_fuente_mono(17, medium=True), fill=COLOR_STAMP)
     y += 45
 
-    y = _dibujar_texto_envuelto(draw, torneo["nombre"].upper(), MARGEN, y, ANCHO - MARGEN * 2, _fuente_display(60, 800), COLOR_TINTA, alto_linea=68)
-    y += 20
+    y = _dibujar_texto_envuelto(draw, torneo["nombre"].upper(), margen, y, ancho - margen * 2,
+                                _fuente_display(56, 800), COLOR_TINTA, alto_linea=64)
+    y += 10
 
     if torneo.get("descripcion"):
-        y = _dibujar_texto_envuelto(draw, torneo["descripcion"], MARGEN, y, ANCHO - MARGEN * 2, _fuente_mono(16), COLOR_GRAFITO)
-        y += 15
+        y = _dibujar_texto_envuelto(draw, torneo["descripcion"], margen, y, ancho - margen * 2,
+                                    _fuente_mono(15), COLOR_GRAFITO)
+    y += 30
+
+    fuente_header = _fuente_mono(13, medium=True)
+    for etiqueta, x, _ in columnas:
+        if etiqueta:
+            draw.text((x, y), etiqueta, font=fuente_header, fill=COLOR_GRAFITO)
+    y += 26
+    draw.line([(margen, y), (ancho - margen, y)], fill=COLOR_TINTA, width=2)
+    y += 6
+
+    fuente_fila = _fuente_mono(16)
+    fuente_fila_medium = _fuente_mono(16, medium=True)
+    fuente_emoji_fila = _fuente_emoji(22)
+
+    for i, fila in enumerate(tabla):
+        y_inicio = y
+        if i % 2 == 1:
+            draw.rectangle([(margen - 10, y), (ancho - margen + 10, y + alto_fila)], fill=COLOR_CARD)
+
+        y_centro = y + alto_fila // 2 - 10
+        es_campeon = fila.get("puesto") == 1
+        color = COLOR_STAMP if es_campeon else COLOR_TINTA
+
+        col = {e: x for e, x, _ in columnas}
+
+        draw.text((col["#"], y_centro), str(fila.get("puesto") or "-"), font=fuente_fila_medium, fill=color)
+        if fila.get("emoji"):
+            draw.text((col[""], y_centro - 2), fila["emoji"], font=fuente_emoji_fila, fill=COLOR_TINTA)
+        draw.text((col["JUGADOR"], y_centro), fila["nombre"], font=fuente_fila_medium, fill=color)
+
+        if modo == "cinco_vidas":
+            draw.text((col["PTS RACHA"], y_centro), str(fila.get("puntos_racha", 0)),
+                      font=fuente_fila, fill=COLOR_MARCADOR)
+            texto = (f"{fila['orden_eliminacion']}° en caer" if fila.get("eliminado")
+                     else "Nunca eliminado")
+            draw.text((col["ELIMINACION"], y_centro), texto, font=fuente_fila, fill=COLOR_GRAFITO)
+        else:
+            draw.text((col["PJ"], y_centro), str(fila.get("pj", 0)), font=fuente_fila, fill=COLOR_GRAFITO)
+            draw.text((col["PG"], y_centro), str(fila.get("pg", 0)), font=fuente_fila, fill=COLOR_MARCADOR)
+            draw.text((col["PP"], y_centro), str(fila.get("pp", 0)), font=fuente_fila, fill=COLOR_STAMP)
+            draw.text((col["WR"], y_centro), f"{round(fila.get('win_rate', 0) * 100)}%",
+                      font=fuente_fila, fill=COLOR_TINTA)
+            if "PTS" in col:
+                draw.text((col["PTS"], y_centro), str(fila.get("puntos", 0)),
+                          font=fuente_fila_medium, fill=COLOR_TINTA)
+
+        y = y_inicio + alto_fila
 
     y += 15
-    _dibujar_linea_punteada(draw, MARGEN, y, ANCHO - MARGEN)
-    y += 40
-
-    if filas:
-        # Se muestra la TABLA completa del torneo, no solo el podio: es lo
-        # mismo que se ve al abrir el torneo en la app, así la imagen que se
-        # comparte y la pantalla cuentan la misma historia.
-        titulo = "TABLA" if tabla else "PODIO"
-        draw.text((MARGEN, y), titulo, font=_fuente_mono(20, medium=True), fill=COLOR_TINTA)
-        y += 55
-        for fila in filas:
-            puesto = fila.get("puesto")
-            # Los tres primeros van grandes y el resto más chico: en un
-            # torneo de 10+ jugadores, todos al mismo tamaño haría una
-            # imagen larguísima y sin jerarquía.
-            destacado = puesto is not None and puesto <= 3
-            etiqueta = f"{puesto}°" if puesto is not None else "—"
-            color = COLOR_SELLO if puesto == 1 else COLOR_TINTA
-            tamano = 46 if destacado else 28
-            peso = 800 if destacado else 500
-            draw.text((MARGEN, y), f"{etiqueta}  {fila['nombre']}", font=_fuente_display(tamano, peso), fill=color)
-            y += tamano + 22
-
-    y += 15
-    _dibujar_linea_punteada(draw, MARGEN, y, ANCHO - MARGEN)
+    _dibujar_linea_punteada(draw, margen, y, ancho - margen)
     y += 25
-    draw.text((MARGEN, y), f"Generado con {estadisticas_generales_service.obtener_nombre_club()}", font=_fuente_mono(14), fill=COLOR_GRAFITO)
+    draw.text((margen, y), f"Generado con {estadisticas_generales_service.obtener_nombre_club()}",
+              font=_fuente_mono(14), fill=COLOR_GRAFITO)
     y += 40
 
     buffer = io.BytesIO()
-    img.crop((0, 0, ANCHO, y)).save(buffer, format="PNG")
+    img.crop((0, 0, ancho, y)).save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer
+
+
+def _imagen_solo_podio(resumen, torneo):
+    """Respaldo para cuando no hay tabla (torneo en curso, por ejemplo):
+    muestra el podio, que es lo único disponible."""
+    podio = resumen.get("podio") or []
+    ancho, margen = 1000, 50
+    img = Image.new("RGB", (ancho, 500 + len(podio) * 80 + 200), COLOR_PAPEL)
+    draw = ImageDraw.Draw(img)
+
+    y = 50
+    draw.text((margen, y), estadisticas_generales_service.obtener_nombre_club().upper(),
+              font=_fuente_mono(22, medium=True), fill=COLOR_TINTA)
+    y += 55
+    draw.line([(margen, y), (ancho - margen, y)], fill=COLOR_TINTA, width=3)
+    y += 40
+    draw.text((margen, y), f"{torneo['modo'].replace('_', ' ').upper()} · {torneo['fecha']}",
+              font=_fuente_mono(18, medium=True), fill=COLOR_STAMP)
+    y += 45
+    y = _dibujar_texto_envuelto(draw, torneo["nombre"].upper(), margen, y, ancho - margen * 2,
+                                _fuente_display(60, 800), COLOR_TINTA, alto_linea=68)
+    y += 35
+
+    if podio:
+        draw.text((margen, y), "PODIO", font=_fuente_mono(20, medium=True), fill=COLOR_TINTA)
+        y += 55
+        for fila in podio:
+            puesto = fila["puesto"]
+            destacado = puesto <= 3
+            tamano = 46 if destacado else 28
+            draw.text((margen, y), f"{puesto}°  {fila['nombre']}",
+                      font=_fuente_display(tamano, 800 if destacado else 500),
+                      fill=COLOR_STAMP if puesto == 1 else COLOR_TINTA)
+            y += tamano + 22
+
+    y += 15
+    _dibujar_linea_punteada(draw, margen, y, ancho - margen)
+    y += 25
+    draw.text((margen, y), f"Generado con {estadisticas_generales_service.obtener_nombre_club()}",
+              font=_fuente_mono(14), fill=COLOR_GRAFITO)
+    y += 40
+
+    buffer = io.BytesIO()
+    img.crop((0, 0, ancho, y)).save(buffer, format="PNG")
     buffer.seek(0)
     return buffer
 
