@@ -162,9 +162,14 @@ def generar_imagen_resumen(torneo_id):
     sin mandar un link a la app. Devuelve un BytesIO listo para servir."""
     resumen = torneo_service.obtener_resumen(torneo_id)
     torneo = resumen["torneo"]
+    tabla = resumen.get("tabla") or []
+    # En grupos+eliminación no hay una tabla general del torneo (cada grupo
+    # tiene la suya), así que ahí se sigue usando el podio, que es la única
+    # forma de mostrar el resultado final en una sola lista.
     podio = resumen.get("podio") or []
+    filas = tabla if tabla else podio
 
-    alto_estimado = 500 + len(podio) * 80 + 200
+    alto_estimado = 500 + len(filas) * 80 + 200
     img = Image.new("RGB", (ANCHO, alto_estimado), COLOR_PAPEL)
     draw = ImageDraw.Draw(img)
 
@@ -190,18 +195,24 @@ def generar_imagen_resumen(torneo_id):
     _dibujar_linea_punteada(draw, MARGEN, y, ANCHO - MARGEN)
     y += 40
 
-    if podio:
-        draw.text((MARGEN, y), "PODIO", font=_fuente_mono(20, medium=True), fill=COLOR_TINTA)
+    if filas:
+        # Se muestra la TABLA completa del torneo, no solo el podio: es lo
+        # mismo que se ve al abrir el torneo en la app, así la imagen que se
+        # comparte y la pantalla cuentan la misma historia.
+        titulo = "TABLA" if tabla else "PODIO"
+        draw.text((MARGEN, y), titulo, font=_fuente_mono(20, medium=True), fill=COLOR_TINTA)
         y += 55
-        for fila in podio:
-            puesto = fila["puesto"]
-            es_podio_real = puesto <= 3
-            etiqueta = f"{puesto}°"
+        for fila in filas:
+            puesto = fila.get("puesto")
+            # Los tres primeros van grandes y el resto más chico: en un
+            # torneo de 10+ jugadores, todos al mismo tamaño haría una
+            # imagen larguísima y sin jerarquía.
+            destacado = puesto is not None and puesto <= 3
+            etiqueta = f"{puesto}°" if puesto is not None else "—"
             color = COLOR_SELLO if puesto == 1 else COLOR_TINTA
-            tamano = 46 if es_podio_real else 28
-            peso = 800 if es_podio_real else 500
-            fuente = _fuente_display(tamano, peso)
-            draw.text((MARGEN, y), f"{etiqueta}  {fila['nombre']}", font=fuente, fill=color)
+            tamano = 46 if destacado else 28
+            peso = 800 if destacado else 500
+            draw.text((MARGEN, y), f"{etiqueta}  {fila['nombre']}", font=_fuente_display(tamano, peso), fill=color)
             y += tamano + 22
 
     y += 15
