@@ -139,9 +139,7 @@ def calentar(app):
                 for nombre, clave in _PASOS:
                     with _lock:
                         _estado_warmup["paso_actual"] = nombre
-                    print(f">>> WARMUP: empezando '{nombre}'", flush=True)
                     obtener(clave, funciones[clave])
-                    print(f">>> WARMUP: terminó '{nombre}'", flush=True)
                     with _lock:
                         _estado_warmup["pasos_hechos"] += 1
                 with _lock:

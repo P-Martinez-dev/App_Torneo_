@@ -18,16 +18,27 @@
 </div>
 {% endif %}
 
+{# Se reusa la imagen vertical del perfil: es la que mejor entra acá, y
+   evita pedir una tercera foto por jugador solo para esta pantalla. Si el
+   jugador no tiene, simplemente no se muestra nada. #}
 <div class="vs-screen">
   <div class="vs-lado vs-izq">
+    {% if imagen1 %}<img class="vs-foto" src="{{ imagen_url(imagen1) }}" alt="">{% endif %}
     <p class="vs-nombre">{{ nombre1 }}</p>
+    {% if vidas.get(partido.jugador1_id|string) is not none or vidas.get(partido.jugador1_id) is not none %}
+    <p class="vs-vidas">{{ vidas.get(partido.jugador1_id|string, vidas.get(partido.jugador1_id)) }} ♥</p>
+    {% endif %}
   </div>
   <div class="vs-centro">
     <p class="vs-letras">VS</p>
     {% if es_admin() %}<button type="button" id="btn-opciones" class="btn btn-stamp">Opciones</button>{% endif %}
   </div>
   <div class="vs-lado vs-der">
+    {% if imagen2 %}<img class="vs-foto" src="{{ imagen_url(imagen2) }}" alt="">{% endif %}
     <p class="vs-nombre">{{ nombre2 }}</p>
+    {% if vidas.get(partido.jugador2_id|string) is not none or vidas.get(partido.jugador2_id) is not none %}
+    <p class="vs-vidas">{{ vidas.get(partido.jugador2_id|string, vidas.get(partido.jugador2_id)) }} ♥</p>
+    {% endif %}
   </div>
 </div>
 

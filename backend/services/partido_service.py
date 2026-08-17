@@ -232,7 +232,23 @@ def obtener_estado_actual(torneo_id):
     """
     partido = obtener_partido_actual(torneo_id)
     if partido is not None:
-        return {"tipo": "partido", "partido": partido, "fase_descripcion": _describir_fase(partido)}
+        estado = {"tipo": "partido", "partido": partido,
+                  "fase_descripcion": _describir_fase(partido)}
+        # Las vidas solo existen donde se juega a rey de la cancha: el modo
+        # suelto, o los grupos de un torneo de grupos+eliminación con ese
+        # formato. En el resto no se consultan (no habría qué mostrar).
+        torneo = torneo_repository.obtener_por_id(torneo_id)
+        hay_vidas = torneo is not None and (
+            torneo.modo == "rey_de_la_cancha"
+            or (torneo.modo == "grupos_eliminacion"
+                and torneo.formato_grupos == "rey_de_la_cancha"
+                and partido["fase"] == "grupos")
+        )
+        if hay_vidas:
+            estado["vidas"] = partido_repository.obtener_vidas_de_jugadores(
+                torneo_id, [partido["jugador1_id"], partido["jugador2_id"]]
+            )
+        return estado
 
     torneo = torneo_repository.obtener_por_id(torneo_id)
     if torneo is not None and torneo.estado == "finalizado":

@@ -601,6 +601,31 @@ input:focus, select:focus, .btn:focus, a:focus {
   font-size: 16px;
   line-height: 1.4;
 }
+
+/* === Contraste dentro de los diálogos ===
+   El texto secundario usa --graphite (#8B8A87), que sobre el fondo oscuro
+   de las tarjetas queda apenas legible -- y en un diálogo, donde todo el
+   contenido importa, eso se nota más. Adentro de los diálogos se usa el
+   color de texto principal. */
+.dialog-ticket .dialog-texto {
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+.dialog-ticket label {
+  color: var(--ink);
+}
+/* Los nombres de los jugadores/opciones a elegir: van más grandes y en el
+   color principal, porque es sobre lo que hay que decidir. */
+.dialog-ticket .roster-item {
+  color: var(--ink);
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.dialog-ticket .peleador-grid-nombre {
+  color: var(--ink);
+}
+
 .dialog-acciones {
   display: flex;
   gap: 12px;
@@ -650,6 +675,26 @@ input:focus, select:focus, .btn:focus, a:focus {
   font-size: 14px;
   color: var(--ink);
   max-width: 640px;
+}
+
+
+/* Foto y vidas en la pantalla de VS */
+.vs-foto {
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border: 2px solid var(--ink);
+  border-top: 4px solid var(--stamp);
+  margin-bottom: 14px;
+}
+.vs-vidas {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--stamp);
+  letter-spacing: 0.08em;
+  margin: 8px 0 0;
 }
 
 .vs-screen {

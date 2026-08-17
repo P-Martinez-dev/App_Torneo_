@@ -9,10 +9,18 @@ def _nombres_jugadores():
     return {j["id"]: j["nombre"] for j in jugador_service.listar_jugadores()}
 
 
+def _imagenes_jugadores():
+    """La foto de perfil de cada jugador, para la pantalla de VS. Se reusa
+    la imagen vertical que ya se sube desde el perfil, en vez de pedir una
+    imagen aparte solo para esta pantalla."""
+    return {j["id"]: j.get("imagen_vertical") for j in jugador_service.listar_jugadores()}
+
+
 @partido_bp.route("")
 def actual(torneo_id):
     estado = partido_service.obtener_estado_actual(torneo_id)
     nombres = _nombres_jugadores()
+    imagenes = _imagenes_jugadores()
 
     if estado["tipo"] == "partido":
         partido = estado["partido"]
@@ -23,6 +31,10 @@ def actual(torneo_id):
         return render_template(
             "partidos/actual.html", torneo_id=torneo_id, partido=partido,
             nombre1=nombres.get(partido["jugador1_id"]), nombre2=nombres.get(partido["jugador2_id"]),
+            imagen1=imagenes.get(partido["jugador1_id"]), imagen2=imagenes.get(partido["jugador2_id"]),
+            # Solo viene en rey de la cancha; en los otros modos queda vacío
+            # y la plantilla simplemente no muestra nada.
+            vidas=estado.get("vidas") or {},
             peleadores=peleador_service.listar_peleadores(),
             fase_descripcion=estado.get("fase_descripcion"),
             bracket_resembrable=bracket_resembrable,

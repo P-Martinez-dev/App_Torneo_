@@ -619,3 +619,25 @@ def obtener_partidos_rey_de_la_cancha_de_torneos(torneos_ids):
     for fila in filas:
         por_torneo[fila["torneo_id"]].append(Partido.from_row(fila))
     return por_torneo
+
+
+def obtener_vidas_de_jugadores(torneo_id, jugadores_ids):
+    """Vidas que le quedan a cada jugador. Devuelve {jugador_id: vidas}.
+    Solo tiene sentido en torneos (o grupos) de rey de la cancha, donde las
+    vidas son el recurso que se va gastando."""
+    if not jugadores_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    placeholders = ",".join(["%s"] * len(jugadores_ids))
+    cursor.execute(
+        f"""SELECT tj.jugador_id, tjv.vidas
+            FROM torneo_jugador_vidas tjv
+            JOIN torneo_jugador tj ON tj.id = tjv.torneo_jugador_id
+            WHERE tj.torneo_id = %s AND tj.jugador_id IN ({placeholders})""",
+        [torneo_id] + list(jugadores_ids),
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return {f["jugador_id"]: f["vidas"] for f in filas}

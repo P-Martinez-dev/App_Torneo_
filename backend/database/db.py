@@ -14,7 +14,6 @@ _SEGUNDOS_SIN_USO_PARA_VERIFICAR = 60
 
 _local = threading.local()
 
-_contador = {"n": 0}
 
 
 class _ConexionReusada:
@@ -101,12 +100,6 @@ def _descartar_conexion():
 
 
 def get_connection():
-    import threading as _th
-    import traceback as _tb
-    _contador["n"] += 1
-    if _contador["n"] % 50 == 0:
-        print(f">>> DB consulta #{_contador['n']}, llamada desde:", flush=True)
-        _tb.print_stack(limit=8)
     """
     Devuelve una conexión lista para usar, reusando la misma mientras
     siga viva (una por hilo). El código que la usa no cambia en nada:
