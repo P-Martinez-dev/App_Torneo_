@@ -24,7 +24,7 @@
              {% if partido.ganador_id == partido.jugador2_id %}checked{% endif %}> {{ nombre2 }}
     </label>
   </div>
-  <div class="field-row">
+  <div class="field-selectores">
     {{ macros.selector_peleador('peleador1_id', 'Peleador de ' + nombre1, peleadores, partido.jugador1_peleador_id) }}
     {{ macros.selector_peleador('peleador2_id', 'Peleador de ' + nombre2, peleadores, partido.jugador2_peleador_id) }}
   </div>

@@ -348,6 +348,17 @@ a { color: inherit; }
   flex-direction: column;
   gap: 6px;
 }
+
+/* Los dos selectores de peleador van uno DEBAJO del otro, no lado a lado.
+   Compartiendo fila cada grilla recibía la mitad del ancho y entraban 3
+   íconos por fila, con scroll propio y mucho espacio desperdiciado a los
+   costados. Apilados, cada grilla usa el ancho completo del diálogo. */
+.field-selectores {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -577,7 +588,7 @@ input:focus, select:focus, .btn:focus, a:focus {
    diálogo normal entraban 4 columnas y quedaba una lista larguísima que
    obligaba a scrollear. */
 .dialog-ancho {
-  max-width: min(900px, 92vw);
+  max-width: min(1100px, 94vw);
   width: 100%;
   max-height: 88vh;
   overflow-y: auto;
@@ -1222,7 +1233,9 @@ input:focus, select:focus, .btn:focus, a:focus {
   margin-top: 8px;
   /* Si hay muchísimos peleadores, la grilla scrollea sola en vez de estirar
      el diálogo hasta perder de vista el botón de confirmar. */
-  max-height: 46vh;
+  /* Con el ancho completo entran muchos más por fila, así que alcanza con
+     bastante menos alto antes de necesitar scroll. */
+  max-height: 30vh;
   overflow-y: auto;
 }
 .peleador-grid-item {
