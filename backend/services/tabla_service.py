@@ -228,6 +228,12 @@ def _tabla_grupo_rey_de_la_cancha(grupo_id, torneo_id):
     partidos = [p for p in partido_repository.obtener_por_torneo(torneo_id)
                 if p.grupo_id == grupo_id and p.estado == "finalizado"]
     nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+    # El código de clasificación y desempates identifica a cada jugador por
+    # su torneo_jugador_id, no por jugador_id. La tabla de rey de la cancha
+    # no lo trae (no lo necesita para su cálculo), así que se busca acá para
+    # que las filas queden con la misma forma que las de todos contra todos.
+    jugadores_grupo = torneo_jugador_repository.obtener_jugadores_de_grupo(grupo_id)
+    tj_por_jugador = {j["jugador_id"]: j["torneo_jugador_id"] for j in jugadores_grupo}
 
     # calcular_tabla_cinco_vidas filtra por fase == "cinco_vidas", pero acá
     # los partidos son de fase "grupos": se les cambia la etiqueta solo para
@@ -259,13 +265,21 @@ def _tabla_grupo_rey_de_la_cancha(grupo_id, torneo_id):
             stats[perdedor]["pp"] += 1
 
     for fila in tabla:
+        fila["torneo_jugador_id"] = tj_por_jugador.get(fila["jugador_id"])
         s = stats.get(fila["jugador_id"], {"pj": 0, "pg": 0, "pp": 0})
         fila.update(s)
         fila["win_rate"] = round(s["pg"] / s["pj"], 3) if s["pj"] else 0
         # "puntos" existe para que el código de clasificados/desempates, que
-        # es común a los dos formatos, siga funcionando sin cambios: acá el
-        # mérito son los puntos de racha.
-        fila["puntos"] = fila.get("puntos_racha", 0)
+        # es común a los dos formatos, siga funcionando sin cambios.
+        #
+        # OJO con qué se pone acá: usar los puntos de RACHA parecía lo
+        # natural, pero deja en 0 a todos los que nunca encadenaron dos
+        # victorias -- y ese cero los hace figurar como "empatados", lo que
+        # dispara desempates que no corresponden. El puesto ya los distingue
+        # bien (2°, 3°, 4°), así que se deriva de ahí: más alto el puesto,
+        # más puntos. Así el corte de clasificación respeta exactamente el
+        # orden de la tabla.
+        fila["puntos"] = len(tabla) - fila["puesto"] + 1
 
     return tabla
 
