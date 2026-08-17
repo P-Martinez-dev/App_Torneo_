@@ -566,7 +566,21 @@ input:focus, select:focus, .btn:focus, a:focus {
   font-family: var(--font-body);
 }
 .dialog-ticket::backdrop {
-  background: rgba(0, 0, 0, 0.75);
+  /* Más oscuro y con desenfoque: antes el fondo se transparentaba tanto que
+     el contenido del diálogo se confundía con la pantalla de atrás. */
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(3px);
+}
+
+/* El diálogo de cargar resultado tiene la grilla de peleadores adentro, que
+   necesita ancho para aprovechar el espacio en horizontal. Con los 420px del
+   diálogo normal entraban 4 columnas y quedaba una lista larguísima que
+   obligaba a scrollear. */
+.dialog-ancho {
+  max-width: min(900px, 92vw);
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
 }
 
 .dialog-recorte {
@@ -1121,9 +1135,17 @@ input:focus, select:focus, .btn:focus, a:focus {
 
 .peleador-grid {
   display: grid;
+  /* auto-fill acomoda tantas columnas como entren en el ancho disponible:
+     en una pantalla grande son muchas por fila, y en el celular caen a 3 o 4
+     solas. Lo que faltaba era darle ancho al diálogo (ver .dialog-ancho),
+     porque con 420px quedaban 4 columnas y una lista interminable. */
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
   gap: 10px;
   margin-top: 8px;
+  /* Si hay muchísimos peleadores, la grilla scrollea sola en vez de estirar
+     el diálogo hasta perder de vista el botón de confirmar. */
+  max-height: 46vh;
+  overflow-y: auto;
 }
 .peleador-grid-item {
   display: flex;

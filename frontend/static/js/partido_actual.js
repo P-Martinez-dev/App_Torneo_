@@ -9,4 +9,14 @@
     dialogOpciones.close();
     dialogCargarDatos.showModal();
   });
+
+  // Volver al menú de opciones en vez de dejar al usuario encerrado en el
+  // formulario de cargar resultado.
+  const btnVolver = document.getElementById("btn-volver-cargar-datos");
+  if (btnVolver) {
+    btnVolver.addEventListener("click", () => {
+      dialogCargarDatos.close();
+      dialogOpciones.showModal();
+    });
+  }
 })();

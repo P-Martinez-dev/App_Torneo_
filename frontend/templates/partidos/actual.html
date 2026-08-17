@@ -52,7 +52,7 @@
   </div>
 </dialog>
 
-<dialog id="dialog-cargar-datos" class="dialog-ticket">
+<dialog id="dialog-cargar-datos" class="dialog-ticket dialog-ancho">
   <p class="dialog-texto">Cargar resultado</p>
   <form method="post" action="{{ url_for('partido.cargar_datos', torneo_id=torneo_id) }}" class="form-ticket">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -78,7 +78,12 @@
         <option value="3">3 (2-1)</option>
       </select>
     </div>
-    <button type="submit" class="btn btn-stamp btn-submit">Confirmar</button>
+    <div class="dialog-acciones">
+      <button type="submit" class="btn btn-stamp">Confirmar</button>
+      {# Sin esto no había forma de salir del diálogo salvo recargar la
+         página: es fácil abrirlo sin querer o querer revisar algo antes. #}
+      <button type="button" id="btn-volver-cargar-datos" class="btn btn-ghost">Volver</button>
+    </div>
   </form>
 </dialog>
 {% endif %}
