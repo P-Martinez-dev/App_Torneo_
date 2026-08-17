@@ -332,6 +332,16 @@ a { color: inherit; }
 }
 
 /* ---------- Formulario ---------- */
+
+/* Dentro del diálogo ancho, el formulario NO debe tener el tope de 640px de
+   .form-ticket: ese límite tiene sentido en una página normal (un formulario
+   de 1000px de ancho sería incómodo de leer), pero acá era el que dejaba la
+   franja vacía a la derecha y apretaba las grillas de peleadores. */
+.dialog-ancho .form-ticket {
+  max-width: none;
+  width: 100%;
+}
+
 .form-ticket {
   background: var(--card);
   border: 2px solid var(--ink);
@@ -1233,9 +1243,9 @@ input:focus, select:focus, .btn:focus, a:focus {
   margin-top: 8px;
   /* Si hay muchísimos peleadores, la grilla scrollea sola en vez de estirar
      el diálogo hasta perder de vista el botón de confirmar. */
-  /* Con el ancho completo entran muchos más por fila, así que alcanza con
-     bastante menos alto antes de necesitar scroll. */
-  max-height: 30vh;
+  /* Con el ancho completo entran unos 10-12 íconos por fila, así que con
+     este alto se ve casi todo el roster sin scrollear. */
+  max-height: 34vh;
   overflow-y: auto;
 }
 .peleador-grid-item {
