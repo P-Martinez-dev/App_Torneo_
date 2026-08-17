@@ -249,3 +249,21 @@ def obtener_vidas_de_torneos(torneos_ids):
     for fila in filas:
         por_torneo[fila["torneo_id"]].append(fila)
     return por_torneo
+
+def obtener_vidas_de_grupo(grupo_id):
+    """Estado de vidas de los jugadores de UN grupo (para los grupos que se
+    juegan a rey de la cancha, donde cada uno lleva su propia cola)."""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """SELECT tj.jugador_id, tjv.eliminado, tjv.orden_eliminacion
+           FROM torneo_jugador_vidas tjv
+           JOIN torneo_jugador tj ON tj.id = tjv.torneo_jugador_id
+           JOIN torneo_jugador_grupo tjg ON tjg.torneo_jugador_id = tj.id
+           WHERE tjg.grupo_id = %s""",
+        (grupo_id,),
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return filas

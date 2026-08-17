@@ -11,11 +11,12 @@ from services import tabla_service
 def generar_fixture_inicial(torneo_id, modo, jugadores_ids,
                              cupos_eliminacion=None, cantidad_grupos=None,
                              vidas_iniciales=None, orden_jugadores_ids=None,
-                             grupos_manual=None):
+                             grupos_manual=None, formato_grupos=None):
     if modo == "todos_contra_todos":
         _generar_todos_contra_todos(torneo_id, jugadores_ids)
     elif modo == "grupos_eliminacion":
-        _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos, grupos_manual)
+        _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos,
+                        grupos_manual, formato_grupos, vidas_iniciales)
     elif modo == "cinco_vidas":
         _generar_cinco_vidas(torneo_id, jugadores_ids, vidas_iniciales, orden_jugadores_ids)
 
@@ -77,7 +78,8 @@ def _repartir_en_grupos(jugadores_ids, cantidad_grupos):
     return grupos
 
 
-def _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos, grupos_manual=None):
+def _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos,
+                    grupos_manual=None, formato_grupos=None, vidas_iniciales=None):
     """
     Si el admin eligió armar los grupos a mano (para reconstruir un torneo
     que ya se jugó en la vida real), se respeta esa agrupación tal cual.
@@ -92,6 +94,10 @@ def _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos
         grupo_id = grupo_repository.crear(torneo_id, nombre=f"Grupo {chr(64 + i)}", tipo="grupo")
         torneo_repository.asignar_jugadores_a_grupo(grupo_id, jugadores_del_grupo)
         grupo_ids.append(grupo_id)
+
+    if formato_grupos == "cinco_vidas":
+        _arrancar_grupos_rey_de_la_cancha(torneo_id, grupo_ids, grupos_jugadores, vidas_iniciales)
+        return
 
     fixtures_por_grupo = {
         grupo_id: _fixture_round_robin(jugadores_del_grupo)
@@ -114,6 +120,43 @@ def _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos
                     orden += 1
 
     partido_repository.crear_muchos(partidos_a_crear)
+
+
+
+def _arrancar_grupos_rey_de_la_cancha(torneo_id, grupo_ids, grupos_jugadores, vidas_iniciales):
+    """
+    Arranca grupos que se juegan a rey de la cancha.
+
+    A diferencia de todos contra todos, acá NO se puede generar el fixture
+    completo de antemano: cada partido depende de quién ganó el anterior
+    (el ganador se queda en cancha). Así que solo se crea el PRIMER partido
+    de cada grupo, y el resto los va generando el motor a medida que se
+    cargan resultados.
+
+    Se crea un partido inicial por grupo, en orden. Como el organizador
+    carga de a uno, eso hace que los grupos avancen alternados: se juega
+    el primero del Grupo A, después el del B, y así.
+    """
+    orden = 1
+    for grupo_id, jugadores_del_grupo in zip(grupo_ids, grupos_jugadores):
+        torneo_repository.inicializar_cola_cinco_vidas(
+            torneo_id, jugadores_del_grupo, vidas_iniciales
+        )
+        # Los dos primeros de la cola arrancan jugando; el resto espera turno.
+        partido_repository.crear_uno({
+            "torneo_id": torneo_id,
+            "jugador1_id": jugadores_del_grupo[0],
+            "jugador2_id": jugadores_del_grupo[1],
+            # La fase sigue siendo "grupos": todo lo que ya existe (tablas
+            # por grupo, clasificados, desempates) lo sigue tratando como
+            # lo que es, un partido de la fase de grupos.
+            "fase": "grupos",
+            "ronda": None,
+            "jornada": None,
+            "orden": orden,
+            "grupo_id": grupo_id,
+        })
+        orden += 1
 
 
 def _generar_cinco_vidas(torneo_id, jugadores_ids, vidas_iniciales, orden_jugadores_ids=None):
@@ -335,8 +378,15 @@ def cargar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=Non
         _avanzar_cinco_vidas(torneo_id, partido, ganador_id)
     elif fase == "todos_contra_todos" and _fase_completa(torneo_id, "todos_contra_todos"):
         torneo_repository.marcar_finalizado(torneo_id)
-    elif fase == "grupos" and _fase_completa(torneo_id, "grupos"):
-        calcular_clasificados(torneo_id)
+    elif fase == "grupos":
+        torneo = torneo_repository.obtener_por_id(torneo_id)
+        # Los grupos tipo rey de la cancha van generando sus partidos sobre
+        # la marcha (el ganador se queda en cancha), a diferencia de todos
+        # contra todos donde ya están todos creados desde el arranque.
+        if torneo and torneo.formato_grupos == "cinco_vidas":
+            _avanzar_cinco_vidas(torneo_id, partido, ganador_id)
+        if _fase_completa(torneo_id, "grupos"):
+            calcular_clasificados(torneo_id)
     elif fase in ("repechaje", "desempate") and _grupo_completo(partido.grupo_id):
         resolver_repechaje(torneo_id, partido.grupo_id)
     elif fase == "eliminacion" and _fase_completa(torneo_id, "eliminacion"):
@@ -363,6 +413,16 @@ def _grupo_completo(grupo_id):
 # =========================================================
 
 def _avanzar_cinco_vidas(torneo_id, partido, ganador_id):
+    """Avanza la cola después de un partido de rey de la cancha.
+
+    Sirve para los dos usos: el torneo entero en ese modo (grupo_id None,
+    una sola cola) y los grupos de un torneo de grupos+eliminación, donde
+    cada grupo lleva SU cola por separado. La diferencia está en qué pasa
+    cuando queda un solo jugador en pie: en el modo suelto eso termina el
+    torneo, mientras que en un grupo solo termina ese grupo -- los demás
+    siguen jugando.
+    """
+    grupo_id = partido.grupo_id
     perdedor_id = (
         partido.jugador2_id if ganador_id == partido.jugador1_id
         else partido.jugador1_id
@@ -373,28 +433,37 @@ def _avanzar_cinco_vidas(torneo_id, partido, ganador_id):
     if vidas_restantes <= 0:
         partido_repository.marcar_eliminado(torneo_id, perdedor_id)
     else:
-        nueva_posicion = partido_repository.obtener_ultima_posicion_cola(torneo_id) + 1
+        nueva_posicion = partido_repository.obtener_ultima_posicion_cola(torneo_id, grupo_id) + 1
         partido_repository.reencolar(torneo_id, perdedor_id, nueva_posicion)
 
     partido_repository.marcar_en_cancha(torneo_id, ganador_id)
 
-    activos = partido_repository.contar_jugadores_activos(torneo_id)
+    activos = partido_repository.contar_jugadores_activos(torneo_id, grupo_id)
     if activos <= 1:
-        torneo_repository.marcar_finalizado(torneo_id)
+        if grupo_id is None:
+            torneo_repository.marcar_finalizado(torneo_id)
+        # Si era un grupo, no se crea partido nuevo acá: ese grupo terminó.
+        # El motor de la fase de grupos se encarga de seguir con los otros
+        # (ver _siguiente_partido_grupos_rey).
         return
 
-    desafiante = partido_repository.obtener_primero_en_cola(torneo_id)
+    desafiante = partido_repository.obtener_primero_en_cola(torneo_id, grupo_id)
+    if desafiante is None:
+        return
 
     siguiente_orden = partido_repository.obtener_max_orden(torneo_id) + 1
     partido_repository.crear_uno({
         "torneo_id": torneo_id,
         "jugador1_id": ganador_id,
         "jugador2_id": desafiante["jugador_id"],
-        "fase": "cinco_vidas",
+        # Dentro de un grupo la fase sigue siendo "grupos": así todo lo que
+        # ya existe (tablas por grupo, clasificados, desempates) lo sigue
+        # viendo como lo que es, un partido de la fase de grupos.
+        "fase": "grupos" if grupo_id is not None else "cinco_vidas",
         "ronda": None,
         "jornada": None,
         "orden": siguiente_orden,
-        "grupo_id": None,
+        "grupo_id": grupo_id,
     })
 
 

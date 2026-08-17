@@ -157,8 +157,19 @@ def calcular_tabla_grupo(grupo_id, partidos_excluidos_ids=None):
     Tabla de posiciones de un grupo. Sin criterio de desempate (definido
     a propósito): si dos jugadores quedan con los mismos puntos, quedan
     en el mismo orden relativo hasta que se resuelva por repechaje o forzado.
+
+    Si el torneo tiene los grupos en formato rey de la cancha, el orden NO
+    sale de sumar victorias sino de la misma fórmula que usa ese modo
+    (racha² + qué tan lejos llegaste). De ahí salen también los que
+    clasifican a la eliminación.
     """
     partidos_excluidos_ids = partidos_excluidos_ids or []
+
+    grupo = grupo_repository.obtener_por_id(grupo_id)
+    if grupo is not None:
+        torneo = torneo_repository.obtener_por_id(grupo.torneo_id)
+        if torneo is not None and torneo.formato_grupos == "cinco_vidas":
+            return _tabla_grupo_rey_de_la_cancha(grupo_id, grupo.torneo_id)
     jugadores = torneo_jugador_repository.obtener_jugadores_de_grupo(grupo_id)
     partidos = partido_repository.obtener_finalizados_por_grupo(grupo_id, partidos_excluidos_ids)
 
@@ -196,6 +207,67 @@ def calcular_tabla_grupo(grupo_id, partidos_excluidos_ids=None):
     # Sin emoji a propósito: acá el orden es DENTRO del grupo, no del torneo.
     # Un 🥇 en la tabla de un grupo daría a entender que ganó el torneo.
     return sorted(tabla.values(), key=lambda f: (-f["puntos"], -f["win_rate"]))
+
+
+
+def _tabla_grupo_rey_de_la_cancha(grupo_id, torneo_id):
+    """
+    Tabla de un grupo que se jugó a rey de la cancha.
+
+    Reusa calcular_tabla_cinco_vidas pasándole SOLO los datos de este
+    grupo: las vidas de sus jugadores y los partidos de ese grupo. Así la
+    fórmula (racha² + posición final) es exactamente la misma que en el
+    modo suelto -- si se recalculara acá con otro criterio, un mismo
+    resultado podría ordenarse distinto según dónde se mire.
+
+    Se adapta el nombre de los campos a los que espera el resto del código
+    de grupos (pj/pg/pp/puntos), para que las pantallas y el cálculo de
+    clasificados no tengan que saber de qué formato viene la tabla.
+    """
+    vidas = torneo_jugador_repository.obtener_vidas_de_grupo(grupo_id)
+    partidos = [p for p in partido_repository.obtener_por_torneo(torneo_id)
+                if p.grupo_id == grupo_id and p.estado == "finalizado"]
+    nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+
+    # calcular_tabla_cinco_vidas filtra por fase == "cinco_vidas", pero acá
+    # los partidos son de fase "grupos": se les cambia la etiqueta solo para
+    # este cálculo, sin tocar nada en la base.
+    class _PartidoComoCincoVidas:
+        def __init__(self, p):
+            self._p = p
+            self.fase = "cinco_vidas"
+        def __getattr__(self, nombre):
+            return getattr(self._p, nombre)
+
+    tabla = calcular_tabla_cinco_vidas(
+        torneo_id,
+        vidas_prefetch=vidas,
+        partidos_prefetch=[_PartidoComoCincoVidas(p) for p in partidos],
+        nombres_prefetch=nombres,
+    )
+
+    # Estadísticas de partidos, que la tabla de cinco vidas no trae pero el
+    # resto del código de grupos sí espera.
+    stats = {v["jugador_id"]: {"pj": 0, "pg": 0, "pp": 0} for v in vidas}
+    for p in partidos:
+        perdedor = p.jugador2_id if p.ganador_id == p.jugador1_id else p.jugador1_id
+        if p.ganador_id in stats:
+            stats[p.ganador_id]["pj"] += 1
+            stats[p.ganador_id]["pg"] += 1
+        if perdedor in stats:
+            stats[perdedor]["pj"] += 1
+            stats[perdedor]["pp"] += 1
+
+    for fila in tabla:
+        s = stats.get(fila["jugador_id"], {"pj": 0, "pg": 0, "pp": 0})
+        fila.update(s)
+        fila["win_rate"] = round(s["pg"] / s["pj"], 3) if s["pj"] else 0
+        # "puntos" existe para que el código de clasificados/desempates, que
+        # es común a los dos formatos, siga funcionando sin cambios: acá el
+        # mérito son los puntos de racha.
+        fila["puntos"] = fila.get("puntos_racha", 0)
+
+    return tabla
 
 
 def calcular_tabla_todos_contra_todos(torneo_id, partidos_excluidos_ids=None, jugadores_prefetch=None, partidos_prefetch=None):

@@ -74,6 +74,36 @@
     </p>
   </div>
 
+  <div class="field modo-extra" data-modo="grupos_eliminacion">
+    <label>Formato de los grupos</label>
+    <div class="orden-toggle">
+      <label class="orden-toggle-item">
+        <input type="radio" name="formato_grupos" value="todos_contra_todos"
+               {{ 'checked' if not form or form.get('formato_grupos') != 'cinco_vidas' else '' }}>
+        Todos contra todos
+      </label>
+      <label class="orden-toggle-item">
+        <input type="radio" name="formato_grupos" value="cinco_vidas"
+               {{ 'checked' if form and form.get('formato_grupos') == 'cinco_vidas' else '' }}>
+        Rey de la cancha
+      </label>
+    </div>
+    <p class="orden-hint">
+      Cómo se juega adentro de cada grupo. Con rey de la cancha, el que gana se
+      queda en cancha y el que pierde una vida vuelve al final de la cola de su
+      grupo; el grupo termina cuando queda uno solo en pie.
+    </p>
+  </div>
+
+  <!-- Las vidas hacen falta tanto en el modo suelto como en los grupos que se
+       juegan a rey de la cancha, por eso este campo aparece en los dos casos
+       (ver crear_torneo.js, que lo muestra según el formato elegido). -->
+  <div class="field modo-extra" data-modo="grupos_eliminacion" id="vidas-grupos" hidden>
+    <label for="vidas_iniciales_grupos">Vidas por jugador en cada grupo</label>
+    <input type="number" id="vidas_iniciales_grupos" name="vidas_iniciales_grupos" min="1" step="1"
+           value="{{ form.get('vidas_iniciales_grupos') if form else '' }}" placeholder="Ej: 3">
+  </div>
+
   <div class="field modo-extra" data-modo="cinco_vidas">
     <label for="vidas_iniciales">Vidas iniciales</label>
     <input type="number" id="vidas_iniciales" name="vidas_iniciales" min="1" step="1"

@@ -2,13 +2,15 @@ from database.db import get_connection
 from models.torneo import Torneo
 
 
-def crear(nombre, modo, fecha, cupos_eliminacion=None, vidas_iniciales=None, descripcion=None):
+def crear(nombre, modo, fecha, cupos_eliminacion=None, vidas_iniciales=None, descripcion=None,
+          formato_grupos=None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """INSERT INTO torneo (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales, descripcion, estado)
-           VALUES (%s, %s, %s, %s, %s, %s, 'planificado')""",
-        (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales, descripcion),
+        """INSERT INTO torneo (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales,
+                               descripcion, formato_grupos, estado)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, 'planificado')""",
+        (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales, descripcion, formato_grupos),
     )
     conn.commit()
     nuevo_id = cursor.lastrowid

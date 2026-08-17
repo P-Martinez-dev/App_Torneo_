@@ -50,7 +50,8 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
                   vidas_iniciales: int | None = None,
                   orden_jugadores_ids: list[int] | None = None,
                   grupos_manual: list[list[int]] | None = None,
-                  descripcion: str | None = None) -> dict:
+                  descripcion: str | None = None,
+                  formato_grupos: str | None = None) -> dict:
     if not nombre or not nombre.strip():
         raise DatosTorneoInvalidosError("El nombre del torneo es obligatorio")
 
@@ -90,6 +91,18 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
         if cupos_eliminacion > len(jugadores_ids):
             raise DatosTorneoInvalidosError(
                 "cupos_eliminacion no puede superar la cantidad de jugadores"
+            )
+        if formato_grupos is None:
+            formato_grupos = "todos_contra_todos"
+        if formato_grupos not in ("todos_contra_todos", "cinco_vidas"):
+            raise DatosTorneoInvalidosError(
+                "formato_grupos debe ser 'todos_contra_todos' o 'cinco_vidas'"
+            )
+        # Si los grupos se juegan a rey de la cancha, cada uno necesita sus
+        # vidas: sin eso no hay forma de saber cuándo termina el grupo.
+        if formato_grupos == "cinco_vidas" and (not vidas_iniciales or vidas_iniciales < 1):
+            raise DatosTorneoInvalidosError(
+                "Los grupos tipo rey de la cancha necesitan vidas_iniciales válidas"
             )
         if not cantidad_grupos or cantidad_grupos < 2:
             raise DatosTorneoInvalidosError("Se necesita cantidad_grupos válida")
@@ -134,15 +147,21 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
     torneo_id = torneo_repository.crear(
         nombre.strip(), modo, fecha,
         cupos_eliminacion if modo == "grupos_eliminacion" else None,
-        vidas_iniciales if modo == "cinco_vidas" else None,
+        # Las vidas hacen falta tanto en el modo suelto como en los grupos
+        # que se juegan a rey de la cancha.
+        vidas_iniciales if (modo == "cinco_vidas"
+                            or (modo == "grupos_eliminacion" and formato_grupos == "cinco_vidas"))
+        else None,
         descripcion.strip() if descripcion else None,
+        formato_grupos if modo == "grupos_eliminacion" else None,
     )
 
     torneo_repository.asignar_jugadores(torneo_id, jugadores_ids)
 
     partido_service.generar_fixture_inicial(
         torneo_id, modo, jugadores_ids, cupos_eliminacion, cantidad_grupos,
-        vidas_iniciales, orden_jugadores_ids, grupos_manual
+        vidas_iniciales, orden_jugadores_ids, grupos_manual,
+        formato_grupos if modo == "grupos_eliminacion" else None
     )
     torneo_repository.marcar_en_curso(torneo_id)
 

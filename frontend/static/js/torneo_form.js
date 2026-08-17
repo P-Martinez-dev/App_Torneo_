@@ -10,6 +10,7 @@
   const ordenHint = document.getElementById("orden-hint");
   const cantidadGruposInput = document.getElementById("cantidad_grupos");
   const gruposHint = document.getElementById("grupos-hint");
+  const vidasGrupos = document.getElementById("vidas-grupos");
 
   function actualizarSeccionesPorModo() {
     const modo = modoSelect.value;
@@ -23,6 +24,17 @@
     });
     sincronizarOrdenLista();
     sincronizarGrupoInputs();
+    sincronizarVidasGrupos();
+  }
+
+  // El campo de vidas de los grupos solo tiene sentido si los grupos se
+  // juegan a rey de la cancha: en todos contra todos nadie tiene vidas.
+  function sincronizarVidasGrupos() {
+    if (!vidasGrupos) return;
+    const activo = document.querySelector('input[name="formato_grupos"]:checked');
+    const esRey = modoSelect.value === "grupos_eliminacion" && !!activo && activo.value === "cinco_vidas";
+    vidasGrupos.hidden = !esRey;
+    vidasGrupos.querySelectorAll("input").forEach((input) => { input.disabled = !esRey; });
   }
 
   function gruposEsManual() {
@@ -122,6 +134,9 @@
 
   if (modoSelect) {
     modoSelect.addEventListener("change", actualizarSeccionesPorModo);
+  document.querySelectorAll('input[name="formato_grupos"]').forEach((r) => {
+    r.addEventListener("change", sincronizarVidasGrupos);
+  });
     actualizarSeccionesPorModo();
   }
 

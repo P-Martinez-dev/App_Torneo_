@@ -143,11 +143,23 @@
     <h3 class="detalle-subtitulo">
       {{ g.nombre }} <span class="ticket-stamp stamp-{{ g.tipo }}">{{ g.tipo }}</span>
     </h3>
+    {# En los grupos de rey de la cancha, "Pts" son puntos de RACHA (no
+       victorias), así que se aclara en el encabezado para que no se lea
+       como si fueran partidos ganados. #}
+    {% set es_rey = resumen.torneo.formato_grupos == 'cinco_vidas' %}
     <table class="tabla-datos">
-      <thead><tr><th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Win rate</th><th>Pts</th></tr></thead>
+      <thead><tr>
+        {% if es_rey %}<th>#</th>{% endif %}
+        <th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Win rate</th>
+        <th>{{ 'Pts racha' if es_rey else 'Pts' }}</th>
+      </tr></thead>
       <tbody>
       {% for f in g.tabla %}
-        <tr><td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td><td>{{ (f.win_rate * 100) | round(1) }}%</td><td>{{ f.puntos }}</td></tr>
+        <tr>
+          {% if es_rey %}<td>{{ f.puesto }}</td>{% endif %}
+          <td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td>
+          <td>{{ (f.win_rate * 100) | round(1) }}%</td><td>{{ f.puntos }}</td>
+        </tr>
       {% endfor %}
       </tbody>
     </table>

@@ -180,6 +180,12 @@ def armar_payload_creacion(form):
     if modo == "grupos_eliminacion":
         payload["cupos_eliminacion"] = _a_entero(form.get("cupos_eliminacion"))
         payload["cantidad_grupos"] = _a_entero(form.get("cantidad_grupos"))
+        payload["formato_grupos"] = form.get("formato_grupos") or "todos_contra_todos"
+        # El campo de vidas de los grupos tiene otro name que el del modo
+        # suelto (vidas_iniciales_grupos) para que los dos puedan convivir
+        # en el mismo formulario sin pisarse.
+        if payload["formato_grupos"] == "cinco_vidas":
+            payload["vidas_iniciales"] = _a_entero(form.get("vidas_iniciales_grupos"))
         if form.get("grupos_tipo") == "manual":
             grupos_dict = {}
             for jid in payload["jugadores_ids"]:

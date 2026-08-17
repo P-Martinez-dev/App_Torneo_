@@ -14,6 +14,10 @@ CREATE TABLE torneo (
     estado ENUM('planificado', 'en_curso', 'finalizado') DEFAULT 'planificado',
     cupos_eliminacion INT NULL,
     vidas_iniciales INT NULL,
+    -- Solo aplica a modo 'grupos_eliminacion': cómo se juega adentro de
+    -- cada grupo. Los torneos viejos no lo tienen, y NULL se interpreta
+    -- como 'todos_contra_todos', que era el único formato hasta ahora.
+    formato_grupos ENUM('todos_contra_todos', 'cinco_vidas') NULL,
     descripcion TEXT NULL
 );
 

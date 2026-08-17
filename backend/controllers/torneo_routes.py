@@ -114,6 +114,7 @@ def crear():
             jugadores_ids=datos.get("jugadores_ids", []),
             cupos_eliminacion=datos.get("cupos_eliminacion"),
             cantidad_grupos=datos.get("cantidad_grupos"),
+            formato_grupos=datos.get("formato_grupos"),
             vidas_iniciales=datos.get("vidas_iniciales"),
             orden_jugadores_ids=datos.get("orden_jugadores_ids"),
             grupos_manual=datos.get("grupos_manual"),

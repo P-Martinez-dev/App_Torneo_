@@ -520,14 +520,23 @@ def _actualizar_vidas(torneo_id, jugador_id, **campos):
     conn.close()
 
 
-def obtener_ultima_posicion_cola(torneo_id):
+def obtener_ultima_posicion_cola(torneo_id, grupo_id=None):
+    """Si se pasa grupo_id, mira solo la cola de ese grupo -- cada grupo
+    lleva su propia numeración, así el que pierde en el Grupo A vuelve al
+    final de la cola del A y no detrás de los del B."""
+    filtro_grupo = ""
+    params = [torneo_id]
+    if grupo_id is not None:
+        filtro_grupo = (" AND tj.id IN (SELECT torneo_jugador_id FROM "
+                        "torneo_jugador_grupo WHERE grupo_id = %s)")
+        params.append(grupo_id)
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """SELECT COALESCE(MAX(tjv.posicion_cola), 0) FROM torneo_jugador_vidas tjv
-           JOIN torneo_jugador tj ON tj.id = tjv.torneo_jugador_id
-           WHERE tj.torneo_id = %s""",
-        (torneo_id,),
+        f"""SELECT COALESCE(MAX(tjv.posicion_cola), 0) FROM torneo_jugador_vidas tjv
+            JOIN torneo_jugador tj ON tj.id = tjv.torneo_jugador_id
+            WHERE tj.torneo_id = %s{filtro_grupo}""",
+        params,
     )
     maximo = cursor.fetchone()[0]
     cursor.close()
@@ -535,15 +544,25 @@ def obtener_ultima_posicion_cola(torneo_id):
     return maximo
 
 
-def obtener_primero_en_cola(torneo_id):
+def obtener_primero_en_cola(torneo_id, grupo_id=None):
+    """Si se pasa grupo_id, opera solo dentro de ese grupo (los grupos tipo
+    rey de la cancha tienen su propia cola cada uno). Sin grupo_id se
+    comporta como siempre: una sola cola para todo el torneo."""
+    filtro_grupo = ""
+    params = [torneo_id]
+    if grupo_id is not None:
+        filtro_grupo = (" AND tj.id IN (SELECT torneo_jugador_id FROM "
+                        "torneo_jugador_grupo WHERE grupo_id = %s)")
+        params.append(grupo_id)
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
-        """SELECT tj.jugador_id FROM torneo_jugador_vidas tjv
-           JOIN torneo_jugador tj ON tj.id = tjv.torneo_jugador_id
-           WHERE tj.torneo_id = %s AND tjv.eliminado = FALSE AND tjv.en_cancha = FALSE
-           ORDER BY tjv.posicion_cola ASC LIMIT 1""",
-        (torneo_id,),
+        f"""SELECT tj.jugador_id FROM torneo_jugador_vidas tjv
+            JOIN torneo_jugador tj ON tj.id = tjv.torneo_jugador_id
+            WHERE tj.torneo_id = %s AND tjv.eliminado = FALSE
+              AND tjv.en_cancha = FALSE{filtro_grupo}
+            ORDER BY tjv.posicion_cola ASC LIMIT 1""",
+        params,
     )
     fila = cursor.fetchone()
     cursor.close()
@@ -551,14 +570,23 @@ def obtener_primero_en_cola(torneo_id):
     return fila
 
 
-def contar_jugadores_activos(torneo_id):
+def contar_jugadores_activos(torneo_id, grupo_id=None):
+    """Si se pasa grupo_id, opera solo dentro de ese grupo (los grupos tipo
+    rey de la cancha tienen su propia cola cada uno). Sin grupo_id se
+    comporta como siempre: una sola cola para todo el torneo."""
+    filtro_grupo = ""
+    params = [torneo_id]
+    if grupo_id is not None:
+        filtro_grupo = (" AND tj.id IN (SELECT torneo_jugador_id FROM "
+                        "torneo_jugador_grupo WHERE grupo_id = %s)")
+        params.append(grupo_id)
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """SELECT COUNT(*) FROM torneo_jugador_vidas tjv
-           JOIN torneo_jugador tj ON tj.id = tjv.torneo_jugador_id
-           WHERE tj.torneo_id = %s AND tjv.eliminado = FALSE""",
-        (torneo_id,),
+        f"""SELECT COUNT(*) FROM torneo_jugador_vidas tjv
+            JOIN torneo_jugador tj ON tj.id = tjv.torneo_jugador_id
+            WHERE tj.torneo_id = %s AND tjv.eliminado = FALSE{filtro_grupo}""",
+        params,
     )
     total = cursor.fetchone()[0]
     cursor.close()
