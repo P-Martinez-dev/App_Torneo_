@@ -626,6 +626,22 @@ input:focus, select:focus, .btn:focus, a:focus {
   color: var(--ink);
 }
 
+
+/* Checkbox de "mostrar contraseña" en el login */
+.mostrar-password {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--graphite);
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.mostrar-password:hover { color: var(--ink); }
+.mostrar-password input { cursor: pointer; }
+
 .dialog-acciones {
   display: flex;
   gap: 12px;
@@ -680,15 +696,12 @@ input:focus, select:focus, .btn:focus, a:focus {
 
 /* Foto y vidas en la pantalla de VS */
 .vs-foto {
-  /* Se estira para llenar el alto que queda entre el nombre y las vidas,
-     sin deformarse (object-fit recorta en vez de estirar la imagen). */
-  flex: 1 1 auto;
-  min-height: 0;
+  /* Llena el marco sin deformarse: object-fit recorta lo que sobra en vez
+     de estirar la imagen. */
   width: 100%;
-  max-width: 260px;
+  height: 100%;
   object-fit: cover;
-  border: 2px solid var(--ink);
-  border-top: 4px solid var(--stamp);
+  display: block;
 }
 .vs-vidas {
   font-family: var(--font-mono);
@@ -707,19 +720,28 @@ input:focus, select:focus, .btn:focus, a:focus {
   gap: 24px;
   min-height: 55vh;
 }
-.vs-lado {
-  /* En columna: nombre arriba, foto en el medio ocupando el espacio, y las
-     vidas abajo. Antes era en fila (alcanzaba cuando solo había un nombre),
-     y al sumar foto y vidas los tres quedaban uno al lado del otro. */
+/* La columna de cada jugador NO lleva recuadro: solo apila el nombre, el
+   marco de la foto y las vidas. El recuadro (borde + fondo) es el marco de
+   la foto, así el nombre queda por encima y las vidas por debajo, afuera. */
+.vs-columna {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 24px;
+  gap: 14px;
+  min-width: 0;
+}
+.vs-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 2px solid var(--ink);
   border-top: 4px solid var(--stamp);
   background: var(--card);
+  overflow: hidden;
 }
 .vs-nombre {
   font-family: var(--font-display);

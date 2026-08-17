@@ -20,7 +20,25 @@
   <div class="field">
     <label for="password">Contraseña</label>
     <input type="password" id="password" name="password" required>
+    <label class="mostrar-password">
+      <input type="checkbox" id="mostrar-password"> Mostrar contraseña
+    </label>
   </div>
   <button type="submit" class="btn btn-stamp btn-submit">Entrar</button>
 </form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Alterna entre ocultar y mostrar la contraseña. Es solo visual: no
+  // guarda ni envía nada distinto, el campo sigue siendo el mismo.
+  (function () {
+    const campo = document.getElementById("password");
+    const checkbox = document.getElementById("mostrar-password");
+    if (!campo || !checkbox) return;
+    checkbox.addEventListener("change", () => {
+      campo.type = checkbox.checked ? "text" : "password";
+    });
+  })();
+</script>
 {% endblock %}

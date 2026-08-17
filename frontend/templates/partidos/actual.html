@@ -22,9 +22,14 @@
    evita pedir una tercera foto por jugador solo para esta pantalla. Si el
    jugador no tiene, simplemente no se muestra nada. #}
 <div class="vs-screen">
-  <div class="vs-lado vs-izq">
+  <div class="vs-columna vs-izq">
     <p class="vs-nombre">{{ nombre1 }}</p>
-    {% if imagen1 %}<img class="vs-foto" src="{{ imagen_url(imagen1) }}" alt="">{% endif %}
+    {# El recuadro es el MARCO de la foto: el nombre y las vidas quedan
+       afuera, arriba y abajo. Si el jugador no tiene foto, el marco igual
+       se dibuja (con el hueco) para que los dos lados midan lo mismo. #}
+    <div class="vs-marco">
+      {% if imagen1 %}<img class="vs-foto" src="{{ imagen_url(imagen1) }}" alt="">{% endif %}
+    </div>
     {% if vidas.get(partido.jugador1_id|string) is not none or vidas.get(partido.jugador1_id) is not none %}
     <p class="vs-vidas">{{ vidas.get(partido.jugador1_id|string, vidas.get(partido.jugador1_id)) }} ♥</p>
     {% endif %}
@@ -33,9 +38,14 @@
     <p class="vs-letras">VS</p>
     {% if es_admin() %}<button type="button" id="btn-opciones" class="btn btn-stamp">Opciones</button>{% endif %}
   </div>
-  <div class="vs-lado vs-der">
+  <div class="vs-columna vs-der">
     <p class="vs-nombre">{{ nombre2 }}</p>
-    {% if imagen2 %}<img class="vs-foto" src="{{ imagen_url(imagen2) }}" alt="">{% endif %}
+    {# El recuadro es el MARCO de la foto: el nombre y las vidas quedan
+       afuera, arriba y abajo. Si el jugador no tiene foto, el marco igual
+       se dibuja (con el hueco) para que los dos lados midan lo mismo. #}
+    <div class="vs-marco">
+      {% if imagen2 %}<img class="vs-foto" src="{{ imagen_url(imagen2) }}" alt="">{% endif %}
+    </div>
     {% if vidas.get(partido.jugador2_id|string) is not none or vidas.get(partido.jugador2_id) is not none %}
     <p class="vs-vidas">{{ vidas.get(partido.jugador2_id|string, vidas.get(partido.jugador2_id)) }} ♥</p>
     {% endif %}
