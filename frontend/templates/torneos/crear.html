@@ -39,7 +39,7 @@
       <label for="modo">Modo</label>
       <select id="modo" name="modo" required>
         <option value="">Elegir...</option>
-        {% for valor, etiqueta in [('todos_contra_todos', 'Todos contra todos'), ('grupos_eliminacion', 'Grupos + eliminación'), ('cinco_vidas', 'Rey de la cancha')] %}
+        {% for valor, etiqueta in [('todos_contra_todos', 'Todos contra todos'), ('grupos_eliminacion', 'Grupos + eliminación'), ('rey_de_la_cancha', 'Rey de la cancha')] %}
         <option value="{{ valor }}" {% if form and form.get('modo') == valor %}selected{% endif %}>{{ etiqueta }}</option>
         {% endfor %}
       </select>
@@ -79,12 +79,12 @@
     <div class="orden-toggle">
       <label class="orden-toggle-item">
         <input type="radio" name="formato_grupos" value="todos_contra_todos"
-               {{ 'checked' if not form or form.get('formato_grupos') != 'cinco_vidas' else '' }}>
+               {{ 'checked' if not form or form.get('formato_grupos') != 'rey_de_la_cancha' else '' }}>
         Todos contra todos
       </label>
       <label class="orden-toggle-item">
-        <input type="radio" name="formato_grupos" value="cinco_vidas"
-               {{ 'checked' if form and form.get('formato_grupos') == 'cinco_vidas' else '' }}>
+        <input type="radio" name="formato_grupos" value="rey_de_la_cancha"
+               {{ 'checked' if form and form.get('formato_grupos') == 'rey_de_la_cancha' else '' }}>
         Rey de la cancha
       </label>
     </div>
@@ -104,13 +104,13 @@
            value="{{ form.get('vidas_iniciales_grupos') if form else '' }}" placeholder="Ej: 3">
   </div>
 
-  <div class="field modo-extra" data-modo="cinco_vidas">
+  <div class="field modo-extra" data-modo="rey_de_la_cancha">
     <label for="vidas_iniciales">Vidas iniciales</label>
     <input type="number" id="vidas_iniciales" name="vidas_iniciales" min="1" step="1"
            value="{{ form.get('vidas_iniciales') if form else '' }}" placeholder="Ej: 3">
   </div>
 
-  <div class="field modo-extra" data-modo="cinco_vidas">
+  <div class="field modo-extra" data-modo="rey_de_la_cancha">
     <label>Orden inicial de la cola</label>
     <div class="orden-toggle">
       <label class="orden-toggle-item">

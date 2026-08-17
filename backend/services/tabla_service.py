@@ -1,9 +1,9 @@
 from repositories import partido_repository, torneo_jugador_repository, grupo_repository, jugador_repository, torneo_repository
 
 
-def calcular_tabla_cinco_vidas(torneo_id, vidas_prefetch=None, partidos_prefetch=None, nombres_prefetch=None):
+def calcular_tabla_rey_de_la_cancha(torneo_id, vidas_prefetch=None, partidos_prefetch=None, nombres_prefetch=None):
     """
-    Tabla de posiciones de un torneo cinco_vidas: puesto (80% puntos de
+    Tabla de posiciones de un torneo rey_de_la_cancha: puesto (80% puntos de
     racha + 20% posición final -- ver el diseño largo que se charló para
     este criterio), puntos de racha, y momento de eliminación de cada
     jugador. El campeón siempre es puesto 1.
@@ -13,7 +13,7 @@ def calcular_tabla_cinco_vidas(torneo_id, vidas_prefetch=None, partidos_prefetch
     puntual). Cuando SÍ se pasan (lo hace tabla_general_service al
     recorrer todos los torneos para el ranking general), se usan esos
     datos ya en memoria en vez de volver a pedirlos -- evita repetir 3
-    consultas por cada torneo cinco_vidas del historial.
+    consultas por cada torneo rey_de_la_cancha del historial.
     """
     PESO_RACHA = 0.8
     PESO_POSICION = 0.2
@@ -21,12 +21,12 @@ def calcular_tabla_cinco_vidas(torneo_id, vidas_prefetch=None, partidos_prefetch
     filas = vidas_prefetch if vidas_prefetch is not None else torneo_jugador_repository.obtener_vidas_de_torneo(torneo_id)
     if partidos_prefetch is not None:
         partidos = sorted(
-            [p for p in partidos_prefetch if p.fase == "cinco_vidas"],
+            [p for p in partidos_prefetch if p.fase == "rey_de_la_cancha"],
             key=lambda p: p.orden,
         )
     else:
         partidos = sorted(
-            partido_repository.obtener_finalizados_por_torneo(torneo_id, "cinco_vidas", []),
+            partido_repository.obtener_finalizados_por_torneo(torneo_id, "rey_de_la_cancha", []),
             key=lambda p: p.orden,
         )
     nombres = nombres_prefetch if nombres_prefetch is not None else {j.id: j.nombre for j in jugador_repository.obtener_todos()}
@@ -168,7 +168,7 @@ def calcular_tabla_grupo(grupo_id, partidos_excluidos_ids=None):
     grupo = grupo_repository.obtener_por_id(grupo_id)
     if grupo is not None:
         torneo = torneo_repository.obtener_por_id(grupo.torneo_id)
-        if torneo is not None and torneo.formato_grupos == "cinco_vidas":
+        if torneo is not None and torneo.formato_grupos == "rey_de_la_cancha":
             return _tabla_grupo_rey_de_la_cancha(grupo_id, grupo.torneo_id)
     jugadores = torneo_jugador_repository.obtener_jugadores_de_grupo(grupo_id)
     partidos = partido_repository.obtener_finalizados_por_grupo(grupo_id, partidos_excluidos_ids)
@@ -214,7 +214,7 @@ def _tabla_grupo_rey_de_la_cancha(grupo_id, torneo_id):
     """
     Tabla de un grupo que se jugó a rey de la cancha.
 
-    Reusa calcular_tabla_cinco_vidas pasándole SOLO los datos de este
+    Reusa calcular_tabla_rey_de_la_cancha pasándole SOLO los datos de este
     grupo: las vidas de sus jugadores y los partidos de ese grupo. Así la
     fórmula (racha² + posición final) es exactamente la misma que en el
     modo suelto -- si se recalculara acá con otro criterio, un mismo
@@ -235,17 +235,17 @@ def _tabla_grupo_rey_de_la_cancha(grupo_id, torneo_id):
     jugadores_grupo = torneo_jugador_repository.obtener_jugadores_de_grupo(grupo_id)
     tj_por_jugador = {j["jugador_id"]: j["torneo_jugador_id"] for j in jugadores_grupo}
 
-    # calcular_tabla_cinco_vidas filtra por fase == "cinco_vidas", pero acá
+    # calcular_tabla_rey_de_la_cancha filtra por fase == "rey_de_la_cancha", pero acá
     # los partidos son de fase "grupos": se les cambia la etiqueta solo para
     # este cálculo, sin tocar nada en la base.
     class _PartidoComoCincoVidas:
         def __init__(self, p):
             self._p = p
-            self.fase = "cinco_vidas"
+            self.fase = "rey_de_la_cancha"
         def __getattr__(self, nombre):
             return getattr(self._p, nombre)
 
-    tabla = calcular_tabla_cinco_vidas(
+    tabla = calcular_tabla_rey_de_la_cancha(
         torneo_id,
         vidas_prefetch=vidas,
         partidos_prefetch=[_PartidoComoCincoVidas(p) for p in partidos],
@@ -288,7 +288,7 @@ def calcular_tabla_todos_contra_todos(torneo_id, partidos_excluidos_ids=None, ju
     """Misma lógica que calcular_tabla_grupo, pero sin filtrar por grupo.
 
     jugadores_prefetch/partidos_prefetch opcionales -- ver el mismo
-    criterio explicado en calcular_tabla_cinco_vidas. Si se pasa
+    criterio explicado en calcular_tabla_rey_de_la_cancha. Si se pasa
     partidos_prefetch, tiene que venir SIN excluidos aplicados (el
     filtro de excluidos, cuando hace falta, solo se soporta consultando
     fresco -- que es lo que ya hacen todos los llamadores que usan

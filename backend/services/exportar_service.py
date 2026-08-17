@@ -19,11 +19,11 @@ ANCHO = 1000
 MARGEN = 60
 
 
-# Los modos se guardan con su nombre técnico ('cinco_vidas'), que quedó de
+# Los modos se guardan con su nombre técnico ('rey_de_la_cancha'), que quedó de
 # cuando el formato se llamaba así. Acá se traduce al nombre visible, igual
 # que hace el filtro nombre_modo del frontend.
 NOMBRES_VISIBLES_MODO = {
-    "cinco_vidas": "Rey de la cancha",
+    "rey_de_la_cancha": "Rey de la cancha",
     "todos_contra_todos": "Todos contra todos",
     "grupos_eliminacion": "Grupos + eliminación",
 }
@@ -195,7 +195,7 @@ def generar_imagen_resumen(torneo_id):
     margen = 50
     alto_fila = 54
 
-    if modo == "cinco_vidas":
+    if modo == "rey_de_la_cancha":
         columnas = [("#", margen, 45), ("", margen + 45, 45),
                     ("JUGADOR", margen + 90, 300),
                     ("PTS RACHA", margen + 390, 130),
@@ -264,7 +264,7 @@ def generar_imagen_resumen(torneo_id):
             draw.text((col[""], y_centro - 2), fila["emoji"], font=fuente_emoji_fila, fill=COLOR_TINTA)
         draw.text((col["JUGADOR"], y_centro), fila["nombre"], font=fuente_fila_medium, fill=color)
 
-        if modo == "cinco_vidas":
+        if modo == "rey_de_la_cancha":
             draw.text((col["PTS RACHA"], y_centro), str(fila.get("puntos_racha", 0)),
                       font=fuente_fila, fill=COLOR_MARCADOR)
             texto = (f"{fila['orden_eliminacion']}° en caer" if fila.get("eliminado")

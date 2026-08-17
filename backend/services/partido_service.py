@@ -17,8 +17,8 @@ def generar_fixture_inicial(torneo_id, modo, jugadores_ids,
     elif modo == "grupos_eliminacion":
         _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos,
                         grupos_manual, formato_grupos, vidas_iniciales)
-    elif modo == "cinco_vidas":
-        _generar_cinco_vidas(torneo_id, jugadores_ids, vidas_iniciales, orden_jugadores_ids)
+    elif modo == "rey_de_la_cancha":
+        _generar_rey_de_la_cancha(torneo_id, jugadores_ids, vidas_iniciales, orden_jugadores_ids)
 
 
 def _fixture_round_robin(jugadores_ids):
@@ -85,7 +85,7 @@ def _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos
     que ya se jugó en la vida real), se respeta esa agrupación tal cual.
     Si no, se reparte al azar -- comportamiento de siempre. La validación
     de que grupos_manual sea consistente vive en torneo_service, antes de
-    llegar acá (mismo criterio que orden_jugadores_ids en cinco_vidas).
+    llegar acá (mismo criterio que orden_jugadores_ids en rey_de_la_cancha).
     """
     grupos_jugadores = grupos_manual if grupos_manual is not None else _repartir_en_grupos(jugadores_ids, cantidad_grupos)
 
@@ -95,7 +95,7 @@ def _generar_grupos(torneo_id, jugadores_ids, cupos_eliminacion, cantidad_grupos
         torneo_repository.asignar_jugadores_a_grupo(grupo_id, jugadores_del_grupo)
         grupo_ids.append(grupo_id)
 
-    if formato_grupos == "cinco_vidas":
+    if formato_grupos == "rey_de_la_cancha":
         _arrancar_grupos_rey_de_la_cancha(torneo_id, grupo_ids, grupos_jugadores, vidas_iniciales)
         return
 
@@ -139,7 +139,7 @@ def _arrancar_grupos_rey_de_la_cancha(torneo_id, grupo_ids, grupos_jugadores, vi
     """
     orden = 1
     for grupo_id, jugadores_del_grupo in zip(grupo_ids, grupos_jugadores):
-        torneo_repository.inicializar_cola_cinco_vidas(
+        torneo_repository.inicializar_cola_rey_de_la_cancha(
             torneo_id, jugadores_del_grupo, vidas_iniciales
         )
         # Los dos primeros de la cola arrancan jugando; el resto espera turno.
@@ -159,7 +159,7 @@ def _arrancar_grupos_rey_de_la_cancha(torneo_id, grupo_ids, grupos_jugadores, vi
         orden += 1
 
 
-def _generar_cinco_vidas(torneo_id, jugadores_ids, vidas_iniciales, orden_jugadores_ids=None):
+def _generar_rey_de_la_cancha(torneo_id, jugadores_ids, vidas_iniciales, orden_jugadores_ids=None):
     """
     Si el admin eligió el orden a mano (drag-and-drop en el frontend), se
     respeta tal cual. Si no, se sortea -- comportamiento de siempre.
@@ -172,11 +172,11 @@ def _generar_cinco_vidas(torneo_id, jugadores_ids, vidas_iniciales, orden_jugado
         orden = jugadores_ids.copy()
         random.shuffle(orden)
 
-    torneo_repository.inicializar_cola_cinco_vidas(torneo_id, orden, vidas_iniciales)
+    torneo_repository.inicializar_cola_rey_de_la_cancha(torneo_id, orden, vidas_iniciales)
 
     partido_repository.crear_muchos([{
         "torneo_id": torneo_id, "jugador1_id": orden[0], "jugador2_id": orden[1],
-        "fase": "cinco_vidas", "ronda": None, "jornada": None, "orden": 1,
+        "fase": "rey_de_la_cancha", "ronda": None, "jornada": None, "orden": 1,
         "grupo_id": None,
     }])
 
@@ -217,7 +217,7 @@ def _describir_fase(partido):
         ))
         nombre = NOMBRES_RONDA_ELIMINACION.get(cantidad, f"Ronda de {cantidad * 2}")
         return f"Eliminación · {nombre}"
-    if fase == "cinco_vidas":
+    if fase == "rey_de_la_cancha":
         return "Rey de la cancha"
     if fase == "todos_contra_todos":
         return f"Todos contra todos · Jornada {partido['jornada']}"
@@ -301,7 +301,7 @@ def marcar_no_realizado(partido_id):
     Partido que no se llegó a jugar (por ejemplo, un jugador que no vino).
     Por ahora solo soportado en todos_contra_todos: en grupos_eliminacion,
     el head-to-head de un empate interno asume que el round-robin del grupo
-    está completo, y en cinco_vidas/eliminación no hay un "perdedor" que
+    está completo, y en rey_de_la_cancha/eliminación no hay un "perdedor" que
     darle a la lógica de avance. Extenderlo a esos modos es trabajo aparte.
     """
     partido = partido_repository.obtener_por_id(partido_id)
@@ -374,8 +374,8 @@ def cargar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=Non
     fase = partido.fase
     torneo_id = partido.torneo_id
 
-    if fase == "cinco_vidas":
-        _avanzar_cinco_vidas(torneo_id, partido, ganador_id)
+    if fase == "rey_de_la_cancha":
+        _avanzar_rey_de_la_cancha(torneo_id, partido, ganador_id)
     elif fase == "todos_contra_todos" and _fase_completa(torneo_id, "todos_contra_todos"):
         torneo_repository.marcar_finalizado(torneo_id)
     elif fase == "grupos":
@@ -383,8 +383,8 @@ def cargar_resultado(partido_id, ganador_id, peleador1_id=None, peleador2_id=Non
         # Los grupos tipo rey de la cancha van generando sus partidos sobre
         # la marcha (el ganador se queda en cancha), a diferencia de todos
         # contra todos donde ya están todos creados desde el arranque.
-        if torneo and torneo.formato_grupos == "cinco_vidas":
-            _avanzar_cinco_vidas(torneo_id, partido, ganador_id)
+        if torneo and torneo.formato_grupos == "rey_de_la_cancha":
+            _avanzar_rey_de_la_cancha(torneo_id, partido, ganador_id)
         if _fase_completa(torneo_id, "grupos"):
             calcular_clasificados(torneo_id)
     elif fase in ("repechaje", "desempate") and _grupo_completo(partido.grupo_id):
@@ -412,7 +412,7 @@ def _grupo_completo(grupo_id):
 # Modo 5 vidas: avance de la cola dinámica
 # =========================================================
 
-def _avanzar_cinco_vidas(torneo_id, partido, ganador_id):
+def _avanzar_rey_de_la_cancha(torneo_id, partido, ganador_id):
     """Avanza la cola después de un partido de rey de la cancha.
 
     Sirve para los dos usos: el torneo entero en ese modo (grupo_id None,
@@ -459,7 +459,7 @@ def _avanzar_cinco_vidas(torneo_id, partido, ganador_id):
         # Dentro de un grupo la fase sigue siendo "grupos": así todo lo que
         # ya existe (tablas por grupo, clasificados, desempates) lo sigue
         # viendo como lo que es, un partido de la fase de grupos.
-        "fase": "grupos" if grupo_id is not None else "cinco_vidas",
+        "fase": "grupos" if grupo_id is not None else "rey_de_la_cancha",
         "ronda": None,
         "jornada": None,
         "orden": siguiente_orden,

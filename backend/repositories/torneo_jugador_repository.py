@@ -210,7 +210,7 @@ def obtener_grupo_original(torneo_id, jugador_id):
 
 
 def obtener_vidas_de_torneo(torneo_id):
-    """Estado de vidas de todos los jugadores de un torneo modo 'cinco_vidas'."""
+    """Estado de vidas de todos los jugadores de un torneo modo 'rey_de_la_cancha'."""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
@@ -227,7 +227,7 @@ def obtener_vidas_de_torneo(torneo_id):
 
 
 def obtener_vidas_de_torneos(torneos_ids):
-    """Igual que obtener_vidas_de_torneo, pero para VARIOS torneos cinco_vidas
+    """Igual que obtener_vidas_de_torneo, pero para VARIOS torneos rey_de_la_cancha
     de una sola consulta -- devuelve {torneo_id: [filas]}."""
     if not torneos_ids:
         return {}

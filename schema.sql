@@ -9,7 +9,7 @@ CREATE TABLE jugador (
 CREATE TABLE torneo (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(150) NOT NULL,
-    modo ENUM('todos_contra_todos', 'grupos_eliminacion', 'cinco_vidas') NOT NULL,
+    modo ENUM('todos_contra_todos', 'grupos_eliminacion', 'rey_de_la_cancha') NOT NULL,
     fecha DATE NOT NULL,
     estado ENUM('planificado', 'en_curso', 'finalizado') DEFAULT 'planificado',
     cupos_eliminacion INT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE torneo (
     -- Solo aplica a modo 'grupos_eliminacion': cómo se juega adentro de
     -- cada grupo. Los torneos viejos no lo tienen, y NULL se interpreta
     -- como 'todos_contra_todos', que era el único formato hasta ahora.
-    formato_grupos ENUM('todos_contra_todos', 'cinco_vidas') NULL,
+    formato_grupos ENUM('todos_contra_todos', 'rey_de_la_cancha') NULL,
     descripcion TEXT NULL
 );
 
@@ -101,7 +101,7 @@ CREATE TABLE partido (
     jugador1_id INT NOT NULL,
     jugador2_id INT NOT NULL,
     ganador_id INT NULL,
-    fase ENUM('todos_contra_todos', 'grupos', 'repechaje', 'desempate', 'eliminacion', 'tercer_puesto', 'cinco_vidas') NOT NULL,
+    fase ENUM('todos_contra_todos', 'grupos', 'repechaje', 'desempate', 'eliminacion', 'tercer_puesto', 'rey_de_la_cancha') NOT NULL,
     ronda INT NULL,
     jornada INT NULL,
     orden INT NOT NULL,

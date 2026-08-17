@@ -1,5 +1,5 @@
 // JS mínimo: solo decide qué campos mostrar según el modo, sincroniza la
-// lista de orden de cinco_vidas con los jugadores tildados, y maneja el
+// lista de orden de rey_de_la_cancha con los jugadores tildados, y maneja el
 // drag-and-drop para reordenarla. Nada de esto valida ni calcula nada de
 // negocio -- eso lo hace el backend.
 (function () {
@@ -32,7 +32,7 @@
   function sincronizarVidasGrupos() {
     if (!vidasGrupos) return;
     const activo = document.querySelector('input[name="formato_grupos"]:checked');
-    const esRey = modoSelect.value === "grupos_eliminacion" && !!activo && activo.value === "cinco_vidas";
+    const esRey = modoSelect.value === "grupos_eliminacion" && !!activo && activo.value === "rey_de_la_cancha";
     vidasGrupos.hidden = !esRey;
     vidasGrupos.querySelectorAll("input").forEach((input) => { input.disabled = !esRey; });
   }
@@ -63,7 +63,7 @@
 
   function sincronizarOrdenLista() {
     if (!ordenLista) return;
-    const esManual = modoSelect.value === "cinco_vidas" && ordenEsManual();
+    const esManual = modoSelect.value === "rey_de_la_cancha" && ordenEsManual();
     ordenLista.hidden = !esManual;
     if (ordenHint) ordenHint.hidden = !esManual;
 

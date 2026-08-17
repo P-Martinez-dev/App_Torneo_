@@ -116,7 +116,7 @@ def asignar_jugadores_a_grupo(grupo_id, jugadores_ids):
     conn.close()
 
 
-def inicializar_cola_cinco_vidas(torneo_id, jugadores_ids_ordenados, vidas_iniciales):
+def inicializar_cola_rey_de_la_cancha(torneo_id, jugadores_ids_ordenados, vidas_iniciales):
     """
     Crea solo la extensión torneo_jugador_vidas. Las filas base de
     torneo_jugador ya existen (las crea asignar_jugadores en crear_torneo).

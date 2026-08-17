@@ -47,11 +47,11 @@ def _puestos_todos_contra_todos(torneo_id, jugadores_prefetch=None, partidos_pre
     return puestos
 
 
-def _puestos_cinco_vidas(torneo_id, vidas_prefetch=None, partidos_prefetch=None, nombres_prefetch=None):
+def _puestos_rey_de_la_cancha(torneo_id, vidas_prefetch=None, partidos_prefetch=None, nombres_prefetch=None):
     """El cálculo completo (racha², desempate por posición) vive en
-    tabla_service.calcular_tabla_cinco_vidas -- acá solo se extrae el
+    tabla_service.calcular_tabla_rey_de_la_cancha -- acá solo se extrae el
     mapeo jugador_id -> puesto que necesita la tabla general."""
-    tabla = tabla_service.calcular_tabla_cinco_vidas(
+    tabla = tabla_service.calcular_tabla_rey_de_la_cancha(
         torneo_id, vidas_prefetch=vidas_prefetch, partidos_prefetch=partidos_prefetch, nombres_prefetch=nombres_prefetch
     )
     return {f["jugador_id"]: f["puesto"] for f in tabla}
@@ -111,8 +111,8 @@ def calcular_puestos(torneo, jugadores_prefetch=None, partidos_prefetch=None, vi
     """
     if torneo.modo == "todos_contra_todos":
         return _puestos_todos_contra_todos(torneo.id, jugadores_prefetch=jugadores_prefetch, partidos_prefetch=partidos_prefetch)
-    elif torneo.modo == "cinco_vidas":
-        return _puestos_cinco_vidas(torneo.id, vidas_prefetch=vidas_prefetch, partidos_prefetch=partidos_prefetch, nombres_prefetch=nombres_prefetch)
+    elif torneo.modo == "rey_de_la_cancha":
+        return _puestos_rey_de_la_cancha(torneo.id, vidas_prefetch=vidas_prefetch, partidos_prefetch=partidos_prefetch, nombres_prefetch=nombres_prefetch)
     elif torneo.modo == "grupos_eliminacion":
         return _puestos_grupos_eliminacion(torneo.id, jugadores_prefetch=jugadores_prefetch, partidos_prefetch=partidos_prefetch)
     return {}
@@ -140,7 +140,7 @@ def calcular_tabla_general(
     de puestos.
 
     Nota de rendimiento: TODO lo que hace falta para calcular el puesto
-    de cada torneo (jugadores, partidos, vidas de cinco_vidas) se trae acá
+    de cada torneo (jugadores, partidos, vidas de rey_de_la_cancha) se trae acá
     en una sola tanda para TODOS los torneos a la vez, y se le pasa ya
     listo a cada uno -- en vez de que cada torneo dispare sus propias
     consultas por su cuenta. Contra una base remota, con esto la
@@ -171,7 +171,7 @@ def calcular_tabla_general(
         else torneo_jugador_repository.obtener_jugadores_de_torneos(torneos_incluidos_ids)
     )
     vidas_por_torneo = torneo_jugador_repository.obtener_vidas_de_torneos(
-        [t.id for t in torneos if t.modo == "cinco_vidas"]
+        [t.id for t in torneos if t.modo == "rey_de_la_cancha"]
     )
     partidos_por_torneo = {}
     for p in partidos:

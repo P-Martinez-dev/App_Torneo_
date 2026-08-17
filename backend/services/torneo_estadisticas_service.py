@@ -70,7 +70,7 @@ def _instancias_especiales(torneo, partidos):
 
 def _partido_mas_renido(partidos, nombres):
     """El criterio es cuántas veces se enfrentó el mismo par de jugadores
-    en TODO el torneo (puede pasar por la cola de cinco_vidas, o por un
+    en TODO el torneo (puede pasar por la cola de rey_de_la_cancha, o por un
     repechaje/desempate en grupos_eliminacion -- pero esos dos últimos no
     cuentan, porque no fueron partidos 'de verdad' del torneo, fueron
     para resolver un empate). Si el máximo es 1 (todos se cruzaron una
@@ -93,10 +93,10 @@ def _partido_mas_renido(partidos, nombres):
 
 
 def _mas_tiempo_en_cancha(torneo, partidos, nombres):
-    """Solo cinco_vidas: la racha de victorias consecutivas más larga de
+    """Solo rey_de_la_cancha: la racha de victorias consecutivas más larga de
     un jugador EN UN SOLO TURNO en cancha (se corta apenas pierde, aunque
     después vuelva a entrar más tarde). No necesariamente es el campeón."""
-    if torneo.modo != "cinco_vidas":
+    if torneo.modo != "rey_de_la_cancha":
         return None
 
     racha_actual, mejor_racha = {}, {}
@@ -124,9 +124,9 @@ def _mas_victorias(partidos, nombres):
 
 
 def _peleador_mas_usado(torneo, partidos, nombres_peleador):
-    """Excluye cinco_vidas -- no se trackea peleador en ese modo (mismo
+    """Excluye rey_de_la_cancha -- no se trackea peleador en ese modo (mismo
     criterio que las estadísticas de jugador)."""
-    if torneo.modo == "cinco_vidas":
+    if torneo.modo == "rey_de_la_cancha":
         return []
     conteo = {}
     for p in partidos:

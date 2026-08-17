@@ -254,14 +254,14 @@ def obtener_ultima_ronda(torneo_id):
 
 
 def obtener_partido_eliminacion(torneo_id, jugador_id):
-    """El partido (cinco_vidas) en el que un jugador perdió su última vida
+    """El partido (rey_de_la_cancha) en el que un jugador perdió su última vida
     en ese torneo específico -- o None si nunca fue eliminado ahí (fue
     campeón, o el torneo sigue en curso)."""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
         """SELECT * FROM partido
-           WHERE torneo_id = %s AND fase = 'cinco_vidas' AND estado = 'finalizado'
+           WHERE torneo_id = %s AND fase = 'rey_de_la_cancha' AND estado = 'finalizado'
              AND (jugador1_id = %s OR jugador2_id = %s) AND ganador_id != %s
            ORDER BY fecha_jugado DESC LIMIT 1""",
         (torneo_id, jugador_id, jugador_id, jugador_id),
@@ -593,8 +593,8 @@ def contar_jugadores_activos(torneo_id, grupo_id=None):
     conn.close()
     return total
 
-def obtener_partidos_cinco_vidas_de_torneos(torneos_ids):
-    """Todos los partidos cinco_vidas finalizados de VARIOS torneos, en una
+def obtener_partidos_rey_de_la_cancha_de_torneos(torneos_ids):
+    """Todos los partidos rey_de_la_cancha finalizados de VARIOS torneos, en una
     sola consulta -- devuelve {torneo_id: [partidos]}.
 
     Reemplaza a pedir obtener_partido_eliminacion() una vez por cada
@@ -608,7 +608,7 @@ def obtener_partidos_cinco_vidas_de_torneos(torneos_ids):
     cursor.execute(
         f"""SELECT * FROM partido
             WHERE torneo_id IN ({placeholders})
-              AND fase = 'cinco_vidas' AND estado = 'finalizado'""",
+              AND fase = 'rey_de_la_cancha' AND estado = 'finalizado'""",
         torneos_ids,
     )
     filas = cursor.fetchall()

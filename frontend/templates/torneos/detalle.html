@@ -58,7 +58,7 @@
 </section>
 {% endif %}
 
-{% if resumen.torneo.modo == 'cinco_vidas' %}
+{% if resumen.torneo.modo == 'rey_de_la_cancha' %}
 <section class="detalle-seccion">
   <h2 class="ticket-nombre">Tabla</h2>
   <table class="tabla-datos">
@@ -146,7 +146,7 @@
     {# En los grupos de rey de la cancha, "Pts" son puntos de RACHA (no
        victorias), así que se aclara en el encabezado para que no se lea
        como si fueran partidos ganados. #}
-    {% set es_rey = resumen.torneo.formato_grupos == 'cinco_vidas' %}
+    {% set es_rey = resumen.torneo.formato_grupos == 'rey_de_la_cancha' %}
     <table class="tabla-datos">
       <thead><tr>
         {% if es_rey %}<th>#</th>{% endif %}

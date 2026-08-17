@@ -35,8 +35,8 @@ REGISTRO = [
     {"clave": "jugador.torneos.promedio_puesto", "etiqueta": "Promedio de puesto", "categoria": "Jugador"},
     {"clave": "jugador.veces_en_repechaje_o_desempate", "etiqueta": "Veces en repechaje/desempate", "categoria": "Jugador"},
     {"clave": "jugador.rounds", "etiqueta": "Barridas vs. cerrados (propio)", "categoria": "Jugador"},
-    {"clave": "jugador.cinco_vidas.quien_te_elimino_mas", "etiqueta": "Quién te eliminó más (rey de la cancha)", "categoria": "Jugador"},
-    {"clave": "jugador.cinco_vidas.a_quien_eliminaste_mas", "etiqueta": "A quién eliminaste más (rey de la cancha)", "categoria": "Jugador"},
+    {"clave": "jugador.rey_de_la_cancha.quien_te_elimino_mas", "etiqueta": "Quién te eliminó más (rey de la cancha)", "categoria": "Jugador"},
+    {"clave": "jugador.rey_de_la_cancha.a_quien_eliminaste_mas", "etiqueta": "A quién eliminaste más (rey de la cancha)", "categoria": "Jugador"},
     {"clave": "jugador.mejores_victorias", "etiqueta": "Mejores victorias", "categoria": "Jugador"},
     {"clave": "jugador.peores_caidas", "etiqueta": "Peores caídas", "categoria": "Jugador"},
 

@@ -72,14 +72,12 @@ def create_app():
         return f"{Config.API_BASE_URL}/static/{path}"
 
     app.jinja_env.globals["imagen_url"] = imagen_url
-    # Los modos y fases se guardan en la base con su nombre técnico
-    # ('cinco_vidas'), que quedó de cuando el formato se llamaba así. El
-    # nombre visible cambió a "Rey de la cancha", pero renombrar el valor
-    # guardado obligaría a migrar los torneos ya cargados -- así que se
-    # traduce solo al mostrarlo, en un único lugar para que ninguna
-    # pantalla se quede con el nombre viejo.
+    # Los modos y fases se guardan con su nombre técnico (en minúscula y con
+    # guiones bajos). Acá se traduce al nombre que se muestra en pantalla, en
+    # un único lugar: si mañana se agrega un modo nuevo y se olvida sumarlo
+    # acá, muestra el técnico con espacios en vez de romperse.
     NOMBRES_VISIBLES = {
-        "cinco_vidas": "Rey de la cancha",
+        "rey_de_la_cancha": "Rey de la cancha",
         "todos_contra_todos": "Todos contra todos",
         "grupos_eliminacion": "Grupos + eliminación",
         "tercer_puesto": "Tercer puesto",

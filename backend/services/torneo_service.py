@@ -63,7 +63,7 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
     if not fecha:
         raise DatosTorneoInvalidosError("La fecha del torneo es obligatoria")
 
-    if modo not in ("todos_contra_todos", "grupos_eliminacion", "cinco_vidas"):
+    if modo not in ("todos_contra_todos", "grupos_eliminacion", "rey_de_la_cancha"):
         raise DatosTorneoInvalidosError(f"Modo inválido: {modo}")
 
     if len(jugadores_ids) < 2:
@@ -94,13 +94,13 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
             )
         if formato_grupos is None:
             formato_grupos = "todos_contra_todos"
-        if formato_grupos not in ("todos_contra_todos", "cinco_vidas"):
+        if formato_grupos not in ("todos_contra_todos", "rey_de_la_cancha"):
             raise DatosTorneoInvalidosError(
-                "formato_grupos debe ser 'todos_contra_todos' o 'cinco_vidas'"
+                "formato_grupos debe ser 'todos_contra_todos' o 'rey_de_la_cancha'"
             )
         # Si los grupos se juegan a rey de la cancha, cada uno necesita sus
         # vidas: sin eso no hay forma de saber cuándo termina el grupo.
-        if formato_grupos == "cinco_vidas" and (not vidas_iniciales or vidas_iniciales < 1):
+        if formato_grupos == "rey_de_la_cancha" and (not vidas_iniciales or vidas_iniciales < 1):
             raise DatosTorneoInvalidosError(
                 "Los grupos tipo rey de la cancha necesitan vidas_iniciales válidas"
             )
@@ -132,10 +132,10 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
             if grupo_chico < 3:
                 raise DatosTorneoInvalidosError("Ningún grupo puede quedar con menos de 3 jugadores")
 
-    if modo == "cinco_vidas":
+    if modo == "rey_de_la_cancha":
         if not isinstance(vidas_iniciales, int) or isinstance(vidas_iniciales, bool) or vidas_iniciales < 1:
             raise DatosTorneoInvalidosError(
-                "El modo cinco_vidas requiere vidas_iniciales (un entero >= 1)"
+                "El modo rey_de_la_cancha requiere vidas_iniciales (un entero >= 1)"
             )
         if orden_jugadores_ids is not None:
             if set(orden_jugadores_ids) != set(jugadores_ids) or len(orden_jugadores_ids) != len(jugadores_ids):
@@ -149,8 +149,8 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
         cupos_eliminacion if modo == "grupos_eliminacion" else None,
         # Las vidas hacen falta tanto en el modo suelto como en los grupos
         # que se juegan a rey de la cancha.
-        vidas_iniciales if (modo == "cinco_vidas"
-                            or (modo == "grupos_eliminacion" and formato_grupos == "cinco_vidas"))
+        vidas_iniciales if (modo == "rey_de_la_cancha"
+                            or (modo == "grupos_eliminacion" and formato_grupos == "rey_de_la_cancha"))
         else None,
         descripcion.strip() if descripcion else None,
         formato_grupos if modo == "grupos_eliminacion" else None,
@@ -221,8 +221,8 @@ def obtener_resumen(torneo_id: int) -> dict:
         resumen["tabla"] = tabla_service.calcular_tabla_todos_contra_todos(torneo_id)
         resumen["partidos"] = [con_nombres(p) for p in partidos]
 
-    elif torneo.modo == "cinco_vidas":
-        resumen["tabla"] = tabla_service.calcular_tabla_cinco_vidas(torneo_id)
+    elif torneo.modo == "rey_de_la_cancha":
+        resumen["tabla"] = tabla_service.calcular_tabla_rey_de_la_cancha(torneo_id)
         resumen["partidos"] = [con_nombres(p) for p in partidos]
 
     elif torneo.modo == "grupos_eliminacion":

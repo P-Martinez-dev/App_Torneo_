@@ -184,7 +184,7 @@ def armar_payload_creacion(form):
         # El campo de vidas de los grupos tiene otro name que el del modo
         # suelto (vidas_iniciales_grupos) para que los dos puedan convivir
         # en el mismo formulario sin pisarse.
-        if payload["formato_grupos"] == "cinco_vidas":
+        if payload["formato_grupos"] == "rey_de_la_cancha":
             payload["vidas_iniciales"] = _a_entero(form.get("vidas_iniciales_grupos"))
         if form.get("grupos_tipo") == "manual":
             grupos_dict = {}
@@ -194,7 +194,7 @@ def armar_payload_creacion(form):
                     grupos_dict.setdefault(num_grupo, []).append(jid)
             if grupos_dict:
                 payload["grupos_manual"] = [grupos_dict[k] for k in sorted(grupos_dict)]
-    elif modo == "cinco_vidas":
+    elif modo == "rey_de_la_cancha":
         payload["vidas_iniciales"] = _a_entero(form.get("vidas_iniciales"))
         orden = form.getlist("orden_jugadores_ids")
         if orden:

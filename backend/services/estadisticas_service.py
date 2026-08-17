@@ -63,7 +63,7 @@ def obtener_estadisticas_jugador(jugador_id: int) -> dict:
         "rachas": _stats_rachas(jugador_id, partidos),
         "rounds": _stats_rounds(jugador_id, partidos),
         "torneos": _stats_torneos(jugador_id, torneos_finalizados, torneos_todos),
-        "cinco_vidas": _stats_cinco_vidas(jugador_id, torneos_finalizados, nombres),
+        "rey_de_la_cancha": _stats_rey_de_la_cancha(jugador_id, torneos_finalizados, nombres),
         "veces_en_repechaje_o_desempate": torneo_jugador_repository.contar_repechajes_y_desempates(jugador_id),
         "mejores_victorias": _mejores_victorias(jugador_id, probabilidades=probabilidades),
         "peores_caidas": _peores_caidas(jugador_id, probabilidades=probabilidades),
@@ -97,9 +97,9 @@ def obtener_estadisticas_jugador(jugador_id: int) -> dict:
             resultado["torneos"], "jugador.torneos",
             campos_lista=("mejor_puesto_historico",),
         )
-    if resultado["cinco_vidas"]:
-        resultado["cinco_vidas"] = estadisticas_config_service.filtrar_visibles(
-            resultado["cinco_vidas"], "jugador.cinco_vidas",
+    if resultado["rey_de_la_cancha"]:
+        resultado["rey_de_la_cancha"] = estadisticas_config_service.filtrar_visibles(
+            resultado["rey_de_la_cancha"], "jugador.rey_de_la_cancha",
             campos_lista=("quien_te_elimino_mas", "a_quien_eliminaste_mas"),
         )
 
@@ -226,10 +226,10 @@ def _stats_rivales(jugador_id, partidos, nombres=None):
 
 
 def _stats_peleadores(jugador_id, partidos, nombres_peleador=None):
-    """Excluye cinco_vidas a propósito -- no se trackea peleador en ese modo."""
+    """Excluye rey_de_la_cancha a propósito -- no se trackea peleador en ese modo."""
     contra_peleador = {}
     for p in partidos:
-        if p.fase == "cinco_vidas":
+        if p.fase == "rey_de_la_cancha":
             continue
         peleador_id = p.jugador1_peleador_id if p.jugador1_id == jugador_id else p.jugador2_peleador_id
         if peleador_id is None:
@@ -267,7 +267,7 @@ def _stats_peleadores_rivales(jugador_id, partidos, nombres_peleador=None):
     con cómo ya se responde 'a quién le ganó más' en _stats_rivales."""
     contra_peleador_rival = {}
     for p in partidos:
-        if p.fase == "cinco_vidas":
+        if p.fase == "rey_de_la_cancha":
             continue
         peleador_rival_id = p.jugador2_peleador_id if p.jugador1_id == jugador_id else p.jugador1_peleador_id
         if peleador_rival_id is None:
@@ -418,12 +418,12 @@ def _stats_rounds(jugador_id, partidos):
     }
 
 
-def _stats_cinco_vidas(jugador_id, torneos_finalizados, nombres=None):
-    """Quién te eliminó y a quiénes eliminaste vos, en el modo cinco_vidas.
+def _stats_rey_de_la_cancha(jugador_id, torneos_finalizados, nombres=None):
+    """Quién te eliminó y a quiénes eliminaste vos, en el modo rey_de_la_cancha.
     Para cada torneo de ese modo, se busca el partido puntual donde cada
     jugador perdió su última vida (obtener_partido_eliminacion) -- ahí el
     ganador de ESE partido puntual es quien lo eliminó."""
-    torneos_cv = [t for t in torneos_finalizados if t.modo == "cinco_vidas"]
+    torneos_cv = [t for t in torneos_finalizados if t.modo == "rey_de_la_cancha"]
     eliminado_por = {}
     eliminaste_a = {}
 
@@ -434,7 +434,7 @@ def _stats_cinco_vidas(jugador_id, torneos_finalizados, nombres=None):
     # solo perfil.
     ids_cv = [t.id for t in torneos_cv]
     vidas_por_torneo = torneo_jugador_repository.obtener_vidas_de_torneos(ids_cv)
-    partidos_por_torneo = partido_repository.obtener_partidos_cinco_vidas_de_torneos(ids_cv)
+    partidos_por_torneo = partido_repository.obtener_partidos_rey_de_la_cancha_de_torneos(ids_cv)
 
     def _partido_donde_lo_eliminaron(partidos, jid):
         """El último partido que ese jugador perdió -- ahí perdió su última

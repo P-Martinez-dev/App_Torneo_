@@ -50,7 +50,7 @@ class TorneoJugadorGrupo:
 
 
 class TorneoJugadorVidas:
-    """Extensión: solo existe para torneos modo 'cinco_vidas'."""
+    """Extensión: solo existe para torneos modo 'rey_de_la_cancha'."""
 
     def __init__(self, torneo_jugador_id=None, vidas=3, eliminado=False,
                  posicion_cola=None, en_cancha=False, orden_eliminacion=None):

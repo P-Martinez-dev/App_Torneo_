@@ -92,11 +92,11 @@
         <tr><td>Barridas (2-0) hechas / recibidas</td><td>{{ estadisticas.rounds.barridas_hechas }} / {{ estadisticas.rounds.barridas_recibidas }}</td></tr>
         <tr><td>Cerrados (2-1) ganados / perdidos</td><td>{{ estadisticas.rounds.cerrados_ganados }} / {{ estadisticas.rounds.cerrados_perdidos }}</td></tr>
         {% endif %}
-        {% if estadisticas.cinco_vidas.quien_te_elimino_mas %}
-        <tr><td>Quién más te eliminó (rey de la cancha)</td><td>{{ estadisticas.cinco_vidas.quien_te_elimino_mas | map(attribute='nombre') | join(', ') }}</td></tr>
+        {% if estadisticas.rey_de_la_cancha.quien_te_elimino_mas %}
+        <tr><td>Quién más te eliminó (rey de la cancha)</td><td>{{ estadisticas.rey_de_la_cancha.quien_te_elimino_mas | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
-        {% if estadisticas.cinco_vidas.a_quien_eliminaste_mas %}
-        <tr><td>A quién más eliminaste (rey de la cancha)</td><td>{{ estadisticas.cinco_vidas.a_quien_eliminaste_mas | map(attribute='nombre') | join(', ') }}</td></tr>
+        {% if estadisticas.rey_de_la_cancha.a_quien_eliminaste_mas %}
+        <tr><td>A quién más eliminaste (rey de la cancha)</td><td>{{ estadisticas.rey_de_la_cancha.a_quien_eliminaste_mas | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
       </tbody>
     </table>
