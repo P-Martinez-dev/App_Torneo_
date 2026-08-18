@@ -46,6 +46,16 @@ REGISTRO = [
     {"clave": "peleador.con_quien_perdio_mas", "etiqueta": "Con qué peleador perdió más", "categoria": "Peleador"},
     {"clave": "peleador.contra_quien_perdio_mas", "etiqueta": "Contra qué jugador perdió más", "categoria": "Peleador"},
     {"clave": "peleador.contra_quien_jugo_mas", "etiqueta": "Contra qué jugador jugó más", "categoria": "Peleador"},
+    {"clave": "peleador.barridas_a_favor", "etiqueta": "Barridas a favor (2-0)", "categoria": "Peleador"},
+    {"clave": "peleador.barridas_en_contra", "etiqueta": "Barridas en contra (2-0)", "categoria": "Peleador"},
+    {"clave": "peleador.partidos_cerrados", "etiqueta": "Partidos cerrados (2-1)", "categoria": "Peleador"},
+    {"clave": "peleador.torneos_distintos", "etiqueta": "En cuántos torneos apareció", "categoria": "Peleador"},
+    {"clave": "peleador.primera_vez", "etiqueta": "Primera vez que se usó", "categoria": "Peleador"},
+    {"clave": "peleador.ultima_vez", "etiqueta": "Última vez que se usó", "categoria": "Peleador"},
+    {"clave": "peleador.espejos", "etiqueta": "Espejos (los dos lo eligieron)", "categoria": "Peleador"},
+    {"clave": "peleador.mejor_racha", "etiqueta": "Racha de victorias más larga", "categoria": "Peleador"},
+    {"clave": "peleador.peor_enemigo", "etiqueta": "Su peor enemigo (peor win rate)", "categoria": "Peleador"},
+    {"clave": "peleador.mejor_resultado", "etiqueta": "Mejor resultado logrado", "categoria": "Peleador"},
 
     # --- Generales ---
     {"clave": "generales.top_torneos_mas_jugadores", "etiqueta": "Torneos con más jugadores", "categoria": "Generales"},

@@ -32,10 +32,10 @@ def eliminar_torneo(torneo_id):
     resp.raise_for_status()
 
 
-def actualizar_torneo(torneo_id, nombre, fecha, descripcion=None):
+def actualizar_torneo(torneo_id, nombre, fecha, descripcion=None, lugar=None):
     resp = requests.put(
         f"{Config.API_BASE_URL}/torneos/{torneo_id}",
-        json={"nombre": nombre, "fecha": fecha, "descripcion": descripcion},
+        json={"nombre": nombre, "fecha": fecha, "descripcion": descripcion, "lugar": lugar},
     )
     if resp.status_code == 400:
         raise TorneoInvalidoError(resp.json().get("error", "Datos inválidos"))
@@ -175,6 +175,7 @@ def armar_payload_creacion(form):
         "fecha": form.get("fecha"),
         "jugadores_ids": [int(j) for j in form.getlist("jugadores_ids")],
         "descripcion": (form.get("descripcion") or "").strip() or None,
+        "lugar": (form.get("lugar") or "").strip() or None,
     }
 
     if modo == "grupos_eliminacion":

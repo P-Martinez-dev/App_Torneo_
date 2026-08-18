@@ -23,6 +23,12 @@
     <input type="date" id="fecha" name="fecha" required value="{{ torneo.fecha }}">
   </div>
   <div class="field">
+    <label for="lugar">Lugar (opcional)</label>
+    <input type="text" id="lugar" name="lugar" maxlength="150"
+           value="{{ torneo.lugar or '' }}" placeholder="Ej: Casa de Fran">
+  </div>
+
+  <div class="field">
     <label for="descripcion">Descripción (opcional)</label>
     <textarea id="descripcion" name="descripcion" rows="3">{{ torneo.descripcion or '' }}</textarea>
   </div>

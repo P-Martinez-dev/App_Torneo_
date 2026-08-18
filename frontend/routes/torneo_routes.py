@@ -104,7 +104,10 @@ def editar(torneo_id):
 
     try:
         descripcion = (request.form.get("descripcion") or "").strip() or None
-        torneo_service.actualizar_torneo(torneo_id, request.form.get("nombre"), request.form.get("fecha"), descripcion)
+        lugar = (request.form.get("lugar") or "").strip() or None
+        torneo_service.actualizar_torneo(
+            torneo_id, request.form.get("nombre"), request.form.get("fecha"), descripcion, lugar
+        )
         return redirect(url_for("torneo.detalle", torneo_id=torneo_id))
     except torneo_service.TorneoInvalidoError as e:
         return render_template("torneos/editar.html", torneo=torneo, error=str(e)), 400

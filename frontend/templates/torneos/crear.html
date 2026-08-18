@@ -23,6 +23,13 @@
   </div>
 
   <div class="field">
+    <label for="lugar">Lugar (opcional)</label>
+    <input type="text" id="lugar" name="lugar" maxlength="150"
+           value="{{ form.get('lugar') if form else '' }}"
+           placeholder="Ej: Casa de Fran">
+  </div>
+
+  <div class="field">
     <label for="descripcion">Descripción (opcional)</label>
     <textarea id="descripcion" name="descripcion" rows="3"
               placeholder="Notas sobre el torneo, contexto, lo que quieras dejar anotado...">{{ form.get('descripcion') if form else '' }}</textarea>

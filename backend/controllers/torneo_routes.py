@@ -119,6 +119,7 @@ def crear():
             orden_jugadores_ids=datos.get("orden_jugadores_ids"),
             grupos_manual=datos.get("grupos_manual"),
             descripcion=datos.get("descripcion"),
+            lugar=datos.get("lugar"),
         )
         return jsonify(nuevo), 201
     except torneo_service.DatosTorneoInvalidosError as e:
@@ -173,7 +174,8 @@ def actualizar(torneo_id):
         return error
     try:
         actualizado = torneo_service.actualizar_torneo(
-            torneo_id, datos.get("nombre"), datos.get("fecha"), datos.get("descripcion")
+            torneo_id, datos.get("nombre"), datos.get("fecha"), datos.get("descripcion"),
+            datos.get("lugar")
         )
         return jsonify(actualizado), 200
     except torneo_service.TorneoNoEncontradoError as e:

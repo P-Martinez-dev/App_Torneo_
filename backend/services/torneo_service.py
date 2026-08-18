@@ -29,12 +29,15 @@ def eliminar_torneo(torneo_id: int) -> None:
         raise TorneoNoEncontradoError(f"No existe el torneo {torneo_id}")
 
 
-def actualizar_torneo(torneo_id: int, nombre: str, fecha: date, descripcion: str | None = None) -> dict:
+def actualizar_torneo(torneo_id: int, nombre: str, fecha: date, descripcion: str | None = None,
+                      lugar: str | None = None) -> dict:
     if not nombre or not nombre.strip():
         raise DatosTorneoInvalidosError("El nombre del torneo es obligatorio")
     if not fecha:
         raise DatosTorneoInvalidosError("La fecha del torneo es obligatoria")
-    actualizado = torneo_repository.actualizar(torneo_id, nombre.strip(), fecha, descripcion)
+    actualizado = torneo_repository.actualizar(
+        torneo_id, nombre.strip(), fecha, descripcion, (lugar or '').strip() or None
+    )
     if not actualizado:
         raise TorneoNoEncontradoError(f"No existe el torneo {torneo_id}")
     return torneo_repository.obtener_por_id(torneo_id).to_dict()
@@ -51,7 +54,8 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
                   orden_jugadores_ids: list[int] | None = None,
                   grupos_manual: list[list[int]] | None = None,
                   descripcion: str | None = None,
-                  formato_grupos: str | None = None) -> dict:
+                  formato_grupos: str | None = None,
+                  lugar: str | None = None) -> dict:
     if not nombre or not nombre.strip():
         raise DatosTorneoInvalidosError("El nombre del torneo es obligatorio")
 
@@ -154,6 +158,7 @@ def crear_torneo(nombre: str, modo: str, fecha: date, jugadores_ids: list[int],
         else None,
         descripcion.strip() if descripcion else None,
         formato_grupos if modo == "grupos_eliminacion" else None,
+        (lugar or '').strip() or None,
     )
 
     torneo_repository.asignar_jugadores(torneo_id, jugadores_ids)

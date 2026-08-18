@@ -54,6 +54,44 @@
         {% if estadisticas.contra_quien_jugo_mas %}
         <tr><td>Contra qué jugador jugó más</td><td>{{ estadisticas.contra_quien_jugo_mas | map(attribute='nombre') | join(', ') }}</td></tr>
         {% endif %}
+
+        {# Las de abajo dependen de que se haya cargado el dato de rondas al
+           registrar el resultado, que es opcional: si nunca se cargó, dan 0
+           y no se muestran, en vez de llenar la tabla de ceros. #}
+        {% if estadisticas.barridas_a_favor %}
+        <tr><td>Barridas a favor (2-0)</td><td>{{ estadisticas.barridas_a_favor }}</td></tr>
+        {% endif %}
+        {% if estadisticas.barridas_en_contra %}
+        <tr><td>Barridas en contra (2-0)</td><td>{{ estadisticas.barridas_en_contra }}</td></tr>
+        {% endif %}
+        {% if estadisticas.partidos_cerrados %}
+        <tr><td>Partidos cerrados (2-1)</td><td>{{ estadisticas.partidos_cerrados }}</td></tr>
+        {% endif %}
+        {% if estadisticas.torneos_distintos %}
+        <tr><td>En cuántos torneos apareció</td><td>{{ estadisticas.torneos_distintos }}</td></tr>
+        {% endif %}
+        {% if estadisticas.mejor_racha %}
+        <tr><td>Racha de victorias más larga</td><td>{{ estadisticas.mejor_racha }}</td></tr>
+        {% endif %}
+        {% if estadisticas.espejos %}
+        <tr><td>Espejos (los dos lo eligieron)</td><td>{{ estadisticas.espejos }}</td></tr>
+        {% endif %}
+        {% if estadisticas.peor_enemigo %}
+        <tr><td>Su peor enemigo</td><td>
+          {% for f in estadisticas.peor_enemigo %}{{ f.nombre }} ({{ f.ganados }}-{{ f.jugados - f.ganados }}){{ ", " if not loop.last }}{% endfor %}
+        </td></tr>
+        {% endif %}
+        {% if estadisticas.mejor_resultado %}
+        <tr><td>Mejor resultado logrado</td><td>
+          {% for r in estadisticas.mejor_resultado %}{{ r.puesto }}° — {{ r.nombre }} en {{ r.torneo_nombre }}{{ ", " if not loop.last }}{% endfor %}
+        </td></tr>
+        {% endif %}
+        {% if estadisticas.primera_vez %}
+        <tr><td>Primera vez que se usó</td><td>{{ estadisticas.primera_vez }}</td></tr>
+        {% endif %}
+        {% if estadisticas.ultima_vez %}
+        <tr><td>Última vez que se usó</td><td>{{ estadisticas.ultima_vez }}</td></tr>
+        {% endif %}
       </tbody>
     </table>
   </div>

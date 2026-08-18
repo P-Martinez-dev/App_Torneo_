@@ -3,14 +3,15 @@ from models.torneo import Torneo
 
 
 def crear(nombre, modo, fecha, cupos_eliminacion=None, vidas_iniciales=None, descripcion=None,
-          formato_grupos=None):
+          formato_grupos=None, lugar=None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
         """INSERT INTO torneo (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales,
-                               descripcion, formato_grupos, estado)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, 'planificado')""",
-        (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales, descripcion, formato_grupos),
+                               descripcion, formato_grupos, lugar, estado)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'planificado')""",
+        (nombre, modo, fecha, cupos_eliminacion, vidas_iniciales, descripcion,
+         formato_grupos, lugar),
     )
     conn.commit()
     nuevo_id = cursor.lastrowid
@@ -19,16 +20,16 @@ def crear(nombre, modo, fecha, cupos_eliminacion=None, vidas_iniciales=None, des
     return nuevo_id
 
 
-def actualizar(torneo_id, nombre, fecha, descripcion=None):
-    """Solo nombre, fecha y descripción -- son datos descriptivos. modo/
+def actualizar(torneo_id, nombre, fecha, descripcion=None, lugar=None):
+    """Solo nombre, fecha, descripción y lugar -- son datos descriptivos. modo/
     cupos_eliminacion/vidas_iniciales NO se editan acá a propósito: cambiarlos
     después de que ya hay partidos/clasificación/bracket calculados dejaría
     el torneo inconsistente con lo que ya se jugó."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE torneo SET nombre = %s, fecha = %s, descripcion = %s WHERE id = %s",
-        (nombre, fecha, descripcion, torneo_id),
+        "UPDATE torneo SET nombre = %s, fecha = %s, descripcion = %s, lugar = %s WHERE id = %s",
+        (nombre, fecha, descripcion, lugar, torneo_id),
     )
     conn.commit()
     filas_afectadas = cursor.rowcount

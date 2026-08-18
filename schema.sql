@@ -18,7 +18,8 @@ CREATE TABLE torneo (
     -- cada grupo. Los torneos viejos no lo tienen, y NULL se interpreta
     -- como 'todos_contra_todos', que era el único formato hasta ahora.
     formato_grupos ENUM('todos_contra_todos', 'rey_de_la_cancha') NULL,
-    descripcion TEXT NULL
+    descripcion TEXT NULL,
+    lugar VARCHAR(150) NULL
 );
 
 CREATE TABLE grupo (

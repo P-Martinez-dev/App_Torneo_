@@ -1,7 +1,7 @@
 class Torneo:
     def __init__(self, id=None, nombre=None, modo=None, fecha=None,
                  estado="planificado", cupos_eliminacion=None, vidas_iniciales=None,
-                 formato_grupos=None,
+                 formato_grupos=None, lugar=None,
                  descripcion=None):
         self.id = id
         self.nombre = nombre
@@ -14,6 +14,7 @@ class Torneo:
         # era el único formato antes de que se pudiera elegir.
         self.formato_grupos = formato_grupos or "todos_contra_todos"
         self.descripcion = descripcion
+        self.lugar = lugar
 
     def to_dict(self):
         return {
@@ -26,6 +27,7 @@ class Torneo:
             "vidas_iniciales": self.vidas_iniciales,
             "formato_grupos": self.formato_grupos,
             "descripcion": self.descripcion,
+            "lugar": self.lugar,
         }
 
     @staticmethod
@@ -42,4 +44,5 @@ class Torneo:
             vidas_iniciales=row.get("vidas_iniciales"),
             formato_grupos=row.get("formato_grupos"),
             descripcion=row.get("descripcion"),
+            lugar=row.get("lugar"),
         )
