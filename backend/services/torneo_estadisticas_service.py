@@ -124,10 +124,8 @@ def _mas_victorias(partidos, nombres):
 
 
 def _peleador_mas_usado(torneo, partidos, nombres_peleador):
-    """Excluye rey_de_la_cancha -- no se trackea peleador en ese modo (mismo
-    criterio que las estadísticas de jugador)."""
-    if torneo.modo == "rey_de_la_cancha":
-        return []
+    """Cuentan todos los modos (mismo criterio que las estadísticas de
+    jugador): los partidos sin peleador cargado se saltean solos."""
     conteo = {}
     for p in partidos:
         for peleador_id in (p.jugador1_peleador_id, p.jugador2_peleador_id):

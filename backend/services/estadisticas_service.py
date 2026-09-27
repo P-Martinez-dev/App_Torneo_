@@ -226,11 +226,12 @@ def _stats_rivales(jugador_id, partidos, nombres=None):
 
 
 def _stats_peleadores(jugador_id, partidos, nombres_peleador=None):
-    """Excluye rey_de_la_cancha a propósito -- no se trackea peleador en ese modo."""
+    """Cuentan todos los modos, rey de la cancha incluido: el formulario de
+    carga pide el peleador siempre, así que si se cargó, suma. Los partidos
+    donde no se cargó (peleador en NULL) se saltean -- no hace falta
+    excluir ningún modo a mano para eso."""
     contra_peleador = {}
     for p in partidos:
-        if p.fase == "rey_de_la_cancha":
-            continue
         peleador_id = p.jugador1_peleador_id if p.jugador1_id == jugador_id else p.jugador2_peleador_id
         if peleador_id is None:
             continue
@@ -264,11 +265,10 @@ def _stats_peleadores_rivales(jugador_id, partidos, nombres_peleador=None):
     """El espejo de _stats_peleadores: acá no importa qué peleador usás
     vos, sino qué peleador usa el RIVAL en tu contra. 'Que te gana más' y
     'que le ganás más' son conteos (no win rate) para que sea consistente
-    con cómo ya se responde 'a quién le ganó más' en _stats_rivales."""
+    con cómo ya se responde 'a quién le ganó más' en _stats_rivales.
+    Mismo criterio que _stats_peleadores: cuentan todos los modos."""
     contra_peleador_rival = {}
     for p in partidos:
-        if p.fase == "rey_de_la_cancha":
-            continue
         peleador_rival_id = p.jugador2_peleador_id if p.jugador1_id == jugador_id else p.jugador1_peleador_id
         if peleador_rival_id is None:
             continue

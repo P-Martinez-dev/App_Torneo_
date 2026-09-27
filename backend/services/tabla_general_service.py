@@ -57,7 +57,37 @@ def _puestos_rey_de_la_cancha(torneo_id, vidas_prefetch=None, partidos_prefetch=
     return {f["jugador_id"]: f["puesto"] for f in tabla}
 
 
-def _puestos_grupos_eliminacion(torneo_id, jugadores_prefetch=None, partidos_prefetch=None):
+# Mientras el torneo no terminó, los que todavía no tienen puesto quedan
+# todos acá (todavía no se sabe hasta dónde llega cada uno).
+PUESTO_SIN_DEFINIR_EN_CURSO = 6
+
+
+def _puestos_grupos_eliminacion(torneo, jugadores_prefetch=None, partidos_prefetch=None,
+                                grupos_prefetch=None, vidas_prefetch=None, nombres_prefetch=None):
+    """
+    Puestos densos por instancia alcanzada. Criterio general: ante la duda
+    se da de más, no de menos -- los que llegan a la misma instancia
+    comparten el MEJOR puesto de esa instancia, y la instancia siguiente
+    toma el puesto inmediato (1,1,2 y no 1,1,3), igual que el ranking
+    denso de todos contra todos.
+
+    1. El cuadro: campeón 1, finalista 2, tercer puesto 3 y 4, y cada ronda
+       anterior es una instancia más (cuartos, octavos...).
+    2. Los que no clasificaron, por su DISTANCIA AL CORTE en su grupo: el
+       primer eliminado de cada grupo toma el puesto siguiente al cuadro,
+       el segundo eliminado el que sigue, etc. Se mide contra el corte y
+       no por la posición cruda porque con largest-remainder dos grupos
+       pueden clasificar distinta cantidad (el 3° de uno pudo clasificar
+       y el 3° de otro no). Empatados en puntos dentro del grupo comparten
+       la mejor distancia.
+
+    Ej: 11 jugadores, grupos de 5 y 6, pasan 2 por grupo -> 1° a 4° del
+    cuadro; los dos 3° de grupo, 5°; los 4° de grupo, 6°; y así.
+
+    El paso 2 solo corre con el torneo finalizado: antes, un jugador sin
+    puesto puede ser alguien que sigue vivo en el cuadro.
+    """
+    torneo_id = torneo.id
     if partidos_prefetch is not None:
         partidos_elim = [p for p in partidos_prefetch if p.fase == "eliminacion"]
         partidos_tercer = [p for p in partidos_prefetch if p.fase == "tercer_puesto"]
@@ -72,33 +102,96 @@ def _puestos_grupos_eliminacion(torneo_id, jugadores_prefetch=None, partidos_pre
         final = next(p for p in partidos_elim if p.ronda == final_ronda)
 
         puestos[final.ganador_id] = 1
-        perdedor_final = (
-            final.jugador2_id if final.ganador_id == final.jugador1_id else final.jugador1_id
-        )
-        puestos[perdedor_final] = 2
+        puestos[_perdedor(final)] = 2
 
         if partidos_tercer:
             tp = partidos_tercer[0]
             puestos[tp.ganador_id] = 3
-            perdedor_tp = tp.jugador2_id if tp.ganador_id == tp.jugador1_id else tp.jugador1_id
-            puestos[perdedor_tp] = 4
+            puestos[_perdedor(tp)] = 4
 
-        ronda_cuartos = final_ronda - 2
-        if ronda_cuartos >= 1:
-            for p in partidos_elim:
-                if p.ronda == ronda_cuartos:
-                    perdedor = p.jugador2_id if p.ganador_id == p.jugador1_id else p.jugador1_id
-                    puestos[perdedor] = 5
+        # Cada ronda anterior a la final es una instancia: sus perdedores
+        # comparten el puesto siguiente al último asignado. Los de semis ya
+        # quedaron ubicados por el tercer puesto, así que esa ronda no suma
+        # nada -- y si por algún motivo no hubo tercer puesto, los dos
+        # semifinalistas comparten el 3 en vez de quedar sin ubicar.
+        for ronda in range(final_ronda - 1, 0, -1):
+            perdedores = [
+                _perdedor(p) for p in partidos_elim
+                if p.ronda == ronda and _perdedor(p) not in puestos
+            ]
+            if perdedores:
+                siguiente = max(puestos.values()) + 1
+                for jugador_id in perdedores:
+                    puestos[jugador_id] = siguiente
 
-    # todos los demás participantes del torneo (no llegaron a cuartos) -> puesto 6, "resto"
     todos = jugadores_prefetch if jugadores_prefetch is not None else torneo_jugador_repository.obtener_jugadores_de_torneo(torneo_id)
+
+    if torneo.estado != "finalizado":
+        for j in todos:
+            puestos.setdefault(j["jugador_id"], PUESTO_SIN_DEFINIR_EN_CURSO)
+        return puestos
+
+    distancias = _distancias_al_corte(
+        torneo, set(puestos), grupos_prefetch=grupos_prefetch, partidos_prefetch=partidos_prefetch,
+        vidas_prefetch=vidas_prefetch, nombres_prefetch=nombres_prefetch,
+    )
+    base = max(puestos.values(), default=0) + 1
+    for jugador_id, distancia in distancias.items():
+        puestos[jugador_id] = base + distancia - 1
+
+    # Red de seguridad: alguien del torneo que no está en el cuadro ni en
+    # ningún grupo (no debería pasar) comparte la última instancia en vez
+    # de abrir una más abajo.
+    ultimo = max(puestos.values(), default=1)
     for j in todos:
-        puestos.setdefault(j["jugador_id"], 6)
+        puestos.setdefault(j["jugador_id"], ultimo)
 
     return puestos
 
 
-def calcular_puestos(torneo, jugadores_prefetch=None, partidos_prefetch=None, vidas_prefetch=None, nombres_prefetch=None):
+def _perdedor(partido):
+    return partido.jugador2_id if partido.ganador_id == partido.jugador1_id else partido.jugador1_id
+
+
+def _distancias_al_corte(torneo, clasificados_ids, grupos_prefetch=None, partidos_prefetch=None,
+                         vidas_prefetch=None, nombres_prefetch=None):
+    """{jugador_id: distancia} para cada jugador que no clasificó: 1 para
+    el primer eliminado de su grupo, 2 para el segundo, etc. (denso: los
+    empatados en puntos comparten la mejor).
+
+    El orden sale de tabla_service.calcular_tabla_grupo, la misma tabla que
+    decide los clasificados -- así la tabla de un grupo y el puesto final
+    nunca se contradicen, sea el grupo todos contra todos o rey de la
+    cancha (en los dos, 'puntos' ordena la tabla).
+
+    Con los *_prefetch no hace ninguna consulta; sin ellos, trae lo de este
+    torneo en una tanda (se usa al mirar un torneo puntual)."""
+    if grupos_prefetch is None:
+        grupos_prefetch = torneo_jugador_repository.obtener_jugadores_de_grupos_de_torneos([torneo.id]).get(torneo.id, {})
+    if partidos_prefetch is None:
+        partidos_prefetch = partido_repository.obtener_finalizados_por_torneo(torneo.id, "grupos", [])
+    es_rey = torneo.formato_grupos == "rey_de_la_cancha"
+    if es_rey and vidas_prefetch is None:
+        vidas_prefetch = torneo_jugador_repository.obtener_vidas_de_torneo(torneo.id)
+    if es_rey and nombres_prefetch is None:
+        nombres_prefetch = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+
+    distancias = {}
+    for grupo_id, jugadores_grupo in grupos_prefetch.items():
+        tabla = tabla_service.calcular_tabla_grupo(
+            grupo_id, torneo_prefetch=torneo, jugadores_prefetch=jugadores_grupo,
+            partidos_prefetch=partidos_prefetch, vidas_prefetch=vidas_prefetch,
+            nombres_prefetch=nombres_prefetch,
+        )
+        afuera = [f for f in tabla if f["jugador_id"] not in clasificados_ids]
+        puntos_distintos = sorted({f["puntos"] for f in afuera}, reverse=True)
+        for f in afuera:
+            distancias[f["jugador_id"]] = puntos_distintos.index(f["puntos"]) + 1
+    return distancias
+
+
+def calcular_puestos(torneo, jugadores_prefetch=None, partidos_prefetch=None, vidas_prefetch=None, nombres_prefetch=None,
+                     grupos_prefetch=None):
     """
     Calcula el puesto de cada jugador en un torneo, según su modo.
 
@@ -108,13 +201,19 @@ def calcular_puestos(torneo, jugadores_prefetch=None, partidos_prefetch=None, vi
     vidas), se le pasan los datos ya traídos de antes en una sola tanda.
     Sin pasar nada, funciona exactamente igual que antes -- consulta
     fresco, para cuando se pide el puesto de un solo torneo puntual.
+
+    grupos_prefetch ({grupo_id: [jugadores]}) solo lo usa grupos +
+    eliminación, para ubicar a los que no clasificaron.
     """
     if torneo.modo == "todos_contra_todos":
         return _puestos_todos_contra_todos(torneo.id, jugadores_prefetch=jugadores_prefetch, partidos_prefetch=partidos_prefetch)
     elif torneo.modo == "rey_de_la_cancha":
         return _puestos_rey_de_la_cancha(torneo.id, vidas_prefetch=vidas_prefetch, partidos_prefetch=partidos_prefetch, nombres_prefetch=nombres_prefetch)
     elif torneo.modo == "grupos_eliminacion":
-        return _puestos_grupos_eliminacion(torneo.id, jugadores_prefetch=jugadores_prefetch, partidos_prefetch=partidos_prefetch)
+        return _puestos_grupos_eliminacion(
+            torneo, jugadores_prefetch=jugadores_prefetch, partidos_prefetch=partidos_prefetch,
+            grupos_prefetch=grupos_prefetch, vidas_prefetch=vidas_prefetch, nombres_prefetch=nombres_prefetch,
+        )
     return {}
 
 
@@ -140,7 +239,7 @@ def calcular_tabla_general(
     de puestos.
 
     Nota de rendimiento: TODO lo que hace falta para calcular el puesto
-    de cada torneo (jugadores, partidos, vidas de rey_de_la_cancha) se trae acá
+    de cada torneo (jugadores, partidos, vidas, integrantes de cada grupo) se trae acá
     en una sola tanda para TODOS los torneos a la vez, y se le pasa ya
     listo a cada uno -- en vez de que cada torneo dispare sus propias
     consultas por su cuenta. Contra una base remota, con esto la
@@ -170,8 +269,16 @@ def calcular_tabla_general(
         jugadores_por_torneo_prefetch if jugadores_por_torneo_prefetch is not None
         else torneo_jugador_repository.obtener_jugadores_de_torneos(torneos_incluidos_ids)
     )
-    vidas_por_torneo = torneo_jugador_repository.obtener_vidas_de_torneos(
-        [t.id for t in torneos if t.modo == "rey_de_la_cancha"]
+    # Las vidas hacen falta en los torneos rey de la cancha Y en los de
+    # grupos jugados a rey de la cancha (para ordenar a los que no
+    # clasificaron): se piden todas en la misma consulta.
+    vidas_por_torneo = torneo_jugador_repository.obtener_vidas_de_torneos([
+        t.id for t in torneos
+        if t.modo == "rey_de_la_cancha"
+        or (t.modo == "grupos_eliminacion" and t.formato_grupos == "rey_de_la_cancha")
+    ])
+    grupos_por_torneo = torneo_jugador_repository.obtener_jugadores_de_grupos_de_torneos(
+        [t.id for t in torneos if t.modo == "grupos_eliminacion"]
     )
     partidos_por_torneo = {}
     for p in partidos:
@@ -184,6 +291,7 @@ def calcular_tabla_general(
             partidos_prefetch=partidos_por_torneo.get(t.id, []),
             vidas_prefetch=vidas_por_torneo.get(t.id),
             nombres_prefetch=nombres,
+            grupos_prefetch=grupos_por_torneo.get(t.id),
         )
         for t in torneos
     }

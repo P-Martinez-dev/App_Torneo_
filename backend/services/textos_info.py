@@ -61,6 +61,15 @@ Si hay empates en la clasificación al corte, se resuelven con un desempate
 interno; si sobran o faltan clasificados para completar el bracket, entra
 un repechaje cruzado entre grupos.
 
+**Cómo se arma la tabla final**
+
+El puesto sale de hasta dónde llegó cada uno: campeón, finalista, tercero y
+cuarto, y después cada ronda anterior de la eliminación. Los que no
+clasificaron se ordenan por su lugar en el grupo contando desde el corte:
+los primeros que quedaron afuera de cada grupo comparten el puesto
+siguiente al bracket, los segundos el que sigue, y así. Ante un empate
+siempre se comparte el mejor puesto: se da de más, nunca de menos.
+
 ## Rey de la cancha
 
 Se juega en cola: el que gana se queda en cancha esperando al próximo

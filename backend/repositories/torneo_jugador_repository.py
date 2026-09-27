@@ -192,6 +192,37 @@ def obtener_jugadores_de_torneos(torneos_ids):
     return por_torneo
 
 
+def obtener_jugadores_de_grupos_de_torneos(torneos_ids):
+    """Integrantes de cada grupo de tipo 'grupo' (no repechaje/desempate)
+    de VARIOS torneos, de una sola consulta -- devuelve
+    {torneo_id: {grupo_id: [filas]}}, con las filas iguales a las de
+    obtener_jugadores_de_grupo. La usa la tabla general para ubicar a los
+    que no clasificaron según su lugar en el grupo, sin pedir cada grupo
+    de cada torneo por separado."""
+    if not torneos_ids:
+        return {}
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    placeholders = ",".join(["%s"] * len(torneos_ids))
+    cursor.execute(
+        f"""SELECT g.torneo_id, tjg.grupo_id, tj.id AS torneo_jugador_id, j.id AS jugador_id, j.nombre
+            FROM torneo_jugador_grupo tjg
+            JOIN grupo g ON g.id = tjg.grupo_id
+            JOIN torneo_jugador tj ON tj.id = tjg.torneo_jugador_id
+            JOIN jugador j ON j.id = tj.jugador_id
+            WHERE g.torneo_id IN ({placeholders}) AND g.tipo = 'grupo'""",
+        torneos_ids,
+    )
+    filas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    por_torneo = {torneo_id: {} for torneo_id in torneos_ids}
+    for fila in filas:
+        por_torneo[fila["torneo_id"]].setdefault(fila["grupo_id"], []).append(fila)
+    return por_torneo
+
+
 def obtener_grupo_original(torneo_id, jugador_id):
     """El grupo de tipo 'grupo' (no repechaje/desempate) al que pertenece el jugador."""
     conn = get_connection()

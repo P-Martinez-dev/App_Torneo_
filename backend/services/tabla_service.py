@@ -152,7 +152,9 @@ def resolver_por_enfrentamiento_directo(grupo_id, bloque):
     return [por_id[tj_id] for tj_id in orden_ids]
 
 
-def calcular_tabla_grupo(grupo_id, partidos_excluidos_ids=None):
+def calcular_tabla_grupo(grupo_id, partidos_excluidos_ids=None, torneo_prefetch=None,
+                         jugadores_prefetch=None, partidos_prefetch=None,
+                         vidas_prefetch=None, nombres_prefetch=None):
     """
     Tabla de posiciones de un grupo. Sin criterio de desempate (definido
     a propósito): si dos jugadores quedan con los mismos puntos, quedan
@@ -162,16 +164,46 @@ def calcular_tabla_grupo(grupo_id, partidos_excluidos_ids=None):
     sale de sumar victorias sino de la misma fórmula que usa ese modo
     (racha² + qué tan lejos llegaste). De ahí salen también los que
     clasifican a la eliminación.
+
+    Los *_prefetch son opcionales, mismo criterio que en
+    calcular_tabla_todos_contra_todos: los pasa tabla_general_service al
+    recorrer todos los torneos (para ubicar a los que no clasificaron),
+    y así no dispara consultas por cada grupo de cada torneo. Si se pasan,
+    van TODOS juntos: torneo_prefetch (de ahí sale el formato),
+    jugadores_prefetch (los del grupo), partidos_prefetch (finalizados del
+    torneo, se filtran acá por grupo), y vidas_prefetch (las del torneo,
+    también se filtran acá) + nombres_prefetch si el formato es rey de la
+    cancha. Sin pasar nada, consulta como siempre.
     """
     partidos_excluidos_ids = partidos_excluidos_ids or []
 
-    grupo = grupo_repository.obtener_por_id(grupo_id)
-    if grupo is not None:
-        torneo = torneo_repository.obtener_por_id(grupo.torneo_id)
-        if torneo is not None and torneo.formato_grupos == "rey_de_la_cancha":
-            return _tabla_grupo_rey_de_la_cancha(grupo_id, grupo.torneo_id)
-    jugadores = torneo_jugador_repository.obtener_jugadores_de_grupo(grupo_id)
-    partidos = partido_repository.obtener_finalizados_por_grupo(grupo_id, partidos_excluidos_ids)
+    if torneo_prefetch is not None:
+        if torneo_prefetch.formato_grupos == "rey_de_la_cancha":
+            ids_grupo = {j["jugador_id"] for j in jugadores_prefetch}
+            return _tabla_grupo_rey_de_la_cancha(
+                grupo_id, torneo_prefetch.id, jugadores_prefetch=jugadores_prefetch,
+                partidos_prefetch=partidos_prefetch,
+                vidas_prefetch=[v for v in vidas_prefetch if v["jugador_id"] in ids_grupo],
+                nombres_prefetch=nombres_prefetch,
+            )
+    else:
+        grupo = grupo_repository.obtener_por_id(grupo_id)
+        if grupo is not None:
+            torneo = torneo_repository.obtener_por_id(grupo.torneo_id)
+            if torneo is not None and torneo.formato_grupos == "rey_de_la_cancha":
+                return _tabla_grupo_rey_de_la_cancha(grupo_id, grupo.torneo_id)
+
+    jugadores = (
+        jugadores_prefetch if jugadores_prefetch is not None
+        else torneo_jugador_repository.obtener_jugadores_de_grupo(grupo_id)
+    )
+    if partidos_prefetch is not None:
+        partidos = [
+            p for p in partidos_prefetch
+            if p.grupo_id == grupo_id and p.estado == "finalizado" and p.id not in partidos_excluidos_ids
+        ]
+    else:
+        partidos = partido_repository.obtener_finalizados_por_grupo(grupo_id, partidos_excluidos_ids)
 
     tabla = {
         j["torneo_jugador_id"]: {
@@ -210,7 +242,8 @@ def calcular_tabla_grupo(grupo_id, partidos_excluidos_ids=None):
 
 
 
-def _tabla_grupo_rey_de_la_cancha(grupo_id, torneo_id):
+def _tabla_grupo_rey_de_la_cancha(grupo_id, torneo_id, jugadores_prefetch=None, partidos_prefetch=None,
+                                  vidas_prefetch=None, nombres_prefetch=None):
     """
     Tabla de un grupo que se jugó a rey de la cancha.
 
@@ -224,15 +257,27 @@ def _tabla_grupo_rey_de_la_cancha(grupo_id, torneo_id):
     de grupos (pj/pg/pp/puntos), para que las pantallas y el cálculo de
     clasificados no tengan que saber de qué formato viene la tabla.
     """
-    vidas = torneo_jugador_repository.obtener_vidas_de_grupo(grupo_id)
-    partidos = [p for p in partido_repository.obtener_por_torneo(torneo_id)
-                if p.grupo_id == grupo_id and p.estado == "finalizado"]
-    nombres = {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+    vidas = (
+        vidas_prefetch if vidas_prefetch is not None
+        else torneo_jugador_repository.obtener_vidas_de_grupo(grupo_id)
+    )
+    partidos_torneo = (
+        partidos_prefetch if partidos_prefetch is not None
+        else partido_repository.obtener_por_torneo(torneo_id)
+    )
+    partidos = [p for p in partidos_torneo if p.grupo_id == grupo_id and p.estado == "finalizado"]
+    nombres = (
+        nombres_prefetch if nombres_prefetch is not None
+        else {j.id: j.nombre for j in jugador_repository.obtener_todos()}
+    )
     # El código de clasificación y desempates identifica a cada jugador por
     # su torneo_jugador_id, no por jugador_id. La tabla de rey de la cancha
     # no lo trae (no lo necesita para su cálculo), así que se busca acá para
     # que las filas queden con la misma forma que las de todos contra todos.
-    jugadores_grupo = torneo_jugador_repository.obtener_jugadores_de_grupo(grupo_id)
+    jugadores_grupo = (
+        jugadores_prefetch if jugadores_prefetch is not None
+        else torneo_jugador_repository.obtener_jugadores_de_grupo(grupo_id)
+    )
     tj_por_jugador = {j["jugador_id"]: j["torneo_jugador_id"] for j in jugadores_grupo}
 
     # calcular_tabla_rey_de_la_cancha filtra por fase == "rey_de_la_cancha", pero acá
@@ -427,7 +472,8 @@ def calcular_tabla_grupos_eliminacion(torneo_id):
 
     El puesto no sale de sumar puntos como en los otros modos, sino de
     hasta dónde llegó cada uno en la eliminación (campeón, finalista,
-    tercero, cuarto, cuartos, y el resto). Esa lógica ya existe y es la
+    tercero, cuarto, cada ronda anterior) y, para los que no clasificaron,
+    de su distancia al corte en el grupo. Esa lógica ya existe y es la
     que usa la tabla histórica para repartir puntos, así que se reutiliza
     tal cual -- si se recalculara acá con otro criterio, la tabla del
     torneo y el ranking general podrían llegar a contradecirse.
