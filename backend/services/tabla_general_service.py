@@ -48,7 +48,7 @@ def _puestos_todos_contra_todos(torneo_id, jugadores_prefetch=None, partidos_pre
 
 
 def _puestos_rey_de_la_cancha(torneo_id, vidas_prefetch=None, partidos_prefetch=None, nombres_prefetch=None):
-    """El cálculo completo (racha², desempate por posición) vive en
+    """El cálculo completo (racha², desempate por momento de eliminación) vive en
     tabla_service.calcular_tabla_rey_de_la_cancha -- acá solo se extrae el
     mapeo jugador_id -> puesto que necesita la tabla general."""
     tabla = tabla_service.calcular_tabla_rey_de_la_cancha(

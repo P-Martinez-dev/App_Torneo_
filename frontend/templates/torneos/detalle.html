@@ -146,7 +146,10 @@
     </h3>
     {# En los grupos de rey de la cancha, "Pts" son puntos de RACHA (no
        victorias), así que se aclara en el encabezado para que no se lea
-       como si fueran partidos ganados. #}
+       como si fueran partidos ganados. Ojo: ahí se muestra puntos_racha y
+       NO f.puntos -- en esos grupos 'puntos' es un valor interno derivado
+       del puesto (lo usa el cálculo de clasificados, ver
+       _tabla_grupo_rey_de_la_cancha), no la racha. #}
     {% set es_rey = resumen.torneo.formato_grupos == 'rey_de_la_cancha' %}
     <table class="tabla-datos">
       <thead><tr>
@@ -158,46 +161,4 @@
       {% for f in g.tabla %}
         <tr>
           {% if es_rey %}<td>{{ f.puesto }}</td>{% endif %}
-          <td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td>
-          <td>{{ (f.win_rate * 100) | round(1) }}%</td><td>{{ f.puntos }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endfor %}
-</section>
-
-{% if resumen.bracket %}
-<section class="detalle-seccion">
-  <h2 class="ticket-nombre">Bracket</h2>
-  {% for ronda in resumen.bracket.rondas %}
-  <h3 class="detalle-subtitulo">{{ ronda.nombre }}</h3>
-  <ul class="lista-partidos">
-    {% for p in ronda.partidos %}
-    <li>{{ p.jugador1_nombre }} vs {{ p.jugador2_nombre }}{% if p.ganador_nombre %} — gana {{ p.ganador_nombre }}{% endif %}</li>
-    {% endfor %}
-  </ul>
-  {% endfor %}
-  {% if resumen.bracket.tercer_puesto %}
-  <h3 class="detalle-subtitulo">Tercer puesto</h3>
-  <ul class="lista-partidos">
-    <li>
-      {{ resumen.bracket.tercer_puesto.jugador1_nombre }} vs {{ resumen.bracket.tercer_puesto.jugador2_nombre }}
-      {% if resumen.bracket.tercer_puesto.ganador_nombre %} — gana {{ resumen.bracket.tercer_puesto.ganador_nombre }}{% endif %}
-    </li>
-  </ul>
-  {% endif %}
-</section>
-{% endif %}
-{% endif %}
-
-<section class="detalle-seccion">
-  <h2 class="ticket-nombre">Orden cronológico</h2>
-  <ol class="lista-partidos lista-partidos-numerada">
-    {% for p in resumen.partidos %}
-    <li>{{ p.jugador1_nombre }} vs {{ p.jugador2_nombre }}{% if p.ganador_nombre %} — gana {{ p.ganador_nombre }}{% endif %}</li>
-    {% endfor %}
-  </ol>
-</section>
-{% endblock %}
+          <td>{{ f.nombre

@@ -78,10 +78,10 @@ queda sin vidas, queda eliminado. El último que queda en pie es el campeón.
 
 **Cómo se arma la tabla final**
 
-El campeón siempre es el 1° puesto. Para el resto, el orden **no** es
-simplemente quién duró más: se combinan dos cosas.
+El campeón (el último que queda con vidas) siempre es el 1° puesto. Para
+el resto, el orden **no** es simplemente quién duró más:
 
-**1. Puntos de racha (80% del criterio)**
+**1. Puntos de racha**
 
 Cada racha de victorias seguidas suma **su largo al cuadrado**:
 
@@ -99,12 +99,8 @@ Es a propósito. El que está en cancha juega con personaje al azar y se va
 desgastando, así que cada victoria extra sin bajarse es más difícil que la
 anterior — y la tabla lo refleja.
 
-**2. Qué tan lejos llegaste (20% del criterio)**
+**2. Desempate: qué tan lejos llegaste**
 
-El orden en que fuiste eliminado. Pesa bastante menos que las rachas, pero
-alcanza para desempatar entre dos que hicieron rachas parecidas.
-
-Las dos cosas se llevan a una misma escala antes de combinarlas, así que
-lo que importa es cómo te fue **respecto a los demás de ese torneo**, no
-un número absoluto.
+Si dos jugadores terminan con los mismos puntos de racha, queda arriba el
+que cayó más cerca del final.
 """

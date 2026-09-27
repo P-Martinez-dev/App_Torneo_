@@ -3,10 +3,18 @@ from repositories import partido_repository, torneo_jugador_repository, grupo_re
 
 def calcular_tabla_rey_de_la_cancha(torneo_id, vidas_prefetch=None, partidos_prefetch=None, nombres_prefetch=None):
     """
-    Tabla de posiciones de un torneo rey_de_la_cancha: puesto (80% puntos de
-    racha + 20% posición final -- ver el diseño largo que se charló para
-    este criterio), puntos de racha, y momento de eliminación de cada
-    jugador. El campeón siempre es puesto 1.
+    Tabla de posiciones de un torneo rey_de_la_cancha: puesto, puntos de
+    racha y momento de eliminación de cada jugador.
+
+    Criterio del puesto, en este orden:
+      1. El campeón (el último que queda con vidas) es siempre el 1°.
+      2. El resto, por puntos de racha (cada racha suma su largo²).
+      3. Empate en racha: queda arriba el que cayó más cerca del final
+         (orden_eliminacion más alto).
+    Es un orden lexicográfico y no una fórmula ponderada: la racha manda
+    siempre, y el momento de eliminación solo desempata. Como
+    orden_eliminacion no se repite dentro de un torneo, en la práctica no
+    quedan empates; si alguna vez los hubiera, comparten puesto.
 
     Los tres *_prefetch son opcionales -- si no se pasan, esta función
     consulta la base por su cuenta (uso normal, para ver un torneo
@@ -15,9 +23,6 @@ def calcular_tabla_rey_de_la_cancha(torneo_id, vidas_prefetch=None, partidos_pre
     datos ya en memoria en vez de volver a pedirlos -- evita repetir 3
     consultas por cada torneo rey_de_la_cancha del historial.
     """
-    PESO_RACHA = 0.8
-    PESO_POSICION = 0.2
-
     filas = vidas_prefetch if vidas_prefetch is not None else torneo_jugador_repository.obtener_vidas_de_torneo(torneo_id)
     if partidos_prefetch is not None:
         partidos = sorted(
@@ -52,29 +57,18 @@ def calcular_tabla_rey_de_la_cancha(torneo_id, vidas_prefetch=None, partidos_pre
     eliminados = [f for f in filas if f["eliminado"]]
     puestos = {campeon_id: 1} if campeon_id is not None else {}
 
-    if eliminados:
-        r_valores = [puntos_racha.get(f["jugador_id"], 0) for f in eliminados]
-        t_valores = [f["orden_eliminacion"] for f in eliminados]
-        r_min, r_max = min(r_valores), max(r_valores)
-        t_min, t_max = min(t_valores), max(t_valores)
+    def _clave(f):
+        return (puntos_racha.get(f["jugador_id"], 0), f["orden_eliminacion"] or 0)
 
-        def _normalizar(valor, minimo, maximo):
-            return (valor - minimo) / (maximo - minimo) if maximo > minimo else 0.5
-
-        def _score(f):
-            r = _normalizar(puntos_racha.get(f["jugador_id"], 0), r_min, r_max)
-            t = _normalizar(f["orden_eliminacion"], t_min, t_max)
-            return PESO_RACHA * r + PESO_POSICION * t
-
-        eliminados_ordenados = sorted(eliminados, key=lambda f: -_score(f))
-        puesto_actual = 1  # arranca en 1 porque el campeón ya ocupó el puesto 1
-        score_anterior = None
-        for f in eliminados_ordenados:
-            score = round(_score(f), 9)
-            if score != score_anterior:
-                puesto_actual += 1
-                score_anterior = score
-            puestos[f["jugador_id"]] = puesto_actual
+    eliminados_ordenados = sorted(eliminados, key=_clave, reverse=True)
+    puesto_actual = 1  # arranca en 1 porque el campeón ya ocupó el puesto 1
+    clave_anterior = None
+    for f in eliminados_ordenados:
+        clave = _clave(f)
+        if clave != clave_anterior:
+            puesto_actual += 1
+            clave_anterior = clave
+        puestos[f["jugador_id"]] = puesto_actual
 
     tabla = [
         {
@@ -88,8 +82,8 @@ def calcular_tabla_rey_de_la_cancha(torneo_id, vidas_prefetch=None, partidos_pre
         for f in filas
     ]
     # Solo el emoji, que es cosmético. El ORDEN de este modo lo define el
-    # puesto que sale de la fórmula (80% racha² + 20% posición final) y no
-    # se toca: acá el win rate no ordena ni desempata, porque el mérito se
+    # puesto (racha, y momento de eliminación como desempate) y no se
+    # toca: acá el win rate no ordena ni desempata, porque el mérito se
     # mide por las rachas, no por la proporción de partidos ganados.
     from services import tabla_general_service
     for f in tabla:
@@ -161,9 +155,9 @@ def calcular_tabla_grupo(grupo_id, partidos_excluidos_ids=None, torneo_prefetch=
     en el mismo orden relativo hasta que se resuelva por repechaje o forzado.
 
     Si el torneo tiene los grupos en formato rey de la cancha, el orden NO
-    sale de sumar victorias sino de la misma fórmula que usa ese modo
-    (racha² + qué tan lejos llegaste). De ahí salen también los que
-    clasifican a la eliminación.
+    sale de sumar victorias sino del mismo criterio que usa ese modo
+    (puntos de racha, y qué tan lejos llegaste como desempate). De ahí
+    salen también los que clasifican a la eliminación.
 
     Los *_prefetch son opcionales, mismo criterio que en
     calcular_tabla_todos_contra_todos: los pasa tabla_general_service al
@@ -248,8 +242,8 @@ def _tabla_grupo_rey_de_la_cancha(grupo_id, torneo_id, jugadores_prefetch=None, 
     Tabla de un grupo que se jugó a rey de la cancha.
 
     Reusa calcular_tabla_rey_de_la_cancha pasándole SOLO los datos de este
-    grupo: las vidas de sus jugadores y los partidos de ese grupo. Así la
-    fórmula (racha² + posición final) es exactamente la misma que en el
+    grupo: las vidas de sus jugadores y los partidos de ese grupo. Así el
+    criterio (racha, y posición final como desempate) es exactamente el mismo que en el
     modo suelto -- si se recalculara acá con otro criterio, un mismo
     resultado podría ordenarse distinto según dónde se mire.
 
