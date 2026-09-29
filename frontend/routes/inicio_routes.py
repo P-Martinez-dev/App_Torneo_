@@ -13,10 +13,15 @@ def estado_carga():
     try:
         return jsonify(torneo_service.estado_warmup())
     except Exception:
-        # Si el backend no responde, decimos que ya está listo para no
-        # dejar a nadie trabado en la pantalla de carga -- que entre y
-        # vea el error real, si lo hay.
-        return jsonify({"completado": True, "pasos_hechos": 0, "pasos_totales": 0, "paso_actual": None})
+        # Si el backend no responde, lo más probable (en Render) es que se
+        # esté despertando: se sigue esperando en vez de decir "listo" y
+        # recargar directo a un error. 'sin_respuesta' le avisa a la
+        # pantalla de carga, que corta con un mensaje si esto dura
+        # demasiado (así nadie queda trabado si de verdad está caído).
+        return jsonify({
+            "completado": False, "sin_respuesta": True,
+            "pasos_hechos": 0, "pasos_totales": 0, "paso_actual": "Despertando el servidor...",
+        })
 
 
 @inicio_bp.route("/")

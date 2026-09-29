@@ -114,6 +114,7 @@ def obtener_config_general():
         "mostrar_tile_torneos": bool(config["mostrar_tile_torneos"]),
         "mostrar_tile_jugadores": bool(config["mostrar_tile_jugadores"]),
         "mostrar_tile_peleadores": bool(config["mostrar_tile_peleadores"]),
+        "mostrar_tile_enfrentamientos": bool(config["mostrar_tile_enfrentamientos"]),
         "fecha_ultimo_torneo": fecha_ultimo.isoformat() if fecha_ultimo else None,
         "dias_desde_ultimo_torneo": dias_desde_ultimo,
     }

@@ -26,7 +26,7 @@
 <section class="detalle-seccion">
   <h2 class="ticket-nombre">Tiles del Inicio</h2>
   <div class="toggle-estadisticas-grupo">
-    {% for tile, etiqueta in [('tablas','Tablas'), ('torneos','Torneos'), ('jugadores','Jugadores'), ('peleadores','Peleadores')] %}
+    {% for tile, etiqueta in [('tablas','Tablas'), ('torneos','Torneos'), ('jugadores','Jugadores'), ('peleadores','Peleadores'), ('enfrentamientos','Enfrentamientos')] %}
     <form method="post" action="{{ url_for('configuracion.toggle_tile', nombre_tile=tile) }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="visible" value="{{ 'false' if generales['mostrar_tile_' + tile] else 'true' }}">

@@ -61,6 +61,9 @@ a { color: inherit; }
   color: var(--ink);
   margin: 0;
 }
+/* Aviso de "el servidor no responde" en la pantalla de carga: el texto
+   ya viene centrado por su clase, el botón (inline-block) necesita esto. */
+.carga-error { text-align: center; }
 .carga-paso {
   font-family: var(--font-mono);
   font-size: 13px;
@@ -1331,4 +1334,121 @@ input[type="file"]::file-selector-button:hover {
 
 @media (max-width: 700px) {
   .perfil-layout { grid-template-columns: 1fr; }
+}
+
+/* ---------- Enfrentamientos: selector ---------- */
+/* Las fichas del selector son <button> (elegir no navega), así que hay que
+   sacarles la tipografía y el cursor por defecto del navegador para que se
+   vean idénticas a las del roster. */
+.jugador-tile-boton {
+  font: inherit;
+  cursor: pointer;
+  width: 100%;
+}
+.jugador-tile-boton:focus-visible {
+  outline: 3px solid var(--stamp);
+  outline-offset: 2px;
+}
+.jugador-tile-seleccionado {
+  border-color: var(--stamp);
+  background: rgba(227, 30, 36, 0.14);
+  box-shadow: 0 6px 22px rgba(227, 30, 36, 0.35);
+}
+.selector-estado {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--marker);
+  margin: 0 0 16px;
+}
+
+/* ---------- Enfrentamientos: detalle ---------- */
+.marcador {
+  display: grid;
+  grid-template-columns: 160px 1fr 160px;
+  align-items: center;
+  gap: 24px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-top: 4px solid var(--stamp);
+  padding: 24px;
+  margin-bottom: 40px;
+}
+.marcador-jugador {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.marcador-jugador:hover .jugador-icono { border-color: var(--stamp); }
+.marcador-centro { text-align: center; }
+.marcador-resultado {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 88px;
+  line-height: 1;
+  margin: 0;
+  color: var(--graphite);
+}
+.marcador-lider { color: var(--ink); }
+.marcador-separador { color: var(--stamp); margin: 0 12px; }
+.marcador-nota {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--graphite);
+  margin: 8px 0 0;
+}
+
+.enfrentamiento-torneo { margin-bottom: 28px; }
+.enfrentamiento-torneo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.enfrentamiento-torneo-nombre {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+}
+.enfrentamiento-torneo-nombre:hover { color: var(--stamp); }
+.enfrentamiento-torneo-head .ticket-fecha { margin: 4px 0 0; }
+/* Ancho fijo por columna: cada torneo es una tabla aparte, y con el ancho
+   automático cada una acomodaba sus columnas distinto según el contenido
+   (quedaban desalineadas entre un torneo y el siguiente). */
+.tabla-enfrentamiento { table-layout: fixed; }
+.tabla-enfrentamiento th:nth-child(1) { width: 40%; }
+.tabla-enfrentamiento th:nth-child(2),
+.tabla-enfrentamiento th:nth-child(3),
+.tabla-enfrentamiento th:nth-child(4) { width: 20%; }
+.tabla-enfrentamiento td { overflow-wrap: anywhere; }
+.enfrentamiento-parcial {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+/* A en rojo y B en cian: el mismo par de acentos de toda la app, para
+   distinguir de un vistazo de qué lado cayó cada partido. */
+.enfrentamiento-gano-a { color: var(--stamp); }
+.enfrentamiento-gano-b { color: var(--marker); }
+
+@media (max-width: 640px) {
+  .marcador {
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    padding: 16px;
+  }
+  .marcador-resultado { font-size: 56px; }
+  .marcador-separador { margin: 0 6px; }
+  .tabla-enfrentamiento { font-size: 12px; }
 }

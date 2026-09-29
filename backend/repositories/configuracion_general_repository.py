@@ -3,6 +3,7 @@ from database.db import get_connection
 CAMPOS = (
     "fecha_proximo_torneo, descripcion_inicio, descripcion_tablas, nombre_club, "
     "mostrar_tile_tablas, mostrar_tile_torneos, mostrar_tile_jugadores, mostrar_tile_peleadores, "
+    "mostrar_tile_enfrentamientos, "
     "info_tablas, info_formatos"
 )
 
@@ -18,6 +19,7 @@ def obtener():
         "fecha_proximo_torneo": None, "descripcion_inicio": None, "descripcion_tablas": None,
         "nombre_club": None, "mostrar_tile_tablas": True, "mostrar_tile_torneos": True,
         "mostrar_tile_jugadores": True, "mostrar_tile_peleadores": True,
+        "mostrar_tile_enfrentamientos": True,
         "info_tablas": None, "info_formatos": None,
     }
 
@@ -59,6 +61,7 @@ CAMPOS_TILE_VALIDOS = {
     "torneos": "mostrar_tile_torneos",
     "jugadores": "mostrar_tile_jugadores",
     "peleadores": "mostrar_tile_peleadores",
+    "enfrentamientos": "mostrar_tile_enfrentamientos",
 }
 
 

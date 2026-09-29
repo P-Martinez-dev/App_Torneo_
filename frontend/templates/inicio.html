@@ -63,6 +63,12 @@
   </a>
   {% endif %}
 
+  {% if generales.mostrar_tile_enfrentamientos %}
+  <a href="{{ url_for('enfrentamiento.selector') }}" class="menu-tile">
+    <span class="menu-tile-titulo">Enfrentamientos</span>
+  </a>
+  {% endif %}
+
   {% if es_admin() %}
   <a href="{{ url_for('configuracion.index') }}" class="menu-tile">
     <span class="menu-tile-titulo">Configuración</span>

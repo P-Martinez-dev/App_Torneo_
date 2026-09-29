@@ -1,4 +1,5 @@
-from flask import Flask, request, render_template, g
+import requests
+from flask import Flask, request, render_template, g, flash, url_for
 from flask_wtf.csrf import CSRFProtect
 
 from config import Config
@@ -9,6 +10,7 @@ from routes.jugador_routes import jugador_bp
 from routes.configuracion_routes import configuracion_bp
 from routes.peleador_routes import peleador_frontend_bp
 from routes.admin_routes import admin_bp
+from routes.enfrentamiento_routes import enfrentamiento_bp
 from auth import es_admin
 from markdown_simple import markdown_a_html
 from services import torneo_service
@@ -26,11 +28,31 @@ def create_app():
     app.register_blueprint(configuracion_bp)
     app.register_blueprint(peleador_frontend_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(enfrentamiento_bp)
 
     # Estado del warmup, cacheado en memoria: una vez que terminó, no se
-    # vuelve a preguntar nunca más (el backend no reinicia sin que este
-    # proceso también reinicie, en la práctica).
+    # vuelve a preguntar. Ojo: en Render los dos servicios se duermen por
+    # separado, así que el backend SÍ puede reiniciarse con este proceso
+    # vivo -- por eso el manejador de errores de conexión de más abajo lo
+    # vuelve a poner en False, y la pantalla de carga reaparece sola.
     _warmup_listo = {"si": False}
+
+    PASO_DESPERTANDO = "Despertando el servidor..."
+
+    def _pantalla_de_carga(estado, url_destino=None):
+        """La pantalla de carga, desde cualquier lugar que la necesite.
+        url_destino: adónde ir cuando el backend esté listo. Sin él, la
+        pantalla recarga la página pedida (lo normal en un GET); con un
+        POST eso reenviaría el formulario, así que ahí se manda a otra
+        página."""
+        # Se usa el nombre que ya esté en cache, sin pedirlo al backend: la
+        # pantalla de carga tiene que renderizar al instante, y el backend
+        # está justo ocupado precalculando (o dormido).
+        g.sirviendo_pantalla_de_carga = True
+        nombre = torneo_service._cache_nombre_club["valor"] or "App del Torneo"
+        return render_template(
+            "cargando.html", estado=estado, nombre_club_carga=nombre, url_destino=url_destino,
+        )
 
     @app.before_request
     def mostrar_pantalla_de_carga_si_hace_falta():
@@ -48,17 +70,47 @@ def create_app():
         try:
             estado = torneo_service.estado_warmup()
         except Exception:
-            _warmup_listo["si"] = True  # backend caído: que entre y vea el error real
-            return
+            # Antes esto marcaba "listo" para que se viera el error real --
+            # pero en Render lo normal es que el backend esté DORMIDO, no
+            # caído: tarda en despertar y esta consulta vence antes. Marcar
+            # "listo" dejaba pasar a la vista, que fallaba con un 500, y la
+            # pantalla de carga no volvía a aparecer nunca más. Ahora se
+            # espera en la pantalla de carga (que corta sola con un mensaje
+            # si el backend de verdad no vuelve).
+            return _pantalla_de_carga({"paso_actual": PASO_DESPERTANDO})
         if estado.get("completado"):
             _warmup_listo["si"] = True
             return
-        # Se usa el nombre que ya esté en cache, sin pedirlo al backend: la
-        # pantalla de carga tiene que renderizar al instante, y el backend
-        # está justo ocupado precalculando.
-        g.sirviendo_pantalla_de_carga = True
-        nombre = torneo_service._cache_nombre_club["valor"] or "App del Torneo"
-        return render_template("cargando.html", estado=estado, nombre_club_carga=nombre)
+        return _pantalla_de_carga(estado)
+
+    def _backend_no_disponible(e):
+        """Cualquier pedido al backend que no llegó a responder (dormido,
+        arrancando, o Render devolviendo 502/503/504 mientras lo despierta)
+        termina acá, en un solo lugar, en vez de un 500 en cada ruta -- mismo
+        criterio que la invalidación de cache del backend: centralizado, así
+        una ruta nueva no puede olvidarse de manejarlo.
+
+        Cualquier otro error del backend (un 500 por un bug, un 404 que la
+        ruta no esperaba) NO se tapa: sigue saliendo como error, para que se
+        vea y se arregle."""
+        if isinstance(e, requests.exceptions.HTTPError):
+            if e.response is None or e.response.status_code not in (502, 503, 504):
+                raise e
+        _warmup_listo["si"] = False
+        if request.method == "GET":
+            return _pantalla_de_carga({"paso_actual": PASO_DESPERTANDO}), 503
+        # En un POST no se puede saber si el backend llegó a guardar el
+        # cambio antes de que se cortara la espera (con un timeout de
+        # lectura, pudo haberlo hecho). Se avisa, y se vuelve a la página
+        # del formulario en vez de reenviarlo a ciegas.
+        flash("El servidor tardó en responder y no se pudo confirmar el cambio. "
+              "Revisá si quedó guardado antes de volver a intentarlo.")
+        destino = request.referrer or url_for("inicio.inicio")
+        return _pantalla_de_carga({"paso_actual": PASO_DESPERTANDO}, url_destino=destino), 503
+
+    app.register_error_handler(requests.exceptions.ConnectionError, _backend_no_disponible)
+    app.register_error_handler(requests.exceptions.Timeout, _backend_no_disponible)
+    app.register_error_handler(requests.exceptions.HTTPError, _backend_no_disponible)
 
     def imagen_url(path):
         """Las imágenes pueden venir de dos lados: guardadas en la nube
@@ -81,6 +133,8 @@ def create_app():
         "todos_contra_todos": "Todos contra todos",
         "grupos_eliminacion": "Grupos + eliminación",
         "tercer_puesto": "Tercer puesto",
+        "eliminacion": "Eliminación",
+        "grupos": "Grupos",
     }
 
     def nombre_modo(valor):

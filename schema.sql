@@ -86,7 +86,8 @@ CREATE TABLE configuracion_general (
     mostrar_tile_tablas BOOLEAN NOT NULL DEFAULT TRUE,
     mostrar_tile_torneos BOOLEAN NOT NULL DEFAULT TRUE,
     mostrar_tile_jugadores BOOLEAN NOT NULL DEFAULT TRUE,
-    mostrar_tile_peleadores BOOLEAN NOT NULL DEFAULT TRUE
+    mostrar_tile_peleadores BOOLEAN NOT NULL DEFAULT TRUE,
+    mostrar_tile_enfrentamientos BOOLEAN NOT NULL DEFAULT TRUE
 );
 INSERT INTO configuracion_general (id) VALUES (1);
 

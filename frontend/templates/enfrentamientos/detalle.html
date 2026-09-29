@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% set a = enfrentamiento.jugador_a %}
+{% set b = enfrentamiento.jugador_b %}
+{% set r = enfrentamiento.resumen %}
+{% block title %}{{ a.nombre }} vs {{ b.nombre }} · {{ nombre_club }}{% endblock %}
+
+{% macro ficha_marcador(jugador) %}
+<a class="marcador-jugador" href="{{ url_for('jugador.detalle', jugador_id=jugador.id) }}">
+  {% if jugador.imagen_icono %}
+  <img class="jugador-icono" src="{{ imagen_url(jugador.imagen_icono) }}" alt="">
+  {% else %}
+  <span class="jugador-icono jugador-icono-placeholder">{{ jugador.nombre[0] | upper }}</span>
+  {% endif %}
+  <span class="jugador-tile-nombre">{{ jugador.nombre }}</span>
+</a>
+{% endmacro %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Enfrentamiento</p>
+    <h1 class="display-title">{{ a.nombre }} vs {{ b.nombre }}</h1>
+  </div>
+  <div class="page-head-acciones">
+    <a class="btn btn-ghost" href="{{ url_for('enfrentamiento.detalle', jugador_a_id=b.id, jugador_b_id=a.id) }}">Invertir</a>
+    <a class="btn btn-ghost" href="{{ url_for('enfrentamiento.selector') }}">Volver</a>
+  </div>
+</div>
+
+<div class="marcador">
+  {{ ficha_marcador(a) }}
+  <div class="marcador-centro">
+    <p class="marcador-resultado">
+      <span class="{{ 'marcador-lider' if r.ganados_a > r.ganados_b }}">{{ r.ganados_a }}</span>
+      <span class="marcador-separador">–</span>
+      <span class="{{ 'marcador-lider' if r.ganados_b > r.ganados_a }}">{{ r.ganados_b }}</span>
+    </p>
+    <p class="marcador-nota">{{ r.partidos_jugados }} partido{{ 's' if r.partidos_jugados != 1 else '' }}</p>
+  </div>
+  {{ ficha_marcador(b) }}
+</div>
+
+{% if enfrentamiento.torneos %}
+<h2 class="ticket-nombre">Historial</h2>
+{# El backend lo manda en orden cronológico; acá se muestra el torneo más
+   reciente arriba. Dentro de cada torneo, los partidos quedan en el orden
+   en que se jugaron. #}
+{% for t in enfrentamiento.torneos | reverse %}
+<section class="enfrentamiento-torneo">
+  <div class="enfrentamiento-torneo-head">
+    <div>
+      <a class="enfrentamiento-torneo-nombre" href="{{ url_for('torneo.detalle', torneo_id=t.torneo_id) }}">{{ t.torneo_nombre }}</a>
+      <p class="ticket-fecha">{{ t.modo | nombre_modo }} · {{ t.fecha }}</p>
+    </div>
+    <span class="enfrentamiento-parcial">{{ t.ganados_a }}–{{ t.ganados_b }}</span>
+  </div>
+  <table class="tabla-datos tabla-enfrentamiento">
+    <thead>
+      <tr><th>Fase</th><th>{{ a.nombre }}</th><th>{{ b.nombre }}</th><th>Ganador</th></tr>
+    </thead>
+    <tbody>
+    {% for p in t.partidos %}
+      <tr>
+        <td>{{ p.fase | nombre_modo }}{% if p.jornada %} · J{{ p.jornada }}{% endif %}{% if p.ronda %} · R{{ p.ronda }}{% endif %}</td>
+        <td>{{ p.peleador_a or '—' }}</td>
+        <td>{{ p.peleador_b or '—' }}</td>
+        <td class="{{ 'enfrentamiento-gano-a' if p.gano_a else 'enfrentamiento-gano-b' }}">{{ a.nombre if p.gano_a else b.nombre }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endfor %}
+{% else %}
+<div class="empty-state">
+  <p class="empty-title">Todavía no se enfrentaron</p>
+  <p class="empty-body">Solo cuentan partidos finalizados. Repechaje y desempate no suman, igual que en el perfil de cada jugador.</p>
+</div>
+{% endif %}
+{% endblock %}

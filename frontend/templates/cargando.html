@@ -15,6 +15,10 @@
         <div class="carga-barra-progreso" id="carga-barra"></div>
       </div>
       <p class="carga-porcentaje" id="carga-porcentaje">0%</p>
+      <div id="carga-error" class="carga-error" hidden>
+        <p class="carga-paso">El servidor no responde. Puede estar caído o tardando más de lo normal.</p>
+        <button type="button" class="btn btn-stamp" id="carga-reintentar">Reintentar</button>
+      </div>
     </div>
   </div>
 
@@ -23,6 +27,27 @@
     const barra = document.getElementById("carga-barra");
     const paso = document.getElementById("carga-paso");
     const pct = document.getElementById("carga-porcentaje");
+    const error = document.getElementById("carga-error");
+    // Adónde ir cuando el backend esté listo: la misma página (recargarla)
+    // o, si se llegó acá desde un formulario, la página del formulario --
+    // recargar un POST lo reenviaría.
+    const destino = {{ url_destino | tojson }};
+    // Si el backend no contesta NADA durante este tiempo, se deja de
+    // esperar y se avisa. Despertar un servicio dormido en Render tarda
+    // bastante menos que esto.
+    const MS_MAX_SIN_RESPUESTA = 3 * 60 * 1000;
+    let sinRespuestaDesde = null;
+
+    function irAlDestino() {
+      if (destino) { window.location.href = destino; } else { window.location.reload(); }
+    }
+
+    function rendirse() {
+      paso.hidden = true;
+      error.hidden = false;
+    }
+
+    document.getElementById("carga-reintentar").addEventListener("click", irAlDestino);
 
     function consultar() {
       // Le pregunta al FRONTEND (mismo origen). El frontend consulta al
@@ -31,6 +56,15 @@
       fetch("{{ url_for('inicio.estado_carga') }}")
         .then(r => r.json())
         .then(data => {
+          if (data.sin_respuesta) {
+            sinRespuestaDesde = sinRespuestaDesde || Date.now();
+            if (Date.now() - sinRespuestaDesde > MS_MAX_SIN_RESPUESTA) {
+              rendirse();
+              return;
+            }
+          } else {
+            sinRespuestaDesde = null;
+          }
           const porcentaje = data.pasos_totales > 0
             ? Math.round((data.pasos_hechos / data.pasos_totales) * 100)
             : 0;
@@ -42,8 +76,8 @@
             paso.textContent = "Listo";
             barra.style.width = "100%";
             pct.textContent = "100%";
-            // Recarga la página que el usuario quería ver originalmente
-            setTimeout(() => { window.location.reload(); }, 350);
+            // Vuelve a la página que el usuario quería ver originalmente
+            setTimeout(irAlDestino, 350);
           } else {
             setTimeout(consultar, 400);
           }

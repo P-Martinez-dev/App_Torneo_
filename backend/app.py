@@ -6,6 +6,7 @@ from controllers.torneo_routes import torneo_bp
 from controllers.partido_routes import partido_bp
 from controllers.peleador_routes import peleador_bp
 from controllers.admin_routes import admin_bp
+from controllers.enfrentamiento_routes import enfrentamiento_bp
 from services import cache_resultados
 
 
@@ -47,6 +48,7 @@ def create_app():
     app.register_blueprint(partido_bp)
     app.register_blueprint(peleador_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(enfrentamiento_bp)
 
     # Calienta el cache al arrancar -- así el primer usuario ya encuentra
     # todo precalculado. El progreso queda disponible en /torneos/warmup/progreso
