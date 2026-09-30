@@ -245,7 +245,7 @@ def obtener_resumen(torneo_id: int) -> dict:
         # quedaba solo con las tablas por grupo, que no dicen cómo terminó
         # el torneo en conjunto.
         resumen["tabla"] = tabla_service.calcular_tabla_grupos_eliminacion(torneo_id)
-        resumen["bracket"] = _armar_bracket(partidos, con_nombres)
+        resumen["bracket"] = _armar_bracket(partidos, con_nombres, torneo.cupos_eliminacion)
         # La lista completa en orden, igual que en los otros modos: los
         # partidos ya están arriba repartidos por grupo y por ronda, pero
         # sin esto la sección "Orden cronológico" del detalle quedaba vacía
@@ -258,7 +258,18 @@ def obtener_resumen(torneo_id: int) -> dict:
     return resumen
 
 
-def _armar_bracket(partidos, con_nombres):
+def _armar_bracket(partidos, con_nombres, cupos=None):
+    """Las rondas de la eliminación, en orden, con sus partidos en el orden
+    en que se generaron (partidos ya viene ordenado por 'orden'). Ese orden
+    ES la forma del cuadro: la ronda siguiente se arma emparejando de a dos
+    a los ganadores en ese mismo orden (ver
+    partido_service._generar_siguiente_ronda_eliminacion), así que el
+    partido i de una ronda sale de los partidos 2i y 2i+1 de la anterior.
+
+    'rondas_por_definir': las rondas que todavía no se generaron (torneo en
+    curso), con cuántos partidos van a tener -- para dibujar la forma
+    completa del cuadro desde el principio. Sale de cupos, que siempre es
+    potencia de 2."""
     partidos_elim = [p for p in partidos if p.fase == "eliminacion"]
     if not partidos_elim:
         return None
@@ -276,7 +287,17 @@ def _armar_bracket(partidos, con_nombres):
         for ronda in sorted(por_ronda)
     ]
 
-    bracket = {"rondas": rondas}
+    rondas_por_definir = []
+    if cupos:
+        cantidad = len(por_ronda[max(por_ronda)]) // 2
+        while cantidad >= 1:
+            rondas_por_definir.append({
+                "nombre": NOMBRES_RONDA.get(cantidad, f"Ronda de {cantidad * 2}"),
+                "cantidad": cantidad,
+            })
+            cantidad //= 2
+
+    bracket = {"rondas": rondas, "rondas_por_definir": rondas_por_definir}
     partido_tercer = next((p for p in partidos if p.fase == "tercer_puesto"), None)
     if partido_tercer:
         bracket["tercer_puesto"] = con_nombres(partido_tercer)

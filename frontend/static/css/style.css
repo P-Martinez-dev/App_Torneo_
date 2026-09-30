@@ -1525,3 +1525,151 @@ input[type="file"]::file-selector-button:hover {
 @media (max-width: 800px) {
   .stats-grilla { grid-template-columns: 1fr; }
 }
+
+/* ---------- Llaves (bracket visual del detalle de un torneo) ---------- */
+/* Una columna por ronda. Todas las columnas miden lo mismo de alto y cada
+   una reparte ese alto en partes iguales entre sus partidos: así el centro
+   de cada cruce cae justo entre los dos cruces de la ronda anterior de los
+   que sale, y las líneas de unión (dibujadas con bordes, igual que los
+   chevrones del resto de la app) coinciden sin calcular nada. */
+.llaves-scroll {
+  overflow-x: auto;            /* en el celular el cuadro se desliza de costado */
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+}
+.llaves {
+  --llaves-hueco: 44px;        /* espacio entre columnas, donde van las líneas */
+  --llaves-linea: 2px solid var(--line);
+  display: flex;
+  gap: var(--llaves-hueco);
+  width: max-content;
+  min-width: 100%;
+}
+.llaves-ronda {
+  display: flex;
+  flex-direction: column;
+  width: 180px;
+  flex: none;
+}
+.llaves-ronda-nombre {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--graphite);
+  margin: 0 0 12px;
+  white-space: nowrap;
+}
+.llaves-partidos {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.llaves-slot {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 8px 0;
+}
+
+/* Línea que sale de cada cruce hacia la derecha (todas las columnas menos
+   la del campeón), y el tramo vertical que une cada par de cruces. */
+.llaves-ronda:not(.llaves-ronda-campeon) .llaves-slot::after {
+  content: "";
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  width: calc(var(--llaves-hueco) / 2);
+  border-top: var(--llaves-linea);
+}
+.llaves-ronda:not(.llaves-ronda-campeon):not(:nth-last-child(2)) .llaves-slot::before {
+  content: "";
+  position: absolute;
+  left: calc(100% + var(--llaves-hueco) / 2);
+  border-left: var(--llaves-linea);
+}
+.llaves-ronda:not(.llaves-ronda-campeon):not(:nth-last-child(2)) .llaves-slot:nth-child(odd)::before {
+  top: 50%;
+  bottom: -1px;
+}
+.llaves-ronda:not(.llaves-ronda-campeon):not(:nth-last-child(2)) .llaves-slot:nth-child(even)::before {
+  top: -1px;
+  bottom: 50%;
+}
+/* Tramo que entra a cada cruce desde la izquierda (todas menos la primera). */
+.llaves-ronda:not(:first-child) .llaves-cruce::before,
+.llaves-ronda:not(:first-child) .llaves-campeon::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  width: calc(var(--llaves-hueco) / 2);
+  border-top: var(--llaves-linea);
+}
+
+.llaves-cruce {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--card);
+  border: 2px solid var(--line);
+  text-decoration: none;
+  color: var(--ink);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+a.llaves-cruce:hover,
+a.llaves-cruce:focus-visible {
+  border-color: var(--stamp);
+  box-shadow: 0 4px 16px rgba(227, 30, 36, 0.3);
+}
+.llaves-jugador {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 7px 10px;
+  border-left: 3px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.llaves-jugador + .llaves-jugador { border-top: 1px solid var(--line); }
+.llaves-ganador { border-left-color: var(--stamp); font-weight: 500; }
+.llaves-perdedor { color: var(--graphite); }
+.llaves-cruce-vacio {
+  border-style: dashed;
+  color: var(--slate);
+}
+
+.llaves-campeon {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: var(--card);
+  border: 2px solid var(--stamp);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+a.llaves-campeon:hover { box-shadow: 0 4px 16px rgba(227, 30, 36, 0.35); }
+.llaves-campeon-vacio {
+  border-style: dashed;
+  border-color: var(--line);
+  color: var(--slate);
+  font-size: 14px;
+  font-family: var(--font-mono);
+  font-weight: 400;
+}
+
+.llaves-tercer { width: 180px; }
+.llaves-tercer .llaves-slot { padding: 0; }

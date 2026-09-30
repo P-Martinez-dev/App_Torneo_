@@ -172,24 +172,67 @@
 </section>
 
 {% if resumen.bracket %}
-<section class="detalle-seccion">
-  <h2 class="ticket-nombre">Bracket</h2>
-  {% for ronda in resumen.bracket.rondas %}
-  <h3 class="detalle-subtitulo">{{ ronda.nombre }}</h3>
-  <ul class="lista-partidos">
-    {% for p in ronda.partidos %}
-    <li>{{ p.jugador1_nombre }} vs {{ p.jugador2_nombre }}{% if p.ganador_nombre %} — gana {{ p.ganador_nombre }}{% endif %}</li>
+{# Llaves de la eliminación, dibujadas como cuadro: una columna por ronda.
+   El partido i de una ronda sale de los partidos 2i y 2i+1 de la anterior
+   (así las genera el backend), por eso alcanza con que cada columna reparta
+   su alto en partes iguales para que las líneas de unión caigan justo. Las
+   rondas que todavía no se jugaron se dibujan vacías ("Por definir"). #}
+{% macro cruce(p) %}
+<div class="llaves-slot">
+  <a class="llaves-cruce{{ ' llaves-cruce-jugado' if p.ganador_id }}" href="{{ url_for('enfrentamiento.detalle', jugador_a_id=p.jugador1_id, jugador_b_id=p.jugador2_id) }}" title="Ver el cara a cara">
+    {% for jid, nombre in [(p.jugador1_id, p.jugador1_nombre), (p.jugador2_id, p.jugador2_nombre)] %}
+    <span class="llaves-jugador{% if p.ganador_id %}{{ ' llaves-ganador' if jid == p.ganador_id else ' llaves-perdedor' }}{% endif %}">{{ nombre }}</span>
     {% endfor %}
-  </ul>
-  {% endfor %}
+  </a>
+</div>
+{% endmacro %}
+{% set final = resumen.bracket.rondas[-1].partidos[0] if not resumen.bracket.rondas_por_definir and resumen.bracket.rondas[-1].partidos | length == 1 else none %}
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Llaves</h2>
+  <div class="llaves-scroll">
+    <div class="llaves">
+      {% for ronda in resumen.bracket.rondas %}
+      <div class="llaves-ronda">
+        <h3 class="llaves-ronda-nombre">{{ ronda.nombre }}</h3>
+        <div class="llaves-partidos">
+          {% for p in ronda.partidos %}{{ cruce(p) }}{% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+      {% for ronda in resumen.bracket.rondas_por_definir %}
+      <div class="llaves-ronda">
+        <h3 class="llaves-ronda-nombre">{{ ronda.nombre }}</h3>
+        <div class="llaves-partidos">
+          {% for _ in range(ronda.cantidad) %}
+          <div class="llaves-slot">
+            <div class="llaves-cruce llaves-cruce-vacio">
+              <span class="llaves-jugador">Por definir</span>
+              <span class="llaves-jugador">Por definir</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+      <div class="llaves-ronda llaves-ronda-campeon">
+        <h3 class="llaves-ronda-nombre">Campeón</h3>
+        <div class="llaves-partidos">
+          <div class="llaves-slot">
+            {% if final and final.ganador_id %}
+            <a class="llaves-campeon" href="{{ url_for('jugador.detalle', jugador_id=final.ganador_id) }}">🥇 {{ final.ganador_nombre }}</a>
+            {% else %}
+            <div class="llaves-campeon llaves-campeon-vacio">Por definir</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   {% if resumen.bracket.tercer_puesto %}
-  <h3 class="detalle-subtitulo">Tercer puesto</h3>
-  <ul class="lista-partidos">
-    <li>
-      {{ resumen.bracket.tercer_puesto.jugador1_nombre }} vs {{ resumen.bracket.tercer_puesto.jugador2_nombre }}
-      {% if resumen.bracket.tercer_puesto.ganador_nombre %} — gana {{ resumen.bracket.tercer_puesto.ganador_nombre }}{% endif %}
-    </li>
-  </ul>
+  <div class="llaves-tercer">
+    <h3 class="llaves-ronda-nombre">Tercer puesto</h3>
+    {{ cruce(resumen.bracket.tercer_puesto) }}
+  </div>
   {% endif %}
 </section>
 {% endif %}
