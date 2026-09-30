@@ -1,3 +1,4 @@
+import sys
 import threading
 import time
 
@@ -214,9 +215,11 @@ def _a_entero(valor):
         return None
 
 
-# Cuánto espera el pedido que despierta al backend. Render tarda "alrededor
-# de un minuto" en levantar un servicio gratis dormido; se deja margen.
-_SEGUNDOS_ESPERA_DESPERTAR = 120
+# Cuánto se insiste en despertar al backend antes de rendirse. Render
+# tarda "alrededor de un minuto" en levantar un servicio gratis dormido; se
+# deja margen. Coincide con los 3 minutos de la pantalla de carga.
+_SEGUNDOS_INSISTIR_DESPERTAR = 180
+_SEGUNDOS_ENTRE_INTENTOS = 3
 _despertando = {"en_curso": False}
 _lock_despertar = threading.Lock()
 
@@ -239,33 +242,57 @@ def estado_warmup():
         raise
 
 
+def _log_despertar(mensaje):
+    """Va a la salida de error, que es lo que Render muestra en los logs del
+    servicio: así, si el backend no despierta, queda registrado qué contestó
+    Render en cada intento en vez de tener que adivinarlo."""
+    print(f"[despertar-backend] {mensaje}", file=sys.stderr, flush=True)
+
+
 def _despertar_backend():
-    """Render despierta un servicio dormido cuando le llega un pedido, pero
-    en la práctica NO termina de levantarlo si quien lo pidió se va antes:
-    con consultas que abandonan a los 5 s, el backend no despertaba nunca
-    (probado en producción: sin un solo log durante horas, y apenas alguien
-    lo esperó desde el navegador, levantó). Por eso, cuando el backend no
-    contesta, se deja UN pedido en segundo plano esperando lo que haga
-    falta, mientras la pantalla de carga sigue consultando cada pocos
-    segundos. Si ya hay uno esperando, no se lanza otro."""
+    """Cuando el backend no contesta, se queda insistiendo en segundo plano
+    (un solo hilo a la vez) hasta que devuelva el progreso del warmup como
+    JSON, o hasta _SEGUNDOS_INSISTIR_DESPERTAR. Mientras tanto la pantalla de
+    carga sigue consultando cada pocos segundos.
+
+    Por qué insistir y no hacer un solo pedido largo: Render despierta un
+    servicio dormido con cualquier pedido, pero lo que le contesta al que
+    pregunta mientras arranca puede ser una espera larga o una página de
+    "cargando" inmediata. Un solo pedido sirve para el primer caso; con el
+    segundo termina enseguida sin que el backend esté listo. Insistiendo
+    se cubren los dos. Cada intento queda en el log (_log_despertar)."""
     with _lock_despertar:
         if _despertando["en_curso"]:
             return
         _despertando["en_curso"] = True
 
-    def _esperar():
+    def _insistir():
+        url = f"{Config.API_BASE_URL}/torneos/warmup/progreso"
+        inicio = time.time()
+        intento = 0
         try:
-            requests.get(
-                f"{Config.API_BASE_URL}/torneos/warmup/progreso",
-                timeout=(5, _SEGUNDOS_ESPERA_DESPERTAR),
-            )
-        except Exception:
-            pass  # si no despertó, la próxima consulta fallida lanza otro
+            while time.time() - inicio < _SEGUNDOS_INSISTIR_DESPERTAR:
+                intento += 1
+                t0 = time.time()
+                try:
+                    resp = requests.get(url, timeout=(10, _SEGUNDOS_INSISTIR_DESPERTAR))
+                    tipo = resp.headers.get("Content-Type", "")
+                    _log_despertar(
+                        f"intento {intento}: HTTP {resp.status_code} en {time.time() - t0:.1f}s, "
+                        f"content-type={tipo!r}, inicio={resp.text[:120]!r}"
+                    )
+                    if resp.ok and tipo.startswith("application/json"):
+                        _log_despertar(f"backend despierto tras {time.time() - inicio:.0f}s")
+                        return
+                except Exception as e:
+                    _log_despertar(f"intento {intento}: {type(e).__name__}: {e} ({time.time() - t0:.1f}s)")
+                time.sleep(_SEGUNDOS_ENTRE_INTENTOS)
+            _log_despertar(f"sin respuesta útil después de {intento} intentos; se deja de insistir")
         finally:
             with _lock_despertar:
                 _despertando["en_curso"] = False
 
-    threading.Thread(target=_esperar, daemon=True).start()
+    threading.Thread(target=_insistir, daemon=True).start()
 
 
 def obtener_infos():
