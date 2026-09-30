@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set url_volver = url_for('configuracion.index') %}
 {% block title %}Admins · {{ nombre_club }}{% endblock %}
 
 {% block content %}
@@ -7,7 +8,6 @@
     <p class="eyebrow">Admin</p>
     <h1 class="display-title">Usuarios</h1>
   </div>
-  <a class="btn btn-ghost" href="{{ url_for('configuracion.index') }}">Volver</a>
 </div>
 
 <section class="detalle-seccion">

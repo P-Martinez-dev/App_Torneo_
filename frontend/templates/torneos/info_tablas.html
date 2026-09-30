@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set url_volver = url_for('torneo.listado') %}
 {% block title %}Info de tablas · {{ nombre_club }}{% endblock %}
 
 {% block content %}
@@ -7,7 +8,6 @@
     <p class="eyebrow">Tablas</p>
     <h1 class="display-title">Cómo&nbsp;se&nbsp;arma&nbsp;la&nbsp;tabla</h1>
   </div>
-  <a class="btn btn-ghost" href="{{ url_for('torneo.listado') }}">Volver</a>
 </div>
 
 <section class="detalle-seccion">

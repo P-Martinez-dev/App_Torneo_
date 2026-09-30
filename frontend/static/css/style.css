@@ -174,6 +174,40 @@ a { color: inherit; }
   padding: 40px 32px 80px;
 }
 
+/* ---------- Volver (uno solo, lo dibuja base.html) ---------- */
+/* Mismo chevron dibujado con bordes que las flechas de navegación de los
+   perfiles, para que "ir hacia atrás" se vea igual en toda la app. */
+.volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--graphite);
+  text-decoration: none;
+  transition: color 0.12s ease;
+}
+.volver::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-top: 3px solid currentColor;
+  border-left: 3px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.12s ease;
+}
+.volver:hover,
+.volver:focus-visible { color: var(--stamp); }
+.volver:hover::before { transform: translateX(-3px) rotate(-45deg); }
+.volver:focus-visible {
+  outline: 3px solid var(--stamp);
+  outline-offset: 4px;
+}
+
 /* ---------- Page head ---------- */
 .page-head {
   display: flex;

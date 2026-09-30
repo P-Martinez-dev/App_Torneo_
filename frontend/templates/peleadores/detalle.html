@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set url_volver = url_for('peleador_frontend.listado') %}
 {% block title %}{{ peleador.nombre }} · {{ nombre_club }}{% endblock %}
 
 {% block content %}
@@ -21,7 +22,6 @@
   </div>
   <div class="page-head-acciones">
     {% if es_admin() %}<a class="btn btn-ghost" href="{{ url_for('peleador_frontend.editar', peleador_id=peleador.id) }}">Modificar</a>{% endif %}
-    <a class="btn btn-ghost" href="{{ url_for('peleador_frontend.listado') }}">Volver</a>
   </div>
 </div>
 

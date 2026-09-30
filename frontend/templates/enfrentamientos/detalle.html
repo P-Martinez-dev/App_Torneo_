@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set url_volver = url_for('enfrentamiento.selector') %}
 {% set a = enfrentamiento.jugador_a %}
 {% set b = enfrentamiento.jugador_b %}
 {% set r = enfrentamiento.resumen %}
@@ -23,7 +24,6 @@
   </div>
   <div class="page-head-acciones">
     <a class="btn btn-ghost" href="{{ url_for('enfrentamiento.detalle', jugador_a_id=b.id, jugador_b_id=a.id) }}">Invertir</a>
-    <a class="btn btn-ghost" href="{{ url_for('enfrentamiento.selector') }}">Volver</a>
   </div>
 </div>
 

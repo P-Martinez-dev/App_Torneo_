@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set url_volver = volver %}
 {% block title %}Editar info · {{ nombre_club }}{% endblock %}
 
 {% block content %}
@@ -7,7 +8,6 @@
     <p class="eyebrow">Editar info</p>
     <h1 class="display-title">{{ titulo }}</h1>
   </div>
-  <a class="btn btn-ghost" href="{{ volver }}">Cancelar</a>
 </div>
 
 <form class="form-ticket" method="post">

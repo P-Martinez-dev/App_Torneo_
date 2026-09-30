@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set url_volver = url_for('torneo.listado') %}
 {% block title %}{{ resumen.torneo.nombre }} · {{ nombre_club }}{% endblock %}
 
 {% block content %}
@@ -19,7 +20,6 @@
   <div class="page-head-acciones">
     <a class="btn btn-stamp" href="{{ url_for('torneo.exportar_imagen', torneo_id=torneo_id) }}">Exportar imagen</a>
     {% if es_admin() %}<a class="btn btn-ghost" href="{{ url_for('torneo.editar', torneo_id=torneo_id) }}">Editar torneo</a>{% endif %}
-    <a class="btn btn-ghost" href="{{ url_for('torneo.listado') }}">Volver a tablas</a>
   </div>
 </div>
 

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set url_volver = volver %}
 {% block title %}{{ titulo }} · {{ nombre_club }}{% endblock %}
 
 {% block content %}
@@ -11,7 +12,6 @@
     {% if es_admin() %}
     <a class="btn btn-ghost" href="{{ url_for('torneo.editar_info', cual=cual) }}">Editar</a>
     {% endif %}
-    <a class="btn btn-ghost" href="{{ volver }}">Volver</a>
   </div>
 </div>
 

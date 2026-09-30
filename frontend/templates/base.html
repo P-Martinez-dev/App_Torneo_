@@ -24,6 +24,17 @@
     </div>
   </header>
   <main class="page">
+    {# El "Volver" de TODAS las pantallas sale de acá, siempre en el mismo
+       lugar (arriba a la izquierda) y con el mismo texto. Cada plantilla
+       solo declara ADÓNDE vuelve, con {% set url_volver = ... %} a nivel de
+       plantilla (fuera de los bloques); si no lo declara, no aparece (ej:
+       Inicio). Vuelve a la pantalla "madre" y no a la anterior del
+       historial: el atrás del navegador, después de guardar un formulario,
+       te devuelve al formulario, y entrando por un link compartido te saca
+       de la app. #}
+    {% if url_volver is defined and url_volver %}
+    <a class="volver" href="{{ url_volver }}">Volver</a>
+    {% endif %}
     {% with mensajes = get_flashed_messages() %}
       {% if mensajes %}
         {% for m in mensajes %}
