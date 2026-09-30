@@ -1,3 +1,4 @@
+import threading
 import time
 
 from services.api_client import session as requests
@@ -213,13 +214,58 @@ def _a_entero(valor):
         return None
 
 
+# Cuánto espera el pedido que despierta al backend. Render tarda "alrededor
+# de un minuto" en levantar un servicio gratis dormido; se deja margen.
+_SEGUNDOS_ESPERA_DESPERTAR = 120
+_despertando = {"en_curso": False}
+_lock_despertar = threading.Lock()
+
+
 def estado_warmup():
     """Progreso del precalentado del backend. Es una consulta liviana (el
     backend responde de memoria, no toca la base), así que se puede
-    llamar seguido sin costo."""
-    resp = requests.get(f"{Config.API_BASE_URL}/torneos/warmup/progreso", timeout=5)
-    resp.raise_for_status()
-    return resp.json()
+    llamar seguido sin costo.
+
+    Corta a los 5 s para que la pantalla de carga siga respondiendo. Si
+    falla (dormido, arrancando, o Render devolviendo su página de "loading"
+    en vez de JSON), se lanza además un pedido aparte que SÍ espera -- ver
+    _despertar_backend."""
+    try:
+        resp = requests.get(f"{Config.API_BASE_URL}/torneos/warmup/progreso", timeout=5)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        _despertar_backend()
+        raise
+
+
+def _despertar_backend():
+    """Render despierta un servicio dormido cuando le llega un pedido, pero
+    en la práctica NO termina de levantarlo si quien lo pidió se va antes:
+    con consultas que abandonan a los 5 s, el backend no despertaba nunca
+    (probado en producción: sin un solo log durante horas, y apenas alguien
+    lo esperó desde el navegador, levantó). Por eso, cuando el backend no
+    contesta, se deja UN pedido en segundo plano esperando lo que haga
+    falta, mientras la pantalla de carga sigue consultando cada pocos
+    segundos. Si ya hay uno esperando, no se lanza otro."""
+    with _lock_despertar:
+        if _despertando["en_curso"]:
+            return
+        _despertando["en_curso"] = True
+
+    def _esperar():
+        try:
+            requests.get(
+                f"{Config.API_BASE_URL}/torneos/warmup/progreso",
+                timeout=(5, _SEGUNDOS_ESPERA_DESPERTAR),
+            )
+        except Exception:
+            pass  # si no despertó, la próxima consulta fallida lanza otro
+        finally:
+            with _lock_despertar:
+                _despertando["en_curso"] = False
+
+    threading.Thread(target=_esperar, daemon=True).start()
 
 
 def obtener_infos():

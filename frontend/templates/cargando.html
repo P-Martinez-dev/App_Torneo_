@@ -47,6 +47,15 @@
       error.hidden = false;
     }
 
+    // Anota que esta consulta no tuvo respuesta del backend y devuelve true
+    // si ya se superó el máximo. Cuenta tanto el "sin_respuesta" que manda
+    // el frontend como una consulta que falla entera: antes esta última
+    // reintentaba sin contar el tiempo, y la espera se volvía infinita.
+    function sinRespuestaDemasiado() {
+      sinRespuestaDesde = sinRespuestaDesde || Date.now();
+      return Date.now() - sinRespuestaDesde > MS_MAX_SIN_RESPUESTA;
+    }
+
     document.getElementById("carga-reintentar").addEventListener("click", irAlDestino);
 
     function consultar() {
@@ -57,8 +66,7 @@
         .then(r => r.json())
         .then(data => {
           if (data.sin_respuesta) {
-            sinRespuestaDesde = sinRespuestaDesde || Date.now();
-            if (Date.now() - sinRespuestaDesde > MS_MAX_SIN_RESPUESTA) {
+            if (sinRespuestaDemasiado()) {
               rendirse();
               return;
             }
@@ -82,7 +90,13 @@
             setTimeout(consultar, 400);
           }
         })
-        .catch(() => setTimeout(consultar, 1000));
+        .catch(() => {
+          if (sinRespuestaDemasiado()) {
+            rendirse();
+          } else {
+            setTimeout(consultar, 1000);
+          }
+        });
     }
 
     consultar();
