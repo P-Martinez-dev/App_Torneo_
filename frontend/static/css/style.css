@@ -1763,3 +1763,12 @@ a.llaves-campeon:hover { box-shadow: 0 4px 16px rgba(227, 30, 36, 0.35); }
 .grafico-tooltip-titulo { color: var(--ink); font-weight: 500; margin-bottom: 4px !important; }
 .grafico-tooltip-linea { color: var(--graphite); }
 .grafico-tooltip-marcador { color: var(--ink); margin-top: 6px !important; }
+
+/* ---------- Perfil: historial contra cada rival ---------- */
+/* La diferencia va en cian a favor y en rojo en contra, los mismos colores
+   que ya usa la tabla general para "subió" / "bajó". El signo (+/−) dice lo
+   mismo sin depender del color. */
+.historial-rivales { margin-top: 40px; }
+.diferencia-a-favor { color: var(--marker); font-weight: 500; }
+.diferencia-en-contra { color: var(--stamp); font-weight: 500; }
+.diferencia-pareja { color: var(--graphite); }

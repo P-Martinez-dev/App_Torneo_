@@ -23,6 +23,7 @@ REGISTRO = [
     {"clave": "jugador.rivales.rival_mas_frecuente", "etiqueta": "Rival más frecuente", "categoria": "Jugador"},
     {"clave": "jugador.rivales.matchup_parejo", "etiqueta": "Matchup parejo", "categoria": "Jugador"},
     {"clave": "jugador.rivales.nemesis", "etiqueta": "Némesis", "categoria": "Jugador"},
+    {"clave": "jugador.rivales.historial", "etiqueta": "Historial contra cada rival", "categoria": "Jugador"},
     {"clave": "jugador.peleadores.mas_frecuente", "etiqueta": "Peleador más usado (propio)", "categoria": "Jugador"},
     {"clave": "jugador.peleadores.mejor_win_rate", "etiqueta": "Peleador con mejor win rate (propio)", "categoria": "Jugador"},
     {"clave": "jugador.peleadores.peor_win_rate", "etiqueta": "Peleador con peor win rate (propio)", "categoria": "Jugador"},

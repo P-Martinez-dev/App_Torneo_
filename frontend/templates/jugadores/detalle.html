@@ -120,4 +120,30 @@
     {% endif %}
   </div>
 </div>
+
+{% if estadisticas.rivales and estadisticas.rivales.historial %}
+{# Historial contra cada rival, al final del perfil. El backend ya lo manda
+   ordenado: primero a quienes más ventaja les saca, después los empatados,
+   y al final contra quienes más viene abajo. Cada fila lleva a su cara a
+   cara. #}
+<section class="detalle-seccion historial-rivales">
+  <h2 class="ticket-nombre">Historial contra cada rival</h2>
+  <table class="tabla-datos">
+    <thead>
+      <tr><th>Rival</th><th>PJ</th><th>G</th><th>P</th><th>Diferencia</th></tr>
+    </thead>
+    <tbody>
+    {% for f in estadisticas.rivales.historial %}
+      <tr>
+        <td><a class="link-dato" href="{{ url_for('enfrentamiento.detalle', jugador_a_id=jugador.id, jugador_b_id=f.jugador_id) }}">{{ f.nombre }}</a></td>
+        <td>{{ f.partidos_jugados }}</td>
+        <td>{{ f.partidos_ganados }}</td>
+        <td>{{ f.partidos_perdidos }}</td>
+        <td class="{{ 'diferencia-a-favor' if f.diferencia > 0 else ('diferencia-en-contra' if f.diferencia < 0 else 'diferencia-pareja') }}">{{ '%+d' % f.diferencia if f.diferencia else '0' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
 {% endblock %}

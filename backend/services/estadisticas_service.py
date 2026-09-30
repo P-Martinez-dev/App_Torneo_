@@ -80,7 +80,7 @@ def obtener_estadisticas_jugador(jugador_id: int) -> dict:
     if resultado["rivales"]:
         resultado["rivales"] = estadisticas_config_service.filtrar_visibles(
             resultado["rivales"], "jugador.rivales",
-            campos_lista=("rival_mas_vencido", "rival_mas_frecuente", "matchup_parejo", "nemesis"),
+            campos_lista=("rival_mas_vencido", "rival_mas_frecuente", "matchup_parejo", "nemesis", "historial"),
         )
     if resultado["peleadores"]:
         resultado["peleadores"] = estadisticas_config_service.filtrar_visibles(
@@ -198,7 +198,15 @@ def _stats_rivales(jugador_id, partidos, nombres=None):
     for entrada in lista:
         entrada["nombre"] = nombres.get(entrada["jugador_id"])
         entrada["win_rate"] = round(entrada["partidos_ganados"] / entrada["partidos_jugados"], 3)
+        entrada["diferencia"] = entrada["partidos_ganados"] - entrada["partidos_perdidos"]
     lista.sort(key=lambda f: -f["partidos_jugados"])
+
+    # El historial contra cada rival, para el final del perfil: primero a
+    # los que más ventaja les saca, después los empatados, y al final contra
+    # los que más viene abajo. A igual diferencia, primero el cruce con más
+    # partidos (un +3 en 9-6 dice más que un 3-0), y después por nombre para
+    # que el orden no cambie entre recargas.
+    historial = sorted(lista, key=lambda f: (-f["diferencia"], -f["partidos_jugados"], f["nombre"] or ""))
 
     candidatos_matchup = [f for f in lista if f["partidos_jugados"] >= RIVAL_MIN_PARTIDOS_PARA_MATCHUP]
     # "Parejo" se mide por qué tan cerca del 50% está el win rate, NO por la
@@ -222,6 +230,7 @@ def _stats_rivales(jugador_id, partidos, nombres=None):
         "nemesis": nemesis,
         "min_partidos_para_matchup": RIVAL_MIN_PARTIDOS_PARA_MATCHUP,
         "todos": lista,
+        "historial": historial,
     }
 
 
