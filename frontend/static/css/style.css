@@ -1673,3 +1673,93 @@ a.llaves-campeon:hover { box-shadow: 0 4px 16px rgba(227, 30, 36, 0.35); }
 
 .llaves-tercer { width: 180px; }
 .llaves-tercer .llaves-slot { padding: 0; }
+
+/* ---------- Gráfico de evolución (cara a cara) ---------- */
+/* A en rojo (el acento de la app) y B en cian. El cian del gráfico es un
+   paso más oscuro que el --marker general: el de la app queda demasiado
+   claro sobre el fondo oscuro para una línea de datos (validado con el
+   chequeo de paletas: luminosidad dentro de rango, contraste y separación
+   para daltonismo OK). Los textos nunca van en el color de la serie: la
+   identidad la dan la línea de la leyenda y la etiqueta junto a la punta. */
+.grafico-evolucion {
+  --serie-a: var(--stamp);
+  --serie-b: #1DAAA0;
+}
+.grafico-leyenda {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.grafico-clave { display: inline-flex; align-items: center; gap: 8px; }
+.grafico-clave-linea {
+  display: inline-block;
+  width: 18px;
+  height: 0;
+  border-top: 2px solid;
+}
+.grafico-clave-linea.grafico-serie-a { border-color: var(--serie-a); }
+.grafico-clave-linea.grafico-serie-b { border-color: var(--serie-b); }
+
+.grafico-contenedor {
+  position: relative;
+  background: var(--card);
+  border: 2px solid var(--line);
+  padding: 12px 8px 4px;
+  overflow-x: auto;            /* en el celular se desliza de costado, como las llaves */
+}
+/* El SVG escala con el ancho, textos incluidos: por debajo de este ancho
+   los números quedarían ilegibles, así que en vez de achicarse más se
+   desliza. */
+.grafico-svg { display: block; width: 100%; min-width: 640px; height: auto; }
+.grafico-grilla { stroke: var(--line); stroke-width: 1; }
+.grafico-eje-texto,
+.grafico-eje-titulo {
+  fill: var(--graphite);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.grafico-eje-titulo { text-transform: uppercase; letter-spacing: 0.08em; }
+.grafico-linea {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.grafico-linea.grafico-serie-a { stroke: var(--serie-a); }
+.grafico-linea.grafico-serie-b { stroke: var(--serie-b); }
+/* Punta de cada línea: con un anillo del color del fondo, para que se
+   distinga aunque las dos terminen en el mismo lugar. */
+.grafico-punta { stroke: var(--card); stroke-width: 2; }
+.grafico-punta.grafico-serie-a { fill: var(--serie-a); }
+.grafico-punta.grafico-serie-b { fill: var(--serie-b); }
+.grafico-etiqueta {
+  fill: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+.grafico-cursor { stroke: var(--graphite); stroke-width: 1; }
+.grafico-zona { fill: transparent; cursor: crosshair; }
+
+.grafico-tooltip {
+  position: absolute;
+  top: 12px;
+  z-index: 5;
+  min-width: 170px;
+  max-width: 260px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.grafico-tooltip p { margin: 0; }
+.grafico-tooltip-titulo { color: var(--ink); font-weight: 500; margin-bottom: 4px !important; }
+.grafico-tooltip-linea { color: var(--graphite); }
+.grafico-tooltip-marcador { color: var(--ink); margin-top: 6px !important; }

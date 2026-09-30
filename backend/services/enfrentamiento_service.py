@@ -43,7 +43,39 @@ def obtener_enfrentamiento(jugador_a_id: int, jugador_b_id: int) -> dict:
         "jugador_b": _datos_jugador(jugadores[jugador_b_id]),
         "resumen": _resumen(jugador_a_id, partidos),
         "torneos": _historial_por_torneo(jugador_a_id, partidos, torneos_por_id, nombres_peleador),
+        "evolucion": _evolucion(jugador_a_id, partidos, torneos_por_id),
     }
+
+
+def _evolucion(jugador_a_id, partidos, torneos_por_id):
+    """Victorias ACUMULADAS de cada uno después de cada partido entre ellos,
+    en orden cronológico: la serie del gráfico de evolución del cara a cara
+    (partido 1, 2, 3... en el eje horizontal). El último punto coincide
+    siempre con el récord del resumen, porque sale de los mismos partidos.
+
+    Cada punto trae además de qué partido se trata, para el detalle que
+    aparece al pasar el mouse."""
+    acumulado_a = acumulado_b = 0
+    puntos = []
+    for i, p in enumerate(partidos, start=1):
+        gano_a = p.ganador_id == jugador_a_id
+        if gano_a:
+            acumulado_a += 1
+        else:
+            acumulado_b += 1
+        torneo = torneos_por_id.get(p.torneo_id)
+        puntos.append({
+            "n": i,
+            "torneo_id": p.torneo_id,
+            "torneo_nombre": torneo.nombre if torneo else None,
+            "fase": p.fase,
+            "ronda": p.ronda,
+            "jornada": p.jornada,
+            "gano_a": gano_a,
+            "acumulado_a": acumulado_a,
+            "acumulado_b": acumulado_b,
+        })
+    return puntos
 
 
 def _datos_jugador(jugador):

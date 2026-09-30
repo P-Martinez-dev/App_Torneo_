@@ -137,40 +137,6 @@
 {% endif %}
 
 {% if resumen.torneo.modo == 'grupos_eliminacion' %}
-<section class="detalle-seccion">
-  <h2 class="ticket-nombre">Grupos</h2>
-  {% for g in resumen.grupos %}
-  <div class="detalle-grupo">
-    <h3 class="detalle-subtitulo">
-      {{ g.nombre }} <span class="ticket-stamp stamp-{{ g.tipo }}">{{ g.tipo }}</span>
-    </h3>
-    {# En los grupos de rey de la cancha, "Pts" son puntos de RACHA (no
-       victorias), así que se aclara en el encabezado para que no se lea
-       como si fueran partidos ganados. Ojo: ahí se muestra puntos_racha y
-       NO f.puntos -- en esos grupos 'puntos' es un valor interno derivado
-       del puesto (lo usa el cálculo de clasificados, ver
-       _tabla_grupo_rey_de_la_cancha), no la racha. #}
-    {% set es_rey = resumen.torneo.formato_grupos == 'rey_de_la_cancha' %}
-    <table class="tabla-datos">
-      <thead><tr>
-        {% if es_rey %}<th>#</th>{% endif %}
-        <th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Win rate</th>
-        <th>{{ 'Pts racha' if es_rey else 'Pts' }}</th>
-      </tr></thead>
-      <tbody>
-      {% for f in g.tabla %}
-        <tr>
-          {% if es_rey %}<td>{{ f.puesto }}</td>{% endif %}
-          <td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td>
-          <td>{{ (f.win_rate * 100) | round(1) }}%</td><td>{{ f.puntos_racha if es_rey else f.puntos }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endfor %}
-</section>
-
 {% if resumen.bracket %}
 {# Llaves de la eliminación, dibujadas como cuadro: una columna por ronda.
    El partido i de una ronda sale de los partidos 2i y 2i+1 de la anterior
@@ -236,6 +202,40 @@
   {% endif %}
 </section>
 {% endif %}
+
+<section class="detalle-seccion">
+  <h2 class="ticket-nombre">Grupos</h2>
+  {% for g in resumen.grupos %}
+  <div class="detalle-grupo">
+    <h3 class="detalle-subtitulo">
+      {{ g.nombre }} <span class="ticket-stamp stamp-{{ g.tipo }}">{{ g.tipo }}</span>
+    </h3>
+    {# En los grupos de rey de la cancha, "Pts" son puntos de RACHA (no
+       victorias), así que se aclara en el encabezado para que no se lea
+       como si fueran partidos ganados. Ojo: ahí se muestra puntos_racha y
+       NO f.puntos -- en esos grupos 'puntos' es un valor interno derivado
+       del puesto (lo usa el cálculo de clasificados, ver
+       _tabla_grupo_rey_de_la_cancha), no la racha. #}
+    {% set es_rey = resumen.torneo.formato_grupos == 'rey_de_la_cancha' %}
+    <table class="tabla-datos">
+      <thead><tr>
+        {% if es_rey %}<th>#</th>{% endif %}
+        <th>Jugador</th><th>PJ</th><th>PG</th><th>PP</th><th>Win rate</th>
+        <th>{{ 'Pts racha' if es_rey else 'Pts' }}</th>
+      </tr></thead>
+      <tbody>
+      {% for f in g.tabla %}
+        <tr>
+          {% if es_rey %}<td>{{ f.puesto }}</td>{% endif %}
+          <td>{{ f.nombre }}</td><td>{{ f.pj }}</td><td>{{ f.pg }}</td><td>{{ f.pp }}</td>
+          <td>{{ (f.win_rate * 100) | round(1) }}%</td><td>{{ f.puntos_racha if es_rey else f.puntos }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</section>
 {% endif %}
 
 <section class="detalle-seccion">

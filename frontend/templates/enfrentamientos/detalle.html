@@ -40,6 +40,78 @@
   {{ ficha_marcador(b) }}
 </div>
 
+{% set ev = enfrentamiento.evolucion or [] %}
+{% if ev | length >= 2 %}
+{# Gráfico de evolución: victorias ACUMULADAS de cada uno (eje vertical)
+   después de cada partido entre ellos (eje horizontal, en orden
+   cronológico). Cada tramo va del acumulado del partido anterior al del
+   partido actual: sube en diagonal si ese partido lo ganó, queda plano si
+   no.
+   SVG armado acá mismo, sin librerías; el detalle al pasar el mouse lo
+   agrega grafico_evolucion.js. El historial de abajo es la misma
+   información en forma de tabla. #}
+{% set G_ANCHO, G_ALTO = 720, 280 %}
+{% set M_IZQ, M_DER, M_ARR, M_ABA = 44, 118, 14, 40 %}
+{% set ancho = G_ANCHO - M_IZQ - M_DER %}
+{% set alto = G_ALTO - M_ARR - M_ABA %}
+{% set n = ev | length %}
+{% set fin_a, fin_b = ev[-1].acumulado_a, ev[-1].acumulado_b %}
+{% set maximo = [fin_a, fin_b, 1] | max %}
+{% set paso = 1 if maximo <= 6 else (2 if maximo <= 12 else (5 if maximo <= 30 else 10)) %}
+{% set tope = ((maximo + paso - 1) // paso) * paso %}
+{% macro gx(i) %}{{ '%.1f' % (M_IZQ + ancho * i / n) }}{% endmacro %}
+{% macro gy(v) %}{{ '%.1f' % (M_ARR + alto - alto * v / tope) }}{% endmacro %}
+{% macro linea(campo) -%}
+M{{ gx(0) }},{{ gy(0) }}{% for pt in ev %} L{{ gx(loop.index) }},{{ gy(pt[campo]) }}{% endfor %}
+{%- endmacro %}
+{% set cada = 1 if n <= 12 else ((n + 11) // 12) %}
+{# Las etiquetas al final de cada línea solo si no se pisan: si las dos
+   terminan muy cerca, alcanza con la leyenda y el detalle del mouse. #}
+{% set etiquetas_separadas = ((fin_a - fin_b) | abs) * alto / tope >= 16 %}
+<section class="detalle-seccion grafico-evolucion">
+  <h2 class="ticket-nombre">Evolución</h2>
+  <div class="grafico-leyenda">
+    <span class="grafico-clave"><span class="grafico-clave-linea grafico-serie-a"></span>{{ a.nombre }}</span>
+    <span class="grafico-clave"><span class="grafico-clave-linea grafico-serie-b"></span>{{ b.nombre }}</span>
+  </div>
+  <div class="grafico-contenedor" id="grafico-evolucion">
+    <svg viewBox="0 0 {{ G_ANCHO }} {{ G_ALTO }}" class="grafico-svg" role="img"
+         aria-label="Victorias acumuladas: {{ a.nombre }} {{ fin_a }}, {{ b.nombre }} {{ fin_b }}, en {{ n }} partidos">
+      {% for v in range(0, tope + 1, paso) %}
+      <line class="grafico-grilla" x1="{{ M_IZQ }}" x2="{{ G_ANCHO - M_DER }}" y1="{{ gy(v) }}" y2="{{ gy(v) }}"/>
+      <text class="grafico-eje-texto" x="{{ M_IZQ - 10 }}" y="{{ gy(v) }}" text-anchor="end" dominant-baseline="middle">{{ v }}</text>
+      {% endfor %}
+      {# Números del eje: el primero, el último, y cada 'cada' partidos,
+         salteando los que quedan pegados al primero o al último. #}
+      {% for pt in ev %}{% if loop.index == 1 or loop.index == n or (loop.index % cada == 0 and loop.index - 1 >= cada and n - loop.index >= cada) %}
+      <text class="grafico-eje-texto" x="{{ gx(loop.index) }}" y="{{ G_ALTO - M_ABA + 18 }}" text-anchor="middle">{{ loop.index }}</text>
+      {% endif %}{% endfor %}
+      <text class="grafico-eje-titulo" x="{{ M_IZQ + ancho / 2 }}" y="{{ G_ALTO - 4 }}" text-anchor="middle">Partido</text>
+      <line class="grafico-cursor" id="grafico-cursor" y1="{{ M_ARR }}" y2="{{ M_ARR + alto }}" x1="0" x2="0" visibility="hidden"/>
+      <path class="grafico-linea grafico-serie-b" d="{{ linea('acumulado_b') }}"/>
+      <path class="grafico-linea grafico-serie-a" d="{{ linea('acumulado_a') }}"/>
+      <circle class="grafico-punta grafico-serie-b" cx="{{ gx(n) }}" cy="{{ gy(fin_b) }}" r="5"/>
+      <circle class="grafico-punta grafico-serie-a" cx="{{ gx(n) }}" cy="{{ gy(fin_a) }}" r="5"/>
+      {% if etiquetas_separadas %}
+      <text class="grafico-etiqueta" x="{{ gx(n) | float + 12 }}" y="{{ gy(fin_a) }}" dominant-baseline="middle">{{ a.nombre }} {{ fin_a }}</text>
+      <text class="grafico-etiqueta" x="{{ gx(n) | float + 12 }}" y="{{ gy(fin_b) }}" dominant-baseline="middle">{{ b.nombre }} {{ fin_b }}</text>
+      {% endif %}
+      {# Zonas invisibles para el mouse: una por partido, más anchas que la
+         línea, para que no haya que apuntarle justo. #}
+      {% for pt in ev %}
+      <rect class="grafico-zona" x="{{ gx(loop.index0) }}" y="{{ M_ARR }}" width="{{ '%.1f' % (ancho / n) }}" height="{{ alto }}"
+            data-x="{{ gx(loop.index) }}"
+            data-titulo="Partido {{ pt.n }} · {{ pt.torneo_nombre }}"
+            data-fase="{{ pt.fase | nombre_modo }}{% if pt.jornada %} · J{{ pt.jornada }}{% endif %}{% if pt.ronda %} · R{{ pt.ronda }}{% endif %}"
+            data-ganador="Ganó {{ a.nombre if pt.gano_a else b.nombre }}"
+            data-marcador="{{ a.nombre }} {{ pt.acumulado_a }} – {{ pt.acumulado_b }} {{ b.nombre }}"/>
+      {% endfor %}
+    </svg>
+    <div class="grafico-tooltip" id="grafico-tooltip" hidden></div>
+  </div>
+</section>
+{% endif %}
+
 {% if enfrentamiento.torneos %}
 <h2 class="ticket-nombre">Historial</h2>
 {# El backend lo manda en orden cronológico; acá se muestra el torneo más
@@ -77,4 +149,8 @@
   <p class="empty-body">Solo cuentan partidos finalizados. Repechaje y desempate no suman, igual que en el perfil de cada jugador.</p>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/grafico_evolucion.js') }}"></script>
 {% endblock %}
