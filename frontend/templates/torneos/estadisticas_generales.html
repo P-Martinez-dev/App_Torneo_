@@ -2,15 +2,47 @@
 {% set url_volver = url_for('inicio.inicio') %}
 {% block title %}Estadísticas generales · {{ nombre_club }}{% endblock %}
 
+{# Links de la pantalla: cada "A vs B" lleva a su cara a cara, cada torneo a
+   su detalle y cada jugador a su perfil. Están acá, en un solo lugar, para
+   que todos se vean y se comporten igual. #}
+{% macro link_enfrentamiento(a_id, b_id, texto) -%}
+<a class="link-dato" href="{{ url_for('enfrentamiento.detalle', jugador_a_id=a_id, jugador_b_id=b_id) }}">{{ texto }}</a>
+{%- endmacro %}
+{% macro link_torneo(torneo_id, texto) -%}
+<a class="link-dato" href="{{ url_for('torneo.detalle', torneo_id=torneo_id) }}">{{ texto }}</a>
+{%- endmacro %}
+{% macro link_jugador(jugador_id, texto) -%}
+<a class="link-dato" href="{{ url_for('jugador.detalle', jugador_id=jugador_id) }}">{{ texto }}</a>
+{%- endmacro %}
+
+{% macro top5(titulo, filas) %}
+<section class="stats-tarjeta">
+  <h2 class="ticket-nombre">{{ titulo }}</h2>
+  {% if filas %}
+  <ol class="lista-partidos lista-partidos-numerada">
+    {{ caller() }}
+  </ol>
+  {% else %}
+  <p class="empty-body">Todavía no hay datos suficientes.</p>
+  {% endif %}
+</section>
+{% endmacro %}
+
 {% block content %}
 <div class="page-head">
   <div>
     <p class="eyebrow">Historial completo</p>
-    <h1 class="display-title">Estadísticas&nbsp;generales</h1>
+    <h1 class="display-title">Estadísticas generales</h1>
   </div>
 </div>
 
-<section class="detalle-seccion">
+{# Grilla de tarjetas: dos columnas en pantallas anchas, una en el celular.
+   El orden de las tarjetas es el orden de lectura (izquierda a derecha,
+   arriba a abajo). #}
+<div class="stats-grilla">
+
+<section class="stats-tarjeta">
+  <h2 class="ticket-nombre">Estadísticas generales</h2>
   <table class="tabla-datos">
     <tbody>
       {% if generales.modo == 'proximo' %}
@@ -45,48 +77,37 @@
   </table>
 </section>
 
-{% macro top5(titulo, filas) %}
-<section class="detalle-seccion">
-  <h2 class="ticket-nombre">{{ titulo }}</h2>
-  {% if filas %}
-  <ol class="lista-partidos lista-partidos-numerada">
-    {{ caller() }}
-  </ol>
-  {% else %}
-  <p class="empty-body">Todavía no hay datos suficientes.</p>
-  {% endif %}
-</section>
-{% endmacro %}
-
-{% call top5('Torneos con más jugadores', generales.top_torneos_mas_jugadores) %}
-  {% for f in generales.top_torneos_mas_jugadores %}<li>{{ f.torneo_nombre }} — {{ f.cantidad_jugadores }} jugadores</li>{% endfor %}
-{% endcall %}
-
-{% call top5('Torneos con más partidos', generales.top_torneos_mas_partidos) %}
-  {% for f in generales.top_torneos_mas_partidos %}<li>{{ f.torneo_nombre }} — {{ f.cantidad_partidos }} partidos</li>{% endfor %}
-{% endcall %}
-
-{% call top5('Rivalidades más frecuentes', generales.top_rivalidades_mas_frecuentes) %}
-  {% for f in generales.top_rivalidades_mas_frecuentes %}<li>{{ f.jugadores | join(' vs ') }} — {{ f.veces }} veces</li>{% endfor %}
+{% call top5('Resultados más sorpresivos de la historia', generales.top_resultados_sorpresivos) %}
+  {% for f in generales.top_resultados_sorpresivos %}
+  <li>{{ link_enfrentamiento(f.ganador_id, f.perdedor_id, f.ganador_nombre ~ ' le ganó a ' ~ f.perdedor_nombre) }} en {{ link_torneo(f.torneo_id, f.torneo_nombre) }} (probabilidad de ganar: {{ (f.probabilidad_ganador * 100) | round(1) }}%)</li>
+  {% endfor %}
 {% endcall %}
 
 {% call top5('Rivalidades más parejas', generales.top_rivalidades_mas_parejas) %}
-  {% for f in generales.top_rivalidades_mas_parejas %}<li>{{ f.jugadores | join(' vs ') }} — {{ f.record }}</li>{% endfor %}
+  {% for f in generales.top_rivalidades_mas_parejas %}<li>{{ link_enfrentamiento(f.jugador_a_id, f.jugador_b_id, f.jugadores | join(' vs ')) }} — {{ f.record }}</li>{% endfor %}
 {% endcall %}
 
 {% call top5('Mayores "padreadas"', generales.top_padreadas) %}
-  {% for f in generales.top_padreadas %}<li>{{ f.jugadores | join(' vs ') }} — {{ f.record }}</li>{% endfor %}
+  {% for f in generales.top_padreadas %}<li>{{ link_enfrentamiento(f.jugador_a_id, f.jugador_b_id, f.jugadores | join(' vs ')) }} — {{ f.record }}</li>{% endfor %}
+{% endcall %}
+
+{% call top5('Rivalidades más frecuentes', generales.top_rivalidades_mas_frecuentes) %}
+  {% for f in generales.top_rivalidades_mas_frecuentes %}<li>{{ link_enfrentamiento(f.jugador_a_id, f.jugador_b_id, f.jugadores | join(' vs ')) }} — {{ f.veces }} veces</li>{% endfor %}
 {% endcall %}
 
 {% call top5('Más apariciones en podio', generales.top_apariciones_podio) %}
-  {% for f in generales.top_apariciones_podio %}<li>{{ f.nombre }} — {{ f.apariciones }} veces</li>{% endfor %}
+  {% for f in generales.top_apariciones_podio %}<li>{{ link_jugador(f.jugador_id, f.nombre) }} — {{ f.apariciones }} veces</li>{% endfor %}
 {% endcall %}
 
-{% call top5('Resultados más sorpresivos de la historia', generales.top_resultados_sorpresivos) %}
-  {% for f in generales.top_resultados_sorpresivos %}
-  <li>{{ f.ganador_nombre }} le ganó a {{ f.perdedor_nombre }} en {{ f.torneo_nombre }} (probabilidad de ganar: {{ (f.probabilidad_ganador * 100) | round(1) }}%)</li>
-  {% endfor %}
+{% call top5('Torneos con más jugadores', generales.top_torneos_mas_jugadores) %}
+  {% for f in generales.top_torneos_mas_jugadores %}<li>{{ link_torneo(f.torneo_id, f.torneo_nombre) }} — {{ f.cantidad_jugadores }} jugadores</li>{% endfor %}
 {% endcall %}
+
+{% call top5('Torneos con más partidos', generales.top_torneos_mas_partidos) %}
+  {% for f in generales.top_torneos_mas_partidos %}<li>{{ link_torneo(f.torneo_id, f.torneo_nombre) }} — {{ f.cantidad_partidos }} partidos</li>{% endfor %}
+{% endcall %}
+
+</div>
 
 <section class="detalle-seccion">
   <a class="btn btn-stamp" href="{{ url_for('torneo.listado') }}">Ver todos los torneos</a>

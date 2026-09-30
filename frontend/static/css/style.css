@@ -1486,3 +1486,42 @@ input[type="file"]::file-selector-button:hover {
   .marcador-separador { margin: 0 6px; }
   .tabla-enfrentamiento { font-size: 12px; }
 }
+
+/* ---------- Estadísticas generales: grilla de tarjetas ---------- */
+/* Dos columnas en pantallas anchas, una en el celular. Las tarjetas de una
+   misma fila se estiran a la misma altura (comportamiento de grid). */
+.stats-grilla {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+.stats-tarjeta {
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-top: 4px solid var(--stamp);
+  padding: 20px 22px 8px;
+  min-width: 0;
+}
+.stats-tarjeta .ticket-nombre { font-size: 20px; }
+.stats-tarjeta .lista-partidos li:last-child,
+.stats-tarjeta .tabla-datos tbody tr:last-child td { border-bottom: none; }
+
+/* Links dentro de los datos (cara a cara, torneo, jugador): subrayado
+   punteado en reposo para que se note que se puede tocar, sin cambiar el
+   color del texto; rojo al pasar el mouse, como el resto de la app. */
+.link-dato {
+  color: var(--ink);
+  text-decoration: underline dotted var(--graphite);
+  text-underline-offset: 3px;
+  transition: color 0.12s ease;
+}
+.link-dato:hover,
+.link-dato:focus-visible {
+  color: var(--stamp);
+  text-decoration-color: var(--stamp);
+}
+
+@media (max-width: 800px) {
+  .stats-grilla { grid-template-columns: 1fr; }
+}

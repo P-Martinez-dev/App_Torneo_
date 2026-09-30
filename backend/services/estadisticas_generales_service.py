@@ -7,6 +7,11 @@ from repositories import (
 from services import tabla_general_service, rating_service, estadisticas_config_service, textos_info
 
 MIN_PARTIDOS_PARA_RIVALIDAD = 3  # para "rivalidad más pareja" y "mayor padreada" -- un 1-0 no cuenta como nada
+# Una rivalidad "pareja" es la que está a lo sumo a esta diferencia de
+# victorias (6-5 sí, 6-4 no). Antes no había tope: se tomaban las 5
+# diferencias más chicas que existieran, y si no alcanzaban los pares
+# parejos, completaba con 3-0 o 4-0 -- que de parejo no tienen nada.
+MAX_DIFERENCIA_RIVALIDAD_PAREJA = 1
 TOP_N = 5
 
 
@@ -184,27 +189,51 @@ def obtener_estadisticas_generales():
         registro_par.setdefault(clave, {})
         registro_par[clave][p.ganador_id] = registro_par[clave].get(p.ganador_id, 0) + 1
 
-    top_rivalidades_mas_frecuentes = _top_n_con_empates(
-        [{"jugadores": sorted(nombres.get(j, "?") for j in clave), "veces": veces} for clave, veces in conteo_par.items()],
-        key=lambda f: f["veces"],
-    )
+    # Los ids de los dos jugadores van en cada fila para que la pantalla
+    # pueda linkear al cara a cara (/enfrentamientos/<a>/<b>).
+    frecuentes = []
+    for clave, veces in conteo_par.items():
+        if len(clave) < 2:
+            continue
+        a, b = sorted(clave, key=lambda j: nombres.get(j, "?"))
+        frecuentes.append({
+            "jugador_a_id": a, "jugador_b_id": b,
+            "jugadores": [nombres.get(a, "?"), nombres.get(b, "?")],
+            "veces": veces,
+        })
+    top_rivalidades_mas_frecuentes = _top_n_con_empates(frecuentes, key=lambda f: f["veces"])
 
     parejas_con_record = []
     for clave, reg in registro_par.items():
         ids = list(clave)
         if len(ids) < 2:
             continue
-        v1, v2 = reg.get(ids[0], 0), reg.get(ids[1], 0)
-        total = v1 + v2
+        # El que va ganando el cruce va primero ("A vs B — 5-2"): así el
+        # récord se lee siempre igual, y el link al cara a cara lo muestra
+        # desde su lado. Empatados: por nombre.
+        a, b = sorted(ids, key=lambda j: (-reg.get(j, 0), nombres.get(j, "?")))
+        va, vb = reg.get(a, 0), reg.get(b, 0)
+        total = va + vb
         if total < MIN_PARTIDOS_PARA_RIVALIDAD:
             continue
         parejas_con_record.append({
-            "jugadores": [nombres.get(ids[0]), nombres.get(ids[1])],
-            "record": f"{v1}-{v2}",
-            "diferencia": abs(v1 - v2),
+            "jugador_a_id": a, "jugador_b_id": b,
+            "jugadores": [nombres.get(a), nombres.get(b)],
+            "record": f"{va}-{vb}",
+            "diferencia": va - vb,
+            "partidos": total,
         })
 
-    top_rivalidades_mas_parejas = _top_n_con_empates(parejas_con_record, key=lambda f: -f["diferencia"])
+    # Parejas: solo las que están a 1 de diferencia como mucho, y entre
+    # ellas primero las que más se jugaron (un 6-5 dice más que un 2-1).
+    # El pre-orden hace que, a igual cantidad de partidos, el empate exacto
+    # quede antes que el 1 de diferencia (_top_n_con_empates no reordena
+    # dentro de un mismo valor).
+    parejas = sorted(
+        (f for f in parejas_con_record if f["diferencia"] <= MAX_DIFERENCIA_RIVALIDAD_PAREJA),
+        key=lambda f: f["diferencia"],
+    )
+    top_rivalidades_mas_parejas = _top_n_con_empates(parejas, key=lambda f: f["partidos"])
     top_padreadas = _top_n_con_empates(parejas_con_record, key=lambda f: f["diferencia"])
 
     # Apariciones en podio (top 3) a lo largo de toda la historia --
