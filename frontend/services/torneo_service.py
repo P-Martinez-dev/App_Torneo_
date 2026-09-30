@@ -1,5 +1,3 @@
-import sys
-import threading
 import time
 
 from services.api_client import session as requests
@@ -215,84 +213,25 @@ def _a_entero(valor):
         return None
 
 
-# Cuánto se insiste en despertar al backend antes de rendirse. Render
-# tarda "alrededor de un minuto" en levantar un servicio gratis dormido; se
-# deja margen. Coincide con los 3 minutos de la pantalla de carga.
-_SEGUNDOS_INSISTIR_DESPERTAR = 180
-_SEGUNDOS_ENTRE_INTENTOS = 3
-_despertando = {"en_curso": False}
-_lock_despertar = threading.Lock()
-
-
 def estado_warmup():
     """Progreso del precalentado del backend. Es una consulta liviana (el
     backend responde de memoria, no toca la base), así que se puede
     llamar seguido sin costo.
 
-    Corta a los 5 s para que la pantalla de carga siga respondiendo. Si
-    falla (dormido, arrancando, o Render devolviendo su página de "loading"
-    en vez de JSON), se lanza además un pedido aparte que SÍ espera -- ver
-    _despertar_backend."""
-    try:
-        resp = requests.get(f"{Config.API_BASE_URL}/torneos/warmup/progreso", timeout=5)
-        resp.raise_for_status()
-        return resp.json()
-    except Exception:
-        _despertar_backend()
-        raise
+    Corta a los 5 s para que la pantalla de carga siga respondiendo. Si el
+    backend no contesta, lanza la excepción y quien llama muestra
+    "Despertando el servidor...".
 
-
-def _log_despertar(mensaje):
-    """Va a la salida de error, que es lo que Render muestra en los logs del
-    servicio: así, si el backend no despierta, queda registrado qué contestó
-    Render en cada intento en vez de tener que adivinarlo."""
-    print(f"[despertar-backend] {mensaje}", file=sys.stderr, flush=True)
-
-
-def _despertar_backend():
-    """Cuando el backend no contesta, se queda insistiendo en segundo plano
-    (un solo hilo a la vez) hasta que devuelva el progreso del warmup como
-    JSON, o hasta _SEGUNDOS_INSISTIR_DESPERTAR. Mientras tanto la pantalla de
-    carga sigue consultando cada pocos segundos.
-
-    Por qué insistir y no hacer un solo pedido largo: Render despierta un
-    servicio dormido con cualquier pedido, pero lo que le contesta al que
-    pregunta mientras arranca puede ser una espera larga o una página de
-    "cargando" inmediata. Un solo pedido sirve para el primer caso; con el
-    segundo termina enseguida sin que el backend esté listo. Insistiendo
-    se cubren los dos. Cada intento queda en el log (_log_despertar)."""
-    with _lock_despertar:
-        if _despertando["en_curso"]:
-            return
-        _despertando["en_curso"] = True
-
-    def _insistir():
-        url = f"{Config.API_BASE_URL}/torneos/warmup/progreso"
-        inicio = time.time()
-        intento = 0
-        try:
-            while time.time() - inicio < _SEGUNDOS_INSISTIR_DESPERTAR:
-                intento += 1
-                t0 = time.time()
-                try:
-                    resp = requests.get(url, timeout=(10, _SEGUNDOS_INSISTIR_DESPERTAR))
-                    tipo = resp.headers.get("Content-Type", "")
-                    _log_despertar(
-                        f"intento {intento}: HTTP {resp.status_code} en {time.time() - t0:.1f}s, "
-                        f"content-type={tipo!r}, inicio={resp.text[:120]!r}"
-                    )
-                    if resp.ok and tipo.startswith("application/json"):
-                        _log_despertar(f"backend despierto tras {time.time() - inicio:.0f}s")
-                        return
-                except Exception as e:
-                    _log_despertar(f"intento {intento}: {type(e).__name__}: {e} ({time.time() - t0:.1f}s)")
-                time.sleep(_SEGUNDOS_ENTRE_INTENTOS)
-            _log_despertar(f"sin respuesta útil después de {intento} intentos; se deja de insistir")
-        finally:
-            with _lock_despertar:
-                _despertando["en_curso"] = False
-
-    threading.Thread(target=_insistir, daemon=True).start()
+    Acá NO se intenta despertar al backend. Antes había un hilo que
+    insistía cada 3 s, pero en Render esos pedidos volvían con un 429 de la
+    plataforma sin llegar nunca al backend -- y cuantos más se mandaban,
+    más duraba el límite. Ahora lo despierta el NAVEGADOR desde la
+    pantalla de carga (ver cargando.html), que es lo que se comprobó que
+    funciona, y los 429 frenan todos los pedidos un rato (ver
+    api_client.py)."""
+    resp = requests.get(f"{Config.API_BASE_URL}/torneos/warmup/progreso", timeout=5)
+    resp.raise_for_status()
+    return resp.json()
 
 
 def obtener_infos():

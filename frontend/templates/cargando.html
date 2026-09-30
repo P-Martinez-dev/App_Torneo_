@@ -38,6 +38,33 @@
     const MS_MAX_SIN_RESPUESTA = 3 * 60 * 1000;
     let sinRespuestaDesde = null;
 
+    // Cada cuánto se consulta el progreso. Espaciado a propósito: cada
+    // consulta termina en un pedido del frontend al backend, y en Render
+    // demasiados pedidos seguidos hacen que la plataforma los corte con un
+    // 429. Con el backend contestando se consulta un poco más seguido,
+    // para que la barra avance fluida.
+    const MS_ENTRE_CONSULTAS_ESPERANDO = 2000;
+    const MS_ENTRE_CONSULTAS_AVANZANDO = 1000;
+
+    // Despertar el backend desde ESTE navegador. En Render los pedidos del
+    // servidor del frontend al backend dormido volvían con un 429 de la
+    // plataforma sin llegar nunca al backend; en cambio, abrir la dirección
+    // del backend desde un navegador lo despertaba al instante. Esto hace
+    // eso mismo, solo: un pedido directo, repetido cada tanto mientras el
+    // backend no conteste.
+    // 'no-cors': no hace falta leer la respuesta (el backend la rechaza
+    // igual, porque el navegador no tiene la clave interna); alcanza con
+    // que el pedido llegue a Render para que levante el servicio.
+    const urlDespertar = {{ url_despertar | tojson }};
+    const MS_ENTRE_DESPERTARES = 20000;
+    let ultimoDespertar = 0;
+
+    function despertarDesdeElNavegador() {
+      if (!urlDespertar || Date.now() - ultimoDespertar < MS_ENTRE_DESPERTARES) return;
+      ultimoDespertar = Date.now();
+      fetch(urlDespertar, { mode: "no-cors", cache: "no-store" }).catch(() => {});
+    }
+
     function irAlDestino() {
       if (destino) { window.location.href = destino; } else { window.location.reload(); }
     }
@@ -70,6 +97,7 @@
               rendirse();
               return;
             }
+            despertarDesdeElNavegador();
           } else {
             sinRespuestaDesde = null;
           }
@@ -87,18 +115,24 @@
             // Vuelve a la página que el usuario quería ver originalmente
             setTimeout(irAlDestino, 350);
           } else {
-            setTimeout(consultar, 400);
+            setTimeout(consultar, data.sin_respuesta ? MS_ENTRE_CONSULTAS_ESPERANDO : MS_ENTRE_CONSULTAS_AVANZANDO);
           }
         })
         .catch(() => {
           if (sinRespuestaDemasiado()) {
             rendirse();
           } else {
-            setTimeout(consultar, 1000);
+            despertarDesdeElNavegador();
+            setTimeout(consultar, MS_ENTRE_CONSULTAS_ESPERANDO);
           }
         });
     }
 
+    // Si esta pantalla ya aparece porque el backend no contestó, se lo
+    // despierta de entrada, sin esperar a la primera consulta.
+    {% if estado.sin_respuesta %}
+    despertarDesdeElNavegador();
+    {% endif %}
     consultar();
   })();
   </script>

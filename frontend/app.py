@@ -38,6 +38,24 @@ def create_app():
     _warmup_listo = {"si": False}
 
     PASO_DESPERTANDO = "Despertando el servidor..."
+    # Estado con el que se muestra la pantalla de carga cuando el backend no
+    # contestó. Misma forma que lo que devuelve /estado-carga en ese caso
+    # (ver inicio_routes.py): 'sin_respuesta' es lo que le dice a la
+    # pantalla que tiene que despertarlo.
+    ESTADO_SIN_RESPUESTA = {"paso_actual": PASO_DESPERTANDO, "sin_respuesta": True}
+
+    # Errores HTTP del backend que significan "todavía no está disponible"
+    # y no "hay un bug": 502/503/504 los devuelve Render mientras lo
+    # despierta, y 429 lo devuelve Render cuando limita los pedidos de este
+    # servidor (ver api_client.py). Cualquier otro código sigue saliendo
+    # como error, para que se vea.
+    CODIGOS_BACKEND_NO_DISPONIBLE = (429, 502, 503, 504)
+
+    # Métodos que solo leen: ahí se puede mostrar la pantalla de carga y
+    # después recargar la misma página sin riesgo. HEAD es un GET sin cuerpo
+    # (lo usan los chequeos de Render, entre otros); sin incluirlo, un HEAD
+    # con el backend dormido terminaba en un 500.
+    METODOS_DE_LECTURA = ("GET", "HEAD")
 
     def _pantalla_de_carga(estado, url_destino=None):
         """La pantalla de carga, desde cualquier lugar que la necesite.
@@ -50,8 +68,15 @@ def create_app():
         # está justo ocupado precalculando (o dormido).
         g.sirviendo_pantalla_de_carga = True
         nombre = torneo_service._cache_nombre_club["valor"] or "App del Torneo"
+        # Una dirección del backend para que el NAVEGADOR lo despierte con un
+        # pedido propio (ver cargando.html). Cualquier ruta sirve: a Render
+        # le alcanza con que llegue un pedido para levantar el servicio,
+        # aunque el backend después lo rechace por no traer la clave
+        # interna -- la clave no se manda nunca al navegador.
+        url_despertar = f"{Config.API_BASE_URL}/torneos/warmup/progreso"
         return render_template(
-            "cargando.html", estado=estado, nombre_club_carga=nombre, url_destino=url_destino,
+            "cargando.html", estado=estado, nombre_club_carga=nombre,
+            url_destino=url_destino, url_despertar=url_despertar,
         )
 
     @app.before_request
@@ -65,7 +90,7 @@ def create_app():
             return
         if request.endpoint in ("static", "inicio.estado_carga"):
             return
-        if request.method != "GET":
+        if request.method not in METODOS_DE_LECTURA:
             return
         try:
             estado = torneo_service.estado_warmup()
@@ -77,7 +102,7 @@ def create_app():
             # pantalla de carga no volvía a aparecer nunca más. Ahora se
             # espera en la pantalla de carga (que corta sola con un mensaje
             # si el backend de verdad no vuelve).
-            return _pantalla_de_carga({"paso_actual": PASO_DESPERTANDO})
+            return _pantalla_de_carga(ESTADO_SIN_RESPUESTA)
         if estado.get("completado"):
             _warmup_listo["si"] = True
             return
@@ -85,8 +110,8 @@ def create_app():
 
     def _backend_no_disponible(e):
         """Cualquier pedido al backend que no llegó a responder (dormido,
-        arrancando, o Render devolviendo 502/503/504 mientras lo despierta)
-        termina acá, en un solo lugar, en vez de un 500 en cada ruta -- mismo
+        arrancando, Render devolviendo 502/503/504 mientras lo despierta, o
+        429 / pausa por 429 cuando Render limita los pedidos) termina acá, en un solo lugar, en vez de un 500 en cada ruta -- mismo
         criterio que la invalidación de cache del backend: centralizado, así
         una ruta nueva no puede olvidarse de manejarlo.
 
@@ -94,11 +119,11 @@ def create_app():
         ruta no esperaba) NO se tapa: sigue saliendo como error, para que se
         vea y se arregle."""
         if isinstance(e, requests.exceptions.HTTPError):
-            if e.response is None or e.response.status_code not in (502, 503, 504):
+            if e.response is None or e.response.status_code not in CODIGOS_BACKEND_NO_DISPONIBLE:
                 raise e
         _warmup_listo["si"] = False
-        if request.method == "GET":
-            return _pantalla_de_carga({"paso_actual": PASO_DESPERTANDO}), 503
+        if request.method in METODOS_DE_LECTURA:
+            return _pantalla_de_carga(ESTADO_SIN_RESPUESTA), 503
         # En un POST no se puede saber si el backend llegó a guardar el
         # cambio antes de que se cortara la espera (con un timeout de
         # lectura, pudo haberlo hecho). Se avisa, y se vuelve a la página
@@ -106,7 +131,7 @@ def create_app():
         flash("El servidor tardó en responder y no se pudo confirmar el cambio. "
               "Revisá si quedó guardado antes de volver a intentarlo.")
         destino = request.referrer or url_for("inicio.inicio")
-        return _pantalla_de_carga({"paso_actual": PASO_DESPERTANDO}, url_destino=destino), 503
+        return _pantalla_de_carga(ESTADO_SIN_RESPUESTA, url_destino=destino), 503
 
     app.register_error_handler(requests.exceptions.ConnectionError, _backend_no_disponible)
     app.register_error_handler(requests.exceptions.Timeout, _backend_no_disponible)
